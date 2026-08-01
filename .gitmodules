@@ -1,0 +1,3 @@
+[submodule "baselines/specedge/official"]
+	path = baselines/specedge/official
+	url = https://github.com/kaist-ina/specedge.git
