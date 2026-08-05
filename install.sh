@@ -1,5 +1,5 @@
 # install packages
-pip3 install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cu121
+pip3 install torch==2.2.1 torchvision==0.17.1 torchaudio==2.2.1 --index-url https://download.pytorch.org/whl/cu121
 pip3 install \
   transformers==4.57.6 \
   tqdm==4.67.1 \

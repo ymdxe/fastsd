@@ -72,6 +72,189 @@ class KVCacheModel_batching():
         self._past_key_values[proc_id].crop(end_pos)
         self._prob_history[proc_id] = self._prob_history[proc_id][:, :end_pos, :]
 
+    @staticmethod
+    def _legacy_cache(cache):
+        if hasattr(cache, "to_legacy_cache"):
+            return list(cache.to_legacy_cache())
+        return list(cache)
+
+    def _normalize_history(self, logits: torch.Tensor) -> torch.Tensor:
+        history = logits.clone()
+        for position in range(history.shape[-2]):
+            history[:, position, :] = norm_logits(
+                history[:, position, :],
+                self._temperature,
+                self._top_k,
+                self._top_p,
+            )
+        return history
+
+    @torch.no_grad()
+    def prefill_chunks(
+        self,
+        input_ids: torch.Tensor,
+        proc_ids: list[int],
+        pad_token_id,
+        input_lens: list[int],
+        cursors: list[int],
+    ) -> list[dict]:
+        """Append Prefill chunks without sampling, acceptance, or rollback."""
+
+        batch_size = len(proc_ids)
+        if input_ids.dim() != 2 or input_ids.shape[0] != batch_size:
+            raise ValueError("input_ids must have shape [len(proc_ids), T]")
+        if len(input_lens) != batch_size or len(cursors) != batch_size:
+            raise ValueError("input_lens and cursors must match proc_ids")
+        if any(int(length) <= 0 for length in input_lens):
+            raise ValueError("every Prefill chunk must contain at least one token")
+
+        metadata = [None] * batch_size
+        fresh_indices = [index for index, cursor in enumerate(cursors) if int(cursor) == 0]
+        continuation_indices = [index for index, cursor in enumerate(cursors) if int(cursor) > 0]
+
+        if fresh_indices:
+            index_tensor = torch.tensor(fresh_indices, device=input_ids.device, dtype=torch.long)
+            fresh_inputs = input_ids.index_select(0, index_tensor)
+            fresh_mask = torch.zeros_like(fresh_inputs, dtype=torch.long)
+            for row, original_index in enumerate(fresh_indices):
+                fresh_mask[row, :int(input_lens[original_index])] = 1
+            outputs = self._model(
+                fresh_inputs,
+                attention_mask=fresh_mask,
+                use_cache=True,
+            )
+            logits = outputs.logits[:, :, :self.vocab_size]
+            legacy_cache = self._legacy_cache(outputs.past_key_values)
+            for row, original_index in enumerate(fresh_indices):
+                pid = proc_ids[original_index]
+                valid_len = int(input_lens[original_index])
+                history = self._normalize_history(logits[row:row + 1, :valid_len, :])
+                per_session_cache = []
+                for key, value in legacy_cache:
+                    per_session_cache.append(
+                        (
+                            key[row:row + 1, :, :valid_len, :].clone(),
+                            value[row:row + 1, :, :valid_len, :].clone(),
+                        )
+                    )
+                self._prob_history[pid] = history
+                self._past_key_values[pid] = DynamicCache.from_legacy_cache(per_session_cache)
+                metadata[original_index] = {
+                    "proc_id": pid,
+                    "cursor_start": 0,
+                    "cursor_end": valid_len,
+                    "cache_len": valid_len,
+                }
+
+        if continuation_indices:
+            continuation_caches = []
+            cached_lens = []
+            for original_index in continuation_indices:
+                pid = proc_ids[original_index]
+                if pid not in self._past_key_values or pid not in self._prob_history:
+                    raise ValueError(f"missing Prefill continuation state for proc_id={pid!r}")
+                cached_len = int(self._past_key_values[pid].get_seq_length())
+                cursor = int(cursors[original_index])
+                if cached_len != cursor:
+                    raise ValueError(
+                        f"Prefill cache length {cached_len} does not match cursor {cursor} "
+                        f"for proc_id={pid!r}"
+                    )
+                cached_lens.append(cached_len)
+                continuation_caches.append(self._legacy_cache(self._past_key_values[pid]))
+
+            max_cached_len = max(cached_lens)
+            index_tensor = torch.tensor(continuation_indices, device=input_ids.device, dtype=torch.long)
+            continuation_inputs = input_ids.index_select(0, index_tensor)
+            current_mask = torch.zeros_like(continuation_inputs, dtype=torch.long)
+            past_mask = torch.zeros(
+                (len(continuation_indices), max_cached_len),
+                dtype=torch.long,
+                device=input_ids.device,
+            )
+            position_ids = torch.zeros_like(continuation_inputs, dtype=torch.long)
+            for row, (original_index, cached_len) in enumerate(
+                zip(continuation_indices, cached_lens)
+            ):
+                valid_len = int(input_lens[original_index])
+                current_mask[row, :valid_len] = 1
+                past_mask[row, :cached_len] = 1
+                position_ids[row, :valid_len] = torch.arange(
+                    cached_len,
+                    cached_len + valid_len,
+                    device=input_ids.device,
+                    dtype=torch.long,
+                )
+
+            padded_by_layer = []
+            for layers in zip(*continuation_caches):
+                padded_keys = []
+                padded_values = []
+                for key, value in layers:
+                    pad_len = max_cached_len - key.shape[-2]
+                    if pad_len:
+                        pad_shape = list(key.shape)
+                        pad_shape[-2] = pad_len
+                        key = torch.cat((key, key.new_zeros(pad_shape)), dim=-2)
+                        value = torch.cat((value, value.new_zeros(pad_shape)), dim=-2)
+                    padded_keys.append(key)
+                    padded_values.append(value)
+                padded_by_layer.append(
+                    (torch.cat(padded_keys, dim=0), torch.cat(padded_values, dim=0))
+                )
+
+            outputs = self._model(
+                continuation_inputs,
+                attention_mask=torch.cat((past_mask, current_mask), dim=1),
+                position_ids=position_ids,
+                past_key_values=DynamicCache.from_legacy_cache(padded_by_layer),
+                use_cache=True,
+            )
+            logits = outputs.logits[:, :, :self.vocab_size]
+            output_cache = self._legacy_cache(outputs.past_key_values)
+
+            for row, (original_index, cached_len) in enumerate(
+                zip(continuation_indices, cached_lens)
+            ):
+                pid = proc_ids[original_index]
+                valid_len = int(input_lens[original_index])
+                new_history = self._normalize_history(logits[row:row + 1, :valid_len, :])
+                self._prob_history[pid] = torch.cat(
+                    (self._prob_history[pid], new_history), dim=1
+                )
+                per_session_cache = []
+                for key, value in output_cache:
+                    old_key = key[row:row + 1, :, :cached_len, :]
+                    old_value = value[row:row + 1, :, :cached_len, :]
+                    new_key = key[
+                        row:row + 1,
+                        :,
+                        max_cached_len:max_cached_len + valid_len,
+                        :,
+                    ]
+                    new_value = value[
+                        row:row + 1,
+                        :,
+                        max_cached_len:max_cached_len + valid_len,
+                        :,
+                    ]
+                    per_session_cache.append(
+                        (
+                            torch.cat((old_key, new_key), dim=-2).clone(),
+                            torch.cat((old_value, new_value), dim=-2).clone(),
+                        )
+                    )
+                new_cache_len = cached_len + valid_len
+                self._past_key_values[pid] = DynamicCache.from_legacy_cache(per_session_cache)
+                metadata[original_index] = {
+                    "proc_id": pid,
+                    "cursor_start": cached_len,
+                    "cursor_end": new_cache_len,
+                    "cache_len": new_cache_len,
+                }
+
+        return metadata
+
     def _forward_with_kvcache(
         self,
         input_ids: torch.Tensor,

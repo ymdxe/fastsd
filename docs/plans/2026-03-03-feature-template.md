@@ -22,7 +22,7 @@
 **Step 1: 写失败用例（先定义预期行为）**
 
 ```python
-# TODO: 按需求补充真实测试
+# PLACEHOLDER: 按具体需求替换为真实测试
 
 def test_target_behavior():
     assert False, "replace with real failing assertion"
@@ -36,7 +36,7 @@ Expected: FAIL（与目标行为相关，而不是语法错误）
 **Step 3: 最小实现**
 
 ```python
-# TODO: 在 src/ 对应模块补充最小实现
+# PLACEHOLDER: 按具体需求替换为 src/ 中的最小实现
 ```
 
 **Step 4: 运行测试并确认通过**
@@ -60,7 +60,7 @@ git commit -m "feat: implement <feature-name>"
 **Step 1: 增加最小可复现实验参数**
 
 ```bash
-# TODO: 补充真实命令
+# PLACEHOLDER: 按具体需求替换为真实命令
 bash scripts/run_sd.sh
 ```
 
@@ -98,7 +98,7 @@ git commit -m "test: add validation for <feature-name>"
 **Step 2: 提供复现命令**
 
 ```bash
-# TODO: 补充真实复现命令
+# PLACEHOLDER: 按具体需求替换为真实复现命令
 ```
 
 **Step 3: Commit**

@@ -325,6 +325,10 @@ class EdgeRunner(Decoding):
                     records.append(json.loads(line))
 
         task_e2e = [float(r.get("task_e2e_ms", 0.0)) for r in records]
+        prefill_http = [float(r.get("prefill_http_ms", 0.0)) for r in records]
+        prefill_queue = [float(r.get("prefill_queue_ms", 0.0)) for r in records]
+        prefill_service = [float(r.get("prefill_service_ms", 0.0)) for r in records]
+        prefill_chunks = [int(r.get("prefill_chunks", 1)) for r in records]
         total_tokens = sum(int(r.get("generated_tokens", 0)) for r in records)
         summary = {
             "profile": self.args.profile,
@@ -339,6 +343,13 @@ class EdgeRunner(Decoding):
             "task_e2e_ms_p50": self._percentile(task_e2e, 0.50),
             "task_e2e_ms_p90": self._percentile(task_e2e, 0.90),
             "task_e2e_ms_p95": self._percentile(task_e2e, 0.95),
+            "prefill_http_ms_avg": float(statistics.mean(prefill_http)) if prefill_http else 0.0,
+            "prefill_http_ms_p95": self._percentile(prefill_http, 0.95),
+            "prefill_queue_ms_avg": float(statistics.mean(prefill_queue)) if prefill_queue else 0.0,
+            "prefill_queue_ms_p95": self._percentile(prefill_queue, 0.95),
+            "prefill_service_ms_avg": float(statistics.mean(prefill_service)) if prefill_service else 0.0,
+            "prefill_service_ms_p95": self._percentile(prefill_service, 0.95),
+            "prefill_chunks_avg": float(statistics.mean(prefill_chunks)) if prefill_chunks else 0.0,
         }
         summary_path = os.path.join(self.args.exp_name, "edge_metrics_summary.json")
         with open(summary_path, "w") as f:
@@ -404,8 +415,12 @@ class EdgeRunner(Decoding):
         with open(data_file, "r") as f:
             samples = [json.loads(line) for line in f.readlines()]
 
-        # 按进程序号切分任务，并限制每个 proc 只跑 1 个任务（用于快速并行测试）。
-        samples = [s for idx, s in enumerate(samples) if idx % self.args.num_drafts == proc_id][:1]
+        # 按进程序号切分任务，并用显式参数控制每个 Draft 进程的实验规模。
+        samples = [
+            sample
+            for index, sample in enumerate(samples)
+            if index % self.args.num_drafts == proc_id
+        ][:int(self.args.max_tasks_per_draft)]
         seed_everything(42 + proc_id)
 
         for idx, sample in enumerate(samples):
@@ -430,6 +445,7 @@ class EdgeRunner(Decoding):
             prefix = input_ids.clone()
             max_len = input_ids.shape[1] + self.args.max_tokens
 
+            prefill_http_start = time.perf_counter()
             prefill_resp = client.prefill(
                 session_id=session_id,
                 task_id=task_id,
@@ -438,6 +454,14 @@ class EdgeRunner(Decoding):
                 lag=0.0,
                 current_time=time.time(),
             )
+            prefill_http_ms = max(
+                0.0, (time.perf_counter() - prefill_http_start) * 1000.0
+            )
+            if "error" in prefill_resp:
+                raise RuntimeError(
+                    f"cloud prefill rejected: {prefill_resp['error']}: "
+                    f"{prefill_resp.get('detail', '')}"
+                )
             if prefill_resp.get("status") != "prefill_ok":
                 raise RuntimeError(f"prefill failed: {prefill_resp}")
 
@@ -568,6 +592,11 @@ class EdgeRunner(Decoding):
                     )
 
                 verify_resp, measured_http_total = verify_future.result()
+                if "error" in verify_resp:
+                    raise RuntimeError(
+                        f"cloud verify rejected: {verify_resp['error']}: "
+                        f"{verify_resp.get('detail', '')}"
+                    )
                 verify_ms = float(verify_resp.get("verify_ms", 0.0))
                 cloud_total_ms = float(verify_resp.get("cloud_total_ms", 0.0))
                 # A purer transport estimate: subtract cloud-side service time from end-to-end HTTP time.
@@ -724,6 +753,10 @@ class EdgeRunner(Decoding):
                 "enable_pipeline": pipeline_enabled,
                 "enable_proactive_draft": proactive_enabled,
                 "generated_tokens": generated_tokens,
+                "prefill_http_ms": prefill_http_ms,
+                "prefill_queue_ms": float(prefill_resp.get("prefill_queue_ms", 0.0)),
+                "prefill_service_ms": float(prefill_resp.get("prefill_service_ms", 0.0)),
+                "prefill_chunks": int(prefill_resp.get("prefill_chunks", 1)),
                 "task_e2e_ms": task_e2e_ms,
                 "tok_per_s_task": float(generated_tokens / (task_e2e_ms / 1000.0)) if task_e2e_ms > 0 else 0.0,
                 "rounds": int(rounds),

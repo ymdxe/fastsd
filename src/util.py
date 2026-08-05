@@ -5,6 +5,14 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 
+
+def positive_int(value: str) -> int:
+    parsed = int(value)
+    if parsed <= 0:
+        raise argparse.ArgumentTypeError(f"expected a positive integer, got {value!r}")
+    return parsed
+
+
 def seed_everything(seed: int):
     "set all random seed for reproducible results."
     random.seed(seed)
@@ -95,11 +103,33 @@ def parse_arguments():
     parser.add_argument('--top_p', type=float, default=0.95, help='top_p for ungreedy sampling strategy.')
     parser.add_argument('--gamma', type=int, default=6, help='guess time.')
     parser.add_argument("--num_drafts", type=int, default=4)
-    parser.add_argument("--batch_size", type=int, default=4)
-    parser.add_argument("--token_budget", type=int, default=512)
+    parser.add_argument(
+        "--batch_size",
+        type=positive_int,
+        default=4,
+        help="compatibility-only batch size; FastSD uses token_budget + max_num_seqs",
+    )
+    parser.add_argument(
+        "--token_budget",
+        type=positive_int,
+        default=512,
+        help="FastSD effective-token admission limit per scheduler tick",
+    )
+    parser.add_argument(
+        "--max_num_seqs",
+        type=positive_int,
+        default=4,
+        help="maximum sessions in one homogeneous FastSD model forward",
+    )
+    parser.add_argument(
+        "--prefill_max_wait_cycles",
+        type=positive_int,
+        default=2,
+        help="WRR cycles before one same-category Prefill chunk gets priority",
+    )
     parser.add_argument(
         "--max_tasks_per_draft",
-        type=int,
+        type=positive_int,
         default=10,
         help="max number of tasks each draft process will execute",
     )

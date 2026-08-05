@@ -182,6 +182,7 @@ async def _enqueue_and_wait(request_dict: dict, req_id: str) -> dict:
     with _pending_lock:
         _pending[req_id] = fut
 
+    request_dict.setdefault("server_enqueue_monotonic", time.monotonic())
     request_queue.put(request_dict)
     result = await fut
     return result
@@ -207,8 +208,10 @@ async def prefill(req: PrefillRequest) -> dict:
     }
 
     resp = await _enqueue_and_wait(request_dict, req_id)
+    if "error" in resp:
+        return {"session_id": req_id, **resp}
     if "status" in resp:
-        return {"session_id": req_id, "status": resp["status"]}
+        return {"session_id": req_id, **resp}
     return {"session_id": req_id, "status": "prefill_ok"}
 
 
@@ -239,6 +242,8 @@ async def verify(req: VerifyRequest) -> dict:
     }
 
     resp = await _enqueue_and_wait(request_dict, req_id)
+    if "error" in resp:
+        return {"session_id": req_id, **resp}
     accepted = int(resp["accepted"])
     final_token = resp["final_token"]
     final_token_id = int(final_token.item()) if hasattr(final_token, "item") else int(

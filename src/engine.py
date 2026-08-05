@@ -30,12 +30,16 @@ from .fastsd_scheduler import (
     FASTSD_DEFAULT_R1,
     FASTSD_DEFAULT_R2,
     FASTSD_DYNAMIC_WINDOW,
-    build_fixed_wrr_order as _build_fixed_wrr_order,
+    OversizeVerifyError,
+    UnifiedSchedulerState,
+    advance_prefill_cursor,
+    build_unified_schedule_plan,
     compute_priority_score as _compute_priority_score,
+    drain_queue_bounded,
     length_category as _length_category,
-    predict_next_verify_proc_ids as _predict_next_verify_proc_ids,
-    should_switch_to_prefill as _should_switch_to_prefill,
+    split_plan_microbatches,
     update_length_thresholds as _update_length_thresholds,
+    uses_strict_fcfs,
 )
 
 
@@ -622,8 +626,8 @@ class Decoding(ABC):
 
         # --------------------------- 队列与统计 ---------------------------
         task_queues = {
-            "prefill": {"short": queue.Queue(), "mid": queue.Queue(), "long": queue.Queue()},
-            "verify": {"short": queue.Queue(), "mid": queue.Queue(), "long": queue.Queue()},
+            "prefill": {"short": deque(), "mid": deque(), "long": deque()},
+            "verify": {"short": deque(), "mid": deque(), "long": deque()},
         }
         accept_stats = defaultdict(lambda: [0, 1])  # {proc_id: [accepted_sum, total_sum]}
         committed_prefix_tokens = {}  # {proc_id: List[int]} for debug context display
@@ -635,6 +639,9 @@ class Decoding(ABC):
         len_r2 = FASTSD_DEFAULT_R2
         cache_lock = threading.Lock()
         preloaded_gpu_pids = set()
+        scheduler_state = UnifiedSchedulerState(
+            prefill_max_wait_cycles=getattr(self.args, "prefill_max_wait_cycles", 2),
+        )
 
         def update_ema(store: dict, pid, value: float) -> float:
             alpha = float(getattr(self.args, "pipeline_ema_alpha", 0.2))
@@ -683,8 +690,22 @@ class Decoding(ABC):
             prefix_len = [req["prefix_len"] for req in batch]
 
             if batch[0]["task_type"] == "prefill":
-                # 按最大长度 pad
-                seqs = [req["draft_output"].to(target_model.device) for req in batch]
+                dispatch_monotonic = time.monotonic()
+                for req in batch:
+                    req.setdefault(
+                        "prefill_first_dispatch_monotonic", dispatch_monotonic
+                    )
+                chunk_ranges = [
+                    (
+                        int(req.get("_prefill_chunk_start", req.get("prefill_cursor", 0))),
+                        int(req.get("_prefill_chunk_end", req["prefix_len"])),
+                    )
+                    for req in batch
+                ]
+                seqs = [
+                    req["draft_output"][:, chunk_start:chunk_end].to(target_model.device)
+                    for req, (chunk_start, chunk_end) in zip(batch, chunk_ranges)
+                ]
                 input_lens = [x.shape[1] for x in seqs]
                 max_T = max(x.shape[1] for x in seqs)
                 padded = []
@@ -697,29 +718,85 @@ class Decoding(ABC):
                         padded.append(x)
                 x_batch = torch.cat(padded, dim=0)  # (B, max_T)
 
-                # 新 prompt，给每个 pid 刷新 cache
+                # Fresh Prefill creates state; continuation Prefill reuses exactly
+                # the cache accumulated up to its persistent cursor.
                 with cache_lock:
-                    for pid in proc_ids:
+                    for pid, (chunk_start, _) in zip(proc_ids, chunk_ranges):
                         preloaded_gpu_pids.discard(pid)
-                        kv_cache_manager.reset(pid)  # 只清该 pid
+                        if chunk_start == 0:
+                            kv_cache_manager.reset(pid)
+                        else:
+                            cache = kv_cache_manager._past_key_values.get(pid)
+                            if cache is None:
+                                raise ValueError(
+                                    f"missing Prefill continuation cache for proc_id={pid!r}"
+                                )
+                            kv_cache_manager._past_key_values[pid] = move_dynamic_cache_to(
+                                cache, target_model.device
+                            )
 
-                _ = kv_cache_manager.generate(
+                prefill_metadata = kv_cache_manager.prefill_chunks(
                     x_batch,
-                    1,
                     proc_ids=proc_ids,
                     pad_token_id=tokenizer.pad_token_id,
-                    is_prefill=True,
                     input_lens=input_lens,
+                    cursors=[chunk_start for chunk_start, _ in chunk_ranges],
                 )
 
-                # prefill之后，将KV cache移到CPU节省显存
                 with cache_lock:
                     for pid in proc_ids:
                         cache = kv_cache_manager._past_key_values[pid]
                         if should_offload_target_cache("prefill", pid=pid):
                             kv_cache_manager._past_key_values[pid] = move_dynamic_cache_to(cache, "cpu")
 
-                self.color_print(f"process prefill tasks from: {proc_ids}", 3)
+                unfinished_prefills = []
+                for req, metadata, (_, chunk_end) in zip(
+                    batch, prefill_metadata, chunk_ranges
+                ):
+                    pid = req["proc_id"]
+                    req["prefill_chunks_completed"] = int(
+                        req.get("prefill_chunks_completed", 0)
+                    ) + 1
+                    if int(metadata["cursor_end"]) != chunk_end:
+                        raise AssertionError(
+                            f"Prefill cursor mismatch for proc_id={pid!r}: "
+                            f"expected {chunk_end}, got {metadata['cursor_end']}"
+                        )
+                    prefill_complete = advance_prefill_cursor(req, chunk_end)
+                    if not prefill_complete:
+                        unfinished_prefills.append(
+                            (req.get("_fastsd_category"), req)
+                        )
+                        continue
+
+                    kv_cache_manager.rollback(pid, int(req["prefix_len"]))
+                    committed_prefix_tokens[pid] = req["draft_output"][
+                        0, :int(req["prefix_len"])
+                    ].tolist()
+                    completed_monotonic = time.monotonic()
+                    enqueue_monotonic = float(
+                        req.get("server_enqueue_monotonic", completed_monotonic)
+                    )
+                    first_dispatch = float(
+                        req.get(
+                            "prefill_first_dispatch_monotonic", completed_monotonic
+                        )
+                    )
+                    response_queues[pid].put({
+                        "status": "prefill_ok",
+                        "prefill_chunks": req["prefill_chunks_completed"],
+                        "prefill_queue_ms": max(
+                            0.0, (first_dispatch - enqueue_monotonic) * 1000.0
+                        ),
+                        "prefill_service_ms": max(
+                            0.0, (completed_monotonic - enqueue_monotonic) * 1000.0
+                        ),
+                    })
+
+                self.color_print(
+                    f"process prefill chunks from: {proc_ids} ranges={chunk_ranges}", 3
+                )
+                return unfinished_prefills
             else:  # verify 批量
                 seqs = [req["draft_output"].to(target_model.device) for req in batch]
                 x_batch = []
@@ -786,15 +863,6 @@ class Decoding(ABC):
                 tail_only = req.get("tail_only", False)
                 has_bridge_token = req.get("has_bridge_token", False)
                 req_gamma = max(1, int(req.get("gamma", self.args.gamma) or self.args.gamma))
-
-                if req["task_type"] == "prefill":
-                    # prefill 仅初始化 cache，回滚到 prefix 长度供下一轮 verify 使用
-                    kv_cache_manager.rollback(pid, prefix_len)
-                    committed_prefix_tokens[pid] = req["draft_output"][0, :prefix_len].tolist()
-                    response_queues[pid].put({
-                        "status": "prefill_ok",
-                    })
-                    continue
 
                 # 验证 γ 个 token：target 贪心 token 与 draft token 不一致则在前一位置截断
                 n = prefix_len + req_gamma - 1
@@ -920,19 +988,18 @@ class Decoding(ABC):
 
                 response_queues[pid].put(response_payload)
 
+            return []
+
         def sort_task_queues():
             now = time.time()
             for ttype in ["verify", "prefill"]:
                 for cat in task_queues[ttype]:
-                    items = []
-                    while not task_queues[ttype][cat].empty():
-                        items.append(task_queues[ttype][cat].get())
-                    items.sort(
+                    items = sorted(
+                        task_queues[ttype][cat],
                         key=lambda r: _compute_priority_score(r, accept_stats, now=now),
                         reverse=True,
                     )
-                    for item in items:
-                        task_queues[ttype][cat].put(item)
+                    task_queues[ttype][cat] = deque(items)
 
         def preload_kvcache(proc_ids):
             if not proc_ids:
@@ -945,90 +1012,95 @@ class Decoding(ABC):
                     kv_cache_manager._past_key_values[pid] = move_dynamic_cache_to(cache, target_model.device)
                     preloaded_gpu_pids.add(pid)
 
-        def schedule_tasks(task_type: str):
-            token_budget = self.args.token_budget
-            batch_size = self.args.batch_size
-            order = _build_fixed_wrr_order()
-            verify_underutilized = []
-
-            self.color_print(f"[FASTSD] task_type={task_type} order={order}", 3)
-
-            for idx, cat in enumerate(order):
-                batch = []
-                total_tokens = 0
-                max_len_in_batch = 0
-
-                while not task_queues[task_type][cat].empty():
-                    item = task_queues[task_type][cat].queue[0]
-                    seq_len = item["draft_output"].shape[1]
-
-                    if task_type == "prefill":
-                        if total_tokens + seq_len <= token_budget:
-                            task_queues[task_type][cat].get()
-                            batch.append(item)
-                            total_tokens += seq_len
-                            max_len_in_batch = max(max_len_in_batch, seq_len)
-                        elif not batch:
-                            task_queues[task_type][cat].get()
-                            batch.append(item)
-                            total_tokens += seq_len
-                            max_len_in_batch = max(max_len_in_batch, seq_len)
-                        else:
-                            break
-                    else:
-                        if len(batch) < batch_size:
-                            task_queues[task_type][cat].get()
-                            batch.append(item)
-                        else:
-                            break
-
-                if batch and task_type == "prefill" and total_tokens < token_budget:
-                    for alt_cat in ("short", "mid", "long"):
-                        if alt_cat == cat:
-                            continue
-                        while not task_queues[task_type][alt_cat].empty():
-                            item = task_queues[task_type][alt_cat].queue[0]
-                            seq_len = item["draft_output"].shape[1]
-                            if seq_len <= max_len_in_batch + 128 and total_tokens + seq_len <= token_budget:
-                                task_queues[task_type][alt_cat].get()
-                                batch.append(item)
-                                total_tokens += seq_len
-                            else:
-                                break
-
-                if task_type == "verify":
-                    verify_underutilized.append(1 if len(batch) < batch_size else 0)
-
-                if not batch:
-                    continue
-
-                next_verify_proc_ids = _predict_next_verify_proc_ids(
-                    {cat_name: list(q_obj.queue) for cat_name, q_obj in task_queues["verify"].items()},
-                    order,
-                    batch_size=self.args.batch_size,
-                    start_idx=(idx + 1) if task_type == "verify" else 0,
-                    pinned_gpu_pids=preloaded_gpu_pids,
-                )
-                preload_thread = None
-                if next_verify_proc_ids:
-                    preload_thread = threading.Thread(target=preload_kvcache, args=(next_verify_proc_ids,))
-                    preload_thread.start()
-
+        def run_active_batch(batch):
+            if not batch:
+                return []
+            if energy_service is not None:
+                energy_service.enter_active()
+            try:
+                return handle_request_batch(batch)
+            finally:
                 if energy_service is not None:
-                    energy_service.enter_active()
-                try:
-                    handle_request_batch(batch)
-                finally:
-                    if energy_service is not None:
-                        energy_service.exit_active()
+                    energy_service.exit_active()
+
+        def materialize_entry(entry):
+            req = entry.request
+            req["_fastsd_category"] = entry.category
+            if entry.task_type == "prefill":
+                req["_prefill_chunk_start"] = entry.chunk_start
+                req["_prefill_chunk_end"] = entry.chunk_end
+            return req
+
+        def execute_plan(plan):
+            verify_microbatches = split_plan_microbatches(
+                plan.verify_entries, getattr(self.args, "max_num_seqs", 4)
+            )
+            prefill_microbatches = split_plan_microbatches(
+                plan.prefill_entries, getattr(self.args, "max_num_seqs", 4)
+            )
+
+            if verify_microbatches:
+                preload_kvcache(
+                    [entry.request_id for entry in verify_microbatches[0]]
+                )
+            for index, entries in enumerate(verify_microbatches):
+                preload_thread = None
+                if index + 1 < len(verify_microbatches):
+                    next_proc_ids = [
+                        entry.request_id for entry in verify_microbatches[index + 1]
+                    ]
+                    preload_thread = threading.Thread(
+                        target=preload_kvcache,
+                        args=(next_proc_ids,),
+                        daemon=True,
+                    )
+                    preload_thread.start()
+                run_active_batch([materialize_entry(entry) for entry in entries])
                 if preload_thread is not None:
                     preload_thread.join()
 
-            return verify_underutilized
+            for entries in prefill_microbatches:
+                unfinished = run_active_batch(
+                    [materialize_entry(entry) for entry in entries]
+                )
+                for category, req in unfinished:
+                    if category not in task_queues["prefill"]:
+                        raise ValueError(
+                            f"invalid Prefill category for requeue: {category!r}"
+                        )
+                    task_queues["prefill"][category].append(req)
+
+            if getattr(self.args, "debug_pipeline", False):
+                self.color_print(
+                    f"[FASTSD] plan tokens={plan.used_tokens}/{plan.token_budget} "
+                    f"verify={len(plan.verify_entries)} prefill={len(plan.prefill_entries)} "
+                    f"cursor={plan.start_cursor}->{plan.end_cursor} "
+                    f"cycles={plan.completed_cycles}",
+                    3,
+                )
+
+        def reject_oversize_verify(exc):
+            req = exc.request
+            removed = False
+            for category, pending in task_queues["verify"].items():
+                retained = deque()
+                while pending:
+                    item = pending.popleft()
+                    if not removed and item is req:
+                        removed = True
+                        continue
+                    retained.append(item)
+                task_queues["verify"][category] = retained
+            response_queues[req["proc_id"]].put({
+                "error": "verify_exceeds_token_budget",
+                "detail": str(exc),
+                "effective_tokens": exc.cost,
+                "token_budget": exc.token_budget,
+            })
 
         # ---------------------- 主循环 -------------------------------
         sched_mode = getattr(self.args, "server_sched_mode", "fastsd")
-        use_strict_fcfs = sched_mode in {"pipeline", "vanilla"}
+        use_strict_fcfs = uses_strict_fcfs(sched_mode)
 
         # Pipeline baseline: strict FCFS, single-request handling only.
         # No queue categorization, no batching, no preload, no priority scheduling.
@@ -1051,24 +1123,32 @@ class Decoding(ABC):
                 return
 
             while True:
-                # ============ 1) 不断拉取 Draft 请求 ==============
-                try:
-                    while True:
-                        req = request_queue.get(timeout=0.01)
-                        if req is None:  # 终止信号
-                            return
-                        recent_prefix_lens.append(int(req["prefix_len"]))
-                        len_r1, len_r2 = _update_length_thresholds(recent_prefix_lens)
-                        cat = _length_category(req["prefix_len"], len_r1, len_r2)
-                        task_queues[req["task_type"]][cat].put(req)
-                except queue.Empty:
-                    pass
+                ingested, stop_received = drain_queue_bounded(
+                    request_queue,
+                    max_items=6 * getattr(self.args, "max_num_seqs", 4),
+                )
+                if stop_received:
+                    return
+                for req in ingested:
+                    task_type = req.get("task_type")
+                    if task_type not in task_queues:
+                        response_queues[req["proc_id"]].put({
+                            "error": "unsupported_task_type",
+                            "detail": f"unsupported task_type: {task_type!r}",
+                        })
+                        continue
+                    if task_type == "prefill":
+                        req.setdefault("prefill_cursor", 0)
+                    recent_prefix_lens.append(int(req["prefix_len"]))
+                    len_r1, len_r2 = _update_length_thresholds(recent_prefix_lens)
+                    cat = _length_category(req["prefix_len"], len_r1, len_r2)
+                    task_queues[task_type][cat].append(req)
 
                 # fastsd path: keep all cloud-side scheduling optimizations.
                 sort_task_queues()
 
-                has_verify = any(not q.empty() for q in task_queues["verify"].values())
-                has_prefill = any(not q.empty() for q in task_queues["prefill"].values())
+                has_verify = any(task_queues["verify"].values())
+                has_prefill = any(task_queues["prefill"].values())
 
                 if getattr(self.args, "debug_pipeline", False):
                     self.color_print(
@@ -1076,25 +1156,26 @@ class Decoding(ABC):
                         3,
                     )
 
-                if has_verify:
-                    verify_underutilized = schedule_tasks("verify")
-                    if _should_switch_to_prefill(verify_underutilized, has_prefill_tasks=has_prefill):
-                        schedule_tasks("prefill")
-                elif has_prefill:
-                    schedule_tasks("prefill")
+                if has_verify or has_prefill:
+                    try:
+                        plan = build_unified_schedule_plan(
+                            task_queues["verify"],
+                            task_queues["prefill"],
+                            scheduler_state,
+                            token_budget=self.args.token_budget,
+                        )
+                    except OversizeVerifyError as exc:
+                        reject_oversize_verify(exc)
+                        continue
+                    if plan.entries:
+                        execute_plan(plan)
+                    else:
+                        time.sleep(0.01)
                 else:
                     time.sleep(0.01)
         finally:
             if energy_service is not None:
                 energy_service.shutdown()
-
-            # if (time.time() - last_prefill) < 10 and any(not q.empty() for q in task_queues["verify"].values()):
-            #     schedule_tasks("verify")
-            #     last_prefill = time.time()
-            # elif any(not q.empty() for q in task_queues["prefill"].values()):
-            #     schedule_tasks("prefill")
-            # else:
-            #     time.sleep(0.01)
 
 
     @torch.no_grad()
