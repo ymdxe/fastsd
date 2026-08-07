@@ -71,6 +71,8 @@ FastSD 是一个研究云边场景下推测解码的代码仓库。仓库当前�
   - short
   - medium
   - long
+- 队列的优先级：
+  - short verify, short prefill, medium verify, medium prefill, long verify, short prefill
 - 使用滑动窗口上的分位数在线更新长度边界
 - 在每个队列内部，根据以下因素分配优先级：
   - 草稿端计算速度
@@ -90,10 +92,15 @@ FastSD 是一个研究云边场景下推测解码的代码仓库。仓库当前�
 
 论文设计：
 
-- 按固定的 6:3:1 比例服务 short、medium 和 long 队列
+- 按固定的 6:3:1 比例服务 short、medium 和 long 队列，为一个周期
+- 采用token budget
+  - 若short队列满，则按优先级调度medium队列任务
+  - 若medium队列满，则按优先级调度short队列任务
 - 默认优先处理 verify 任务
 - 只有在 verify 需求不足时才切换到 prefill
+  - 即short verify队列任务全被调度，token budget有剩余，则从short prefill队列调度
 - 根据 verify 处理机会利用不足的情况，采用保守的切换规则
+- 给prefill任务设定任务周期上限为两个周期，达到上限后，在short队列，就从short prefill队列取
 
 #### C. 基于预测的 KV 缓存预加载
 
