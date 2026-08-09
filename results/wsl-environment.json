@@ -1,0 +1,12 @@
+{
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.35",
+  "python": "3.11.15 (main, Apr 14 2026, 14:28:36) [Clang 22.1.3 ]",
+  "fastsd_sha": "fa4a5d7d8658ee2f667592ba334c4517776e82ca",
+  "fastsd_status": "M .gitignore\n M .gitmodules\n M README.md\n M README.zh-CN.md\n?? baselines/\n?? cloud/vllm_gateway.py\n?? configs/\n?? docs/vllm_migration/\n?? edge/vllm_shared_draft_worker.py\n?? patches/\n?? pytest.ini\n?? requirements.vllm-gateway.txt\n?? scripts/build_vllm_workloads.py\n?? scripts/collect_vllm_env.py\n?? scripts/compare_token_parity.py\n?? scripts/prepare_vllm.sh\n?? scripts/replay_target_only_vllm.py\n?? scripts/run_vllm_case.sh\n?? scripts/summarize_vllm_results.py\n?? src/fastsd_vllm/\n?? tests/test_fastsd_vllm_experiment.py\n?? tests/test_fastsd_vllm_external_state.py\n?? tests/test_fastsd_vllm_gateway.py\n?? tests/test_fastsd_vllm_scheduler.py\n?? tests/test_vllm_migration_layout.py\n?? third_party/",
+  "vllm_sha": "568afb3a13806beb53bb2e6bd518269357b237c0",
+  "vllm_status": "M vllm/config/speculative.py\n M vllm/distributed/kv_transfer/kv_connector/v1/offloading/scheduler.py\n M vllm/distributed/kv_transfer/kv_connector/v1/offloading_connector.py\n M vllm/v1/core/sched/scheduler.py\n M vllm/v1/engine/__init__.py\n M vllm/v1/engine/core.py\n M vllm/v1/engine/core_client.py\n M vllm/v1/request.py\n M vllm/v1/worker/gpu_model_runner.py\n?? vllm/v1/core/sched/fastsd_policy.py\n?? vllm/v1/engine/external_client.py",
+  "specedge_sha": "1edcaf02ffc41a7b57726450c5357ed216a3b9bc",
+  "nvidia_smi": "0, NVIDIA GeForce RTX 3050 Laptop GPU, GPU-885a71c8-0c6e-d8d7-1e6f-8c561d193c5b, 4096 MiB, 551.86",
+  "cuda": null,
+  "pip_freeze": "annotated-doc==0.0.5\nannotated-types==0.8.0\nanyio==4.14.2\ncertifi==2026.7.22\nclick==8.4.2\nfastapi==0.141.1\nh11==0.16.0\nhttpcore==1.0.9\nhttptools==0.8.0\nhttpx==0.28.1\nidna==3.18\npydantic==2.13.4\npydantic-core==2.46.4\npython-dotenv==1.2.2\npyyaml==6.0.3\nstarlette==1.4.1\ntyping-extensions==4.16.0\ntyping-inspection==0.4.2\nuvicorn==0.52.1\nuvloop==0.22.1\nwatchfiles==1.2.0\nwebsockets==15.0.1"
+}
