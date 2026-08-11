@@ -100,7 +100,8 @@ class Decoding(ABC):
         
         self.vocab_size = self.args.vocab_size
 
-    def _load_target_model_for_service(self, model_path: str, device: str):
+    def _load_causal_model_for_service(self, model_path: str, device: str):
+        """Load either a GPTQ checkpoint or a regular Hugging Face checkpoint."""
         quant_config = os.path.join(model_path, "quantize_config.json")
         if os.path.exists(quant_config):
             if AutoGPTQForCausalLM is None:
@@ -121,6 +122,12 @@ class Decoding(ABC):
             torch_dtype=torch.bfloat16,
             trust_remote_code=True,
         ).eval()
+
+    def _load_target_model_for_service(self, model_path: str, device: str):
+        return self._load_causal_model_for_service(model_path, device)
+
+    def _load_draft_model_for_service(self, model_path: str, device: str):
+        return self._load_causal_model_for_service(model_path, device)
 
     def _service_target_device(self) -> str:
         return os.environ.get("FASTSD_TARGET_DEVICE", "cuda:0")
@@ -409,7 +416,7 @@ class Decoding(ABC):
         target_model = self._load_target_model_for_service(
             self.args.target_model, self._service_target_device()
         )
-        self.vocab_size = self.args.vocab_size
+        self.vocab_size = len(tokenizer)
         energy_service = self._maybe_start_energy_service()
 
         target_model_caches = {}
@@ -614,7 +621,7 @@ class Decoding(ABC):
         target_model = self._load_target_model_for_service(
             self.args.target_model, self._service_target_device()
         )
-        self.vocab_size = self.args.vocab_size
+        self.vocab_size = len(tokenizer)
         energy_service = self._maybe_start_energy_service()
 
         # 批处理版 KVCache 管理器
@@ -622,7 +629,7 @@ class Decoding(ABC):
                                         temperature=self.args.temp,
                                         top_k=self.args.top_k,
                                         top_p=self.args.top_p)
-        kv_cache_manager.vocab_size = tokenizer.vocab_size
+        kv_cache_manager.vocab_size = len(tokenizer)
 
         # --------------------------- 队列与统计 ---------------------------
         task_queues = {

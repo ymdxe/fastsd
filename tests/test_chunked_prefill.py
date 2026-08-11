@@ -104,6 +104,31 @@ class ChunkedPrefillTests(unittest.TestCase):
                 cursors=[1],
             )
 
+    def test_variable_length_verify_drops_padded_cache_gap(self):
+        self.manager.prefill_chunks(
+            torch.tensor([[1, 2, 0], [5, 6, 7]], dtype=torch.long),
+            proc_ids=["p1", "p2"],
+            pad_token_id=0,
+            input_lens=[2, 3],
+            cursors=[0, 0],
+        )
+
+        self.manager.generate(
+            [
+                torch.tensor([[1, 2, 3, 4]], dtype=torch.long),
+                torch.tensor([[5, 6, 7, 8]], dtype=torch.long),
+            ],
+            gamma=1,
+            proc_ids=["p1", "p2"],
+            pad_token_id=0,
+            is_prefill=False,
+        )
+
+        self.assertEqual(self.cache_values("p1"), [1.0, 2.0, 3.0, 4.0])
+        self.assertEqual(self.cache_values("p2"), [5.0, 6.0, 7.0, 8.0])
+        self.assertEqual(self.manager._prob_history["p1"].shape[1], 4)
+        self.assertEqual(self.manager._prob_history["p2"].shape[1], 4)
+
 
 if __name__ == "__main__":
     unittest.main()

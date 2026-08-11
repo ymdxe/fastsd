@@ -12,7 +12,6 @@ from typing import Any, Dict, List
 
 import requests
 import torch
-from auto_gptq import AutoGPTQForCausalLM
 
 sys.path.append(os.path.join(sys.path[0], "../"))
 
@@ -398,12 +397,9 @@ class EdgeRunner(Decoding):
         device = f"cuda:{gpu_id}"
         self.color_print(f"[Edge {proc_id}] loading draft model on {device}", 3)
 
-        draft_model = AutoGPTQForCausalLM.from_quantized(
+        draft_model = self._load_draft_model_for_service(
             self.args.draft_model,
-            device=device,
-            use_safetensors=True,
-            trust_remote_code=True,
-            use_triton=False,
+            device,
         )
 
         client = EdgeClient(self.args.server_url, timeout=self.args.request_timeout)
@@ -428,7 +424,7 @@ class EdgeRunner(Decoding):
             approx_model_cache = KVCacheModel(
                 draft_model, self.args.temp, self.args.top_k, self.args.top_p
             )
-            approx_model_cache.vocab_size = tokenizer.vocab_size
+            approx_model_cache.vocab_size = len(tokenizer)
 
             if self.args.dataset == "gsm8k":
                 input_text = self._preprocess_gsm8k(sample["question"].strip())

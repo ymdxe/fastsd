@@ -398,10 +398,21 @@ class KVCacheModel_batching():
             for i, cached_len in enumerate(cached_lens):
                 past_mask[i, :cached_len] = 1
             attention_mask = torch.cat([past_mask, current_mask], dim=1)
+            position_ids = torch.zeros_like(padded_inputs, dtype=torch.long)
+            for i, (cached_len, residual_len) in enumerate(
+                zip(cached_lens, residual_lens)
+            ):
+                position_ids[i, :residual_len] = torch.arange(
+                    cached_len,
+                    cached_len + residual_len,
+                    device=padded_inputs.device,
+                    dtype=torch.long,
+                )
 
             outputs = self._model(
                 padded_inputs,
                 attention_mask=attention_mask,
+                position_ids=position_ids,
                 past_key_values=batched_cache,
                 use_cache=True,
             )
@@ -439,18 +450,34 @@ class KVCacheModel_batching():
 
                 # ---- 3. 提取该样本对应的 past_key_values ----
                 pkv_i = []
-                total_len = cached_lens[i] + valid_len
                 for layer in past_key_values:  # each layer is a (key, value)
                     key, value = layer  # shape: (B, H, T, D)
-                    key_i = key[i:i + 1, :, :total_len, :].clone()  # (1, H, total_len, D)
-                    value_i = value[i:i + 1, :, :total_len, :].clone()  # (1, H, total_len, D)
-                    pkv_i.append((key_i, value_i))
+                    old_key = key[i:i + 1, :, :cached_lens[i], :]
+                    old_value = value[i:i + 1, :, :cached_lens[i], :]
+                    new_key = key[
+                        i:i + 1,
+                        :,
+                        max_cached_len:max_cached_len + valid_len,
+                        :,
+                    ]
+                    new_value = value[
+                        i:i + 1,
+                        :,
+                        max_cached_len:max_cached_len + valid_len,
+                        :,
+                    ]
+                    pkv_i.append(
+                        (
+                            torch.cat((old_key, new_key), dim=-2).clone(),
+                            torch.cat((old_value, new_value), dim=-2).clone(),
+                        )
+                    )
                 past_key_values_list.append(pkv_i)
 
             for i, pid in enumerate(proc_ids):
                 self._prob_history[pid] = torch.cat([self._prob_history[pid], logits_list[i]], dim=1)
                 self._past_key_values[pid] = DynamicCache.from_legacy_cache(past_key_values_list[i])
-                last_q_i = not_cached_q[i, -1, :].unsqueeze(0)
+                last_q_i = not_cached_q[i, valid_lens[i] - 1, :].unsqueeze(0)
                 sampled_token = sample(last_q_i)
                 next_tokens.append(sampled_token)
             ###############################################################################################################
