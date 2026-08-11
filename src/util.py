@@ -250,7 +250,10 @@ def parse_arguments():
         elif args.profile == "both":
             args.enable_proactive_draft = True
             args.enable_pipeline = True
-    args.exp_name = os.path.join(os.getcwd(), "exp", args.exp_name)
+    results_root = os.environ.get(
+        "FASTSD_RESULTS_DIR", os.path.join(os.getcwd(), "exp")
+    )
+    args.exp_name = os.path.join(results_root, args.exp_name)
     os.makedirs(args.exp_name, exist_ok=True)
     model_zoo(args)
     return args

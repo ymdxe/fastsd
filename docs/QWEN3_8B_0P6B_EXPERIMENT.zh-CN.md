@@ -8,6 +8,9 @@
 - Cloud Target：`/home/hdd/zhangh/models/Qwen3-8B`，BF16，约 31GB 落盘
 - Draft tokenizer：`/home/hdd/zhangh/models/Qwen3-0.6B`
 - Cloud Conda 前缀：`/home/hdd/zhangh/envs/fastsd`
+- pip/Hugging Face/PyTorch 缓存：`/home/hdd/zhangh/cache/`
+- 安装临时目录：`/home/hdd/zhangh/tmp/fastsd`
+- 实验输出：`/home/hdd/zhangh/workspace/fastsd/results`
 - 公网入口：`http://39.102.209.27:1597`
 - 校园服务器上游：`http://115.190.90.101:1597`
 
@@ -22,10 +25,9 @@ cd /home/hdd/zhangh/workspace/fastsd
 bash scripts/setup_qwen3_cloud_env.sh
 ```
 
-安装脚本只写入 `/home/hdd/zhangh/envs/fastsd` 和
-`/home/hdd/zhangh/cache/pip`，可在下载中断后重复执行。当前服务器到 PyTorch/PyPI
-的实测速率约 50 KB/s，本轮未完成 755MB 的 PyTorch wheel 下载；在脚本最后输出
-`FastSD cloud environment is ready` 前，不应启动正式实验。
+安装脚本遵循 `/home/hdd/zhangh/DIRECTORY_LAYOUT.md`：环境、缓存、临时文件和
+实验输出分别写入上述目录，并将这些路径持久化为该 Conda 环境的变量。脚本可重复执行；
+在最后输出 `FastSD cloud environment is ready` 前，不应启动正式实验。
 
 Cloud 不加载 Draft 权重，只使用 0.6B 目录中的 tokenizer。Target 使用普通 BF16 Transformers 权重，不要求 AutoGPTQ。
 
