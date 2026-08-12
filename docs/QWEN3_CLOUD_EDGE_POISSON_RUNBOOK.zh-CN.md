@@ -180,6 +180,37 @@ Official tree 不被修改。服务适配器只将监听地址参数化为 IB �
 而不修改树状推测算法或 Official 源码；先准备专用 `specedge` 环境，并确认其依赖与 pinned Official tree
 兼容，再运行：
 
+Official 当前锁定 `Python 3.14`（`pyproject.toml` 与 `uv.lock` 均会被脚本核对）。
+先在 **node1**、**node2** 分别执行下列命令一次；它是唯一允许创建
+`/home/hdd/zhangh/envs/specedge` 的入口。脚本会在任何写入前拒绝：没有 `uv`、
+没有显式绝对路径的 Python 3.14、Official 子模块未初始化/脏、锁文件不匹配、父目录
+不可写或目标环境已存在。它使用 `uv sync --frozen --no-dev`，绝不升级锁文件、覆盖
+已有环境或清理失败残留；若创建中断，请由环境拥有者检查明确路径，而不是重跑覆盖。
+
+```bash
+# node1 和 node2：先只检查命令可用性；不要把系统的 python3.10 传入
+cd /home/hdd/zhangh/workspace/fastsd
+command -v uv
+command -v python3.14
+python3.14 --version
+test ! -e /home/hdd/zhangh/envs/specedge
+git -C baselines/specedge/official status --short
+
+# 确认以上均通过后，显式传入 Python 3.14 的绝对路径；此命令才会安装锁定依赖
+bash scripts/experiments/setup_specedge_locked_env.sh \
+  --python "$(command -v python3.14)" \
+  --uv "$(command -v uv)"
+
+# 创建成功后（两台机器各自执行）
+/home/hdd/zhangh/envs/specedge/bin/python -c \
+  'import sys, grpc, torch, transformers; print(sys.version)'
+```
+
+当前任一节点缺少 `uv` 或 `python3.14`，或者已有不明来源的 `specedge` 环境时，
+这是明确停止条件，不能用 FastSD 的 Python 3.10 环境替代，也不能由实验脚本删除或
+重建该目录。先由环境拥有者安装/指定 Python 3.14 与 uv，或确认旧环境的处置方式，
+再从上述门禁重新开始。
+
 ```bash
 # node2 terminal — Official SpecEdge server
 cd /home/hdd/zhangh/workspace/fastsd
