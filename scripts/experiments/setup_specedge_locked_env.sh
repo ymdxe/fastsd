@@ -24,7 +24,8 @@ baselines/specedge/official/uv.lock.  The supplied Python must be an explicit
 executable whose version is exactly 3.14.  The script refuses a missing uv,
 missing/incorrect Python, dirty or uninitialised Official submodule, or an
 existing environment before it invokes uv sync.  It never deletes or replaces
-an environment.  The runtime environment excludes the optional dev group.
+an environment.  The Official dev group is included because its generated
+gRPC modules import protobuf at runtime.
 EOF
 }
 
@@ -74,9 +75,9 @@ python_version="$("${PYTHON_BIN}" -c 'import sys; print(f"{sys.version_info.majo
 note "all read-only gates passed; creating ${DEFAULT_ENV_DIR} from the pinned uv.lock"
 (
   cd "${OFFICIAL_DIR}"
-  UV_PROJECT_ENVIRONMENT="${DEFAULT_ENV_DIR}" "${UV_BIN}" sync --frozen --no-dev --python "${PYTHON_BIN}"
+  UV_PROJECT_ENVIRONMENT="${DEFAULT_ENV_DIR}" "${UV_BIN}" sync --frozen --dev --python "${PYTHON_BIN}"
 )
 
 require_executable_or_command "${DEFAULT_ENV_DIR}/bin/python"
-"${DEFAULT_ENV_DIR}/bin/python" -c 'import sys; assert sys.version_info[:2] == (3, 14); import grpc, torch, transformers'
+"${DEFAULT_ENV_DIR}/bin/python" -c 'import sys; assert sys.version_info[:2] == (3, 14); import google.protobuf, grpc, torch, transformers'
 note "SpecEdge locked runtime is ready at ${DEFAULT_ENV_DIR}; set SPECEDGE_PYTHON=${DEFAULT_ENV_DIR}/bin/python when needed."

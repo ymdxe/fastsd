@@ -15,7 +15,8 @@ class SpecEdgeLockedEnvironmentSetupTests(unittest.TestCase):
         self.assertIn('[[ "${python_version}" == "3.14" ]]', source)
         self.assertIn('assert_fresh_path "${DEFAULT_ENV_DIR}"', source)
         self.assertIn('"${UV_BIN}" lock --check', source)
-        self.assertIn('UV_PROJECT_ENVIRONMENT="${DEFAULT_ENV_DIR}" "${UV_BIN}" sync --frozen --no-dev --python "${PYTHON_BIN}"', source)
+        self.assertIn('UV_PROJECT_ENVIRONMENT="${DEFAULT_ENV_DIR}" "${UV_BIN}" sync --frozen --dev --python "${PYTHON_BIN}"', source)
+        self.assertIn("import google.protobuf, grpc, torch, transformers", source)
         self.assertNotIn("rm -rf", source)
         self.assertLess(source.index('assert_fresh_path "${DEFAULT_ENV_DIR}"'), source.index('"${UV_BIN}" sync --frozen'))
 
