@@ -42,7 +42,7 @@ nvidia-smi --query-gpu=index,name,memory.used,memory.free,utilization.gpu --form
 df -h /home/hdd
 bash scripts/experiments/preflight.sh \
   --role edge --physical-gpus "$EDGE_PHYSICAL_GPUS" \
-  --run-root "$RUN_ROOT" --min-free-gib 40 \
+  --run-root "$RUN_ROOT" --min-free-gib 30 \
   --peer-ip 10.66.0.5 --require-exclusive
 
 # node2
@@ -63,8 +63,9 @@ IB 路由/ping、端口和选中 GPU 的 compute process；它从不创建结果
 
 空间采用三层、且不由脚本擅自清理：node1 只保留 0.6B、edge 环境、代码和结果，
 node2 保留 8B、cloud 环境和临时 cloud 结果；结果根固定为
-`/home/hdd/zhangh/results/fastsd`。node1 少于 40 GiB 或 node2 少于 80 GiB
-可用空间时预检会停止。当前 node1 如仍保有未用于 edge 的 8B 副本，应由拥有者在
+`/home/hdd/zhangh/results/fastsd`。node1 少于 30 GiB 或 node2 少于 80 GiB
+可用空间时预检会停止。node1 的本轮门槛已调整为 30 GiB；node2 仍为 80 GiB。
+当前 node1 如仍保有未用于 edge 的 8B 副本，应由拥有者在
 确认路径后**手工**释放；本仓库命令绝不会删除模型、缓存或历史结果。
 
 ## 1. 预生成一次 Poisson workload
