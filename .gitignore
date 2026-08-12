@@ -24,3 +24,6 @@ tmp/
 baselines/specedge/results/
 baselines/specedge/generated/
 baselines/specedge/tools/__pycache__/
+
+# The broken vLLM gitlink was removed; keep any user-local checkout out of FastSD.
+/third_party/vllm/

@@ -48,6 +48,7 @@ CLOUD_HOST="${FASTSD_CLOUD_HOST:-node2}"
 CLOUD_RUN_DIR="${FASTSD_CLOUD_RUN_DIR:-}"
 SSH_BIN="${FASTSD_SSH_BIN:-ssh}"
 CLOUD_SHUTDOWN_TIMEOUT_S="${FASTSD_CLOUD_SHUTDOWN_TIMEOUT_S:-120}"
+SMOKE_TUNNEL_MODE="${FASTSD_SMOKE_TUNNEL_MODE:-0}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -94,12 +95,18 @@ fi
 awk -v timeout="${DRAIN_TIMEOUT_S}" 'BEGIN { exit !(timeout > 0) }' || die "--drain-timeout-s must be greater than zero."
 [[ "${CLOUD_READY_TIMEOUT_S}" =~ ^[1-9][0-9]*$ ]] || die "FASTSD_CLOUD_READY_TIMEOUT_S must be a positive integer number of seconds."
 [[ "${CLOUD_SHUTDOWN_TIMEOUT_S}" =~ ^[1-9][0-9]*$ ]] || die "FASTSD_CLOUD_SHUTDOWN_TIMEOUT_S must be a positive integer number of seconds."
+[[ "${SMOKE_TUNNEL_MODE}" == "0" || "${SMOKE_TUNNEL_MODE}" == "1" ]] || die "FASTSD_SMOKE_TUNNEL_MODE must be 0 or 1."
 validate_run_id "${RUN_ID}"
 validate_hdd_path "${RUN_DIR}"
 if [[ "${ARRIVAL_MODE}" == "poisson" ]]; then validate_hdd_path "${TRACE}"; fi
 assert_fresh_component_run_path "${RUN_DIR}" edge
 validate_gpu_list "${EDGE_GPUS}" 2
-[[ "${SERVER_URL}" == "http://10.66.0.5:1597" ]] || die "FastSD replay must use the IB cloud endpoint http://10.66.0.5:1597."
+if [[ "${SERVER_URL}" != "http://10.66.0.5:1597" ]]; then
+  if [[ "${SMOKE_TUNNEL_MODE}" != "1" || ! "${SERVER_URL}" =~ ^http://127[.]0[.]0[.]1:[0-9]+$ ]]; then
+    die "FastSD replay must use the IB cloud endpoint http://10.66.0.5:1597; loopback is allowed only with FASTSD_SMOKE_TUNNEL_MODE=1 for non-performance smoke runs."
+  fi
+  note "smoke tunnel mode enabled; network timing from this run is not eligible for performance analysis"
+fi
 validate_host_alias "${CLOUD_HOST}"
 if [[ -z "${CLOUD_RUN_DIR}" ]]; then CLOUD_RUN_DIR="$(dirname "${RUN_DIR}")/cloud"; fi
 validate_hdd_path "${CLOUD_RUN_DIR}"
@@ -127,7 +134,7 @@ if command -v curl >/dev/null 2>&1; then
   note "waiting for the matching cloud run to finish target/KV initialization before allocating edge models"
   health_deadline=$((SECONDS + CLOUD_READY_TIMEOUT_S))
   while true; do
-    health_payload="$(curl --fail --silent --show-error --connect-timeout 3 "${SERVER_URL}/health" 2>/dev/null || true)"
+    health_payload="$(curl --noproxy '*' --fail --silent --show-error --connect-timeout 3 "${SERVER_URL}/health" 2>/dev/null || true)"
     if [[ -n "${health_payload}" ]] && "${PYTHON_BIN}" - "${RUN_ID}" "${health_payload}" <<'PY'
 import json
 import sys
@@ -188,6 +195,8 @@ LAUNCH=(
   env
   "PYTHONNOUSERSITE=1"
   "TOKENIZERS_PARALLELISM=false"
+  "NO_PROXY=10.66.0.4,10.66.0.5,127.0.0.1,localhost"
+  "no_proxy=10.66.0.4,10.66.0.5,127.0.0.1,localhost"
   "CUDA_VISIBLE_DEVICES=${EDGE_GPUS}"
   "FASTSD_RESULTS_DIR=${RUN_DIR}"
   "${PYTHON_BIN}" "${REPO_ROOT}/edge/edge.py"
@@ -271,7 +280,7 @@ set -e
 if [[ "${RUN_EXIT_CODE}" -eq 0 ]]; then
   note "requesting graceful shutdown of the matching cloud run"
   set +e
-  curl --fail --silent --show-error \
+  curl --noproxy '*' --fail --silent --show-error \
     -X POST -H "X-FastSD-Run-ID: ${RUN_ID}" \
     "${SERVER_URL}/shutdown" > "${LOG_SHUTDOWN}"
   shutdown_rc=$?
@@ -279,6 +288,8 @@ if [[ "${RUN_EXIT_CODE}" -eq 0 ]]; then
   if [[ "${shutdown_rc}" -ne 0 ]]; then
     RUN_EXIT_CODE="${shutdown_rc}"
     note "cloud shutdown request failed; edge result is not eligible for finalization"
+  elif [[ "${SMOKE_TUNNEL_MODE}" == "1" ]]; then
+    note "smoke tunnel shutdown accepted; cloud manifest completion must be verified by the external tunnel controller"
   else
     note "waiting for the matching cloud manifest to reach complete"
     shutdown_deadline=$((SECONDS + CLOUD_SHUTDOWN_TIMEOUT_S))

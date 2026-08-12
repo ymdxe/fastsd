@@ -152,7 +152,10 @@ sampler_python() {
   local python_bin="${FASTSD_METADATA_PYTHON:-${FASTSD_PYTHON:-python3}}"
   local tool="${EXPERIMENTS_DIR}/gpu_sampler.py"
   require_file "${tool}"
-  "${python_bin}" "${tool}" "$@"
+  # Wrappers background this function and later signal $!.  Replace the
+  # function subshell with Python so $! is the actual sampler PID; otherwise
+  # terminating the shell leaves an orphan sampler and reports exit 143.
+  exec "${python_bin}" "${tool}" "$@"
 }
 
 safe_sha256() {
