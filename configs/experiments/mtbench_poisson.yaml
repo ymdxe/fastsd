@@ -1,0 +1,59 @@
+# Canonical, version-controlled input for the Qwen3 cloud-edge comparison.
+# A wrapper snapshots this file into every fresh run directory before launch.
+schema_version: 1
+
+experiment:
+  name: qwen3-cloud-edge-mtbench-poisson
+  dataset: mt_bench
+  data_path: data/mt_bench.jsonl
+  run_root: /home/hdd/zhangh/results/fastsd
+
+models:
+  draft_model: /home/hdd/zhangh/models/Qwen3-0.6B
+  target_model: /home/hdd/zhangh/models/Qwen3-8B
+  tokenizer_model: /home/hdd/zhangh/models/Qwen3-0.6B
+  dtype: bfloat16
+
+decoding:
+  gamma: 6
+  max_new_tokens: 256
+  temperature: 0.0
+  top_k: 0
+  top_p: 1.0
+
+workload:
+  arrival_mode: poisson
+  num_edge_clients: 2
+  max_requests: 80
+  # Set per generated trace.  It is intentionally not a fixed experiment value.
+  request_rate_rps: null
+  arrival_seed: null
+
+fastsd:
+  token_budget: 256
+  max_num_seqs: 2
+  prefill_max_wait_cycles: 2
+  enable_pipeline: false
+  enable_proactive_draft: true
+
+vanilla:
+  server_sched_mode: vanilla
+  enable_pipeline: false
+  enable_proactive_draft: false
+
+specedge:
+  tree_budget: 32
+  max_beam_len: 4
+  max_branch_width: 16
+  max_batch_size: 2
+  num_clients: 2
+  cache_prefill: false
+
+network:
+  cloud_bind_host: 10.66.0.5
+  cloud_port: 1597
+  specedge_port: 18000
+
+recording:
+  gpu_sample_interval_ms: 50
+  post_arrival_drain_timeout_s: 600

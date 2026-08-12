@@ -1,8 +1,16 @@
+from __future__ import annotations
+
 import os
 import random
 import argparse
-import torch
-import torch.nn.functional as F
+import json
+from pathlib import Path
+try:
+    import torch
+    import torch.nn.functional as F
+except ImportError:  # allows pure CLI/trace tests on documentation hosts
+    torch = None
+    F = None
 import numpy as np
 
 
@@ -13,8 +21,25 @@ def positive_int(value: str) -> int:
     return parsed
 
 
+def positive_float(value: str) -> float:
+    """Argparse validator for a finite positive request rate."""
+    try:
+        parsed = float(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(
+            f"expected a positive finite number, got {value!r}"
+        ) from exc
+    if not np.isfinite(parsed) or parsed <= 0.0:
+        raise argparse.ArgumentTypeError(
+            f"expected a positive finite number, got {value!r}"
+        )
+    return parsed
+
+
 def seed_everything(seed: int):
     "set all random seed for reproducible results."
+    if torch is None:
+        raise RuntimeError("PyTorch is required before starting FastSD inference")
     random.seed(seed)
     os.environ['PYTHONHASHSEED'] = str(seed)
     np.random.seed(seed)
@@ -22,6 +47,19 @@ def seed_everything(seed: int):
     torch.cuda.manual_seed(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = True
+
+def _vocab_size_from_model_path(model_path: str) -> int | None:
+    """Read a local HF ``config.json`` without triggering a Hub request."""
+    config_path = Path(model_path) / "config.json"
+    if not config_path.is_file():
+        return None
+    try:
+        value = json.loads(config_path.read_text(encoding="utf-8")).get("vocab_size")
+        value = int(value)
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        return None
+    return value if value > 0 else None
+
 
 def model_zoo(args):
     vocab_size = {
@@ -63,15 +101,27 @@ def model_zoo(args):
         "qwen2.5-7b": "../models/qwen2.5-7b",
     }
 
-    if args.draft_model in vocab_size:
-        args.vocab_size = vocab_size[args.draft_model]
-    else:
-        args.vocab_size = 32000
-
+    draft_alias = args.draft_model
+    target_alias = args.target_model
     if args.draft_model in zoo:
         args.draft_model = zoo[args.draft_model]
     if args.target_model in zoo:
         args.target_model = zoo[args.target_model]
+
+    if not getattr(args, "tokenizer_model", None):
+        # A cloud-only Target deployment must not require an extra Draft model
+        # merely to discover the tokenizer.  Edge scripts explicitly pass the
+        # local Draft tokenizer when that is the only model present.
+        args.tokenizer_model = args.target_model
+
+    if getattr(args, "vocab_size", None) is None:
+        args.vocab_size = (
+            _vocab_size_from_model_path(args.tokenizer_model)
+            or _vocab_size_from_model_path(args.target_model)
+            or vocab_size.get(draft_alias)
+            or vocab_size.get(target_alias)
+            or 32000
+        )
 
 def parse_arguments():
     """Specified arguments for running scripts."""
@@ -94,6 +144,48 @@ def parse_arguments():
     parser.add_argument('--target_model', type=str, default="llama-2-7b")
     
     parser.add_argument('--exp_name', '-e', type=str, default="test", help='folder name for storing results.')
+    parser.add_argument(
+        "--run-id",
+        type=str,
+        default=None,
+        help="immutable experiment identifier recorded by the run wrappers",
+    )
+    parser.add_argument(
+        "--run-dir",
+        type=str,
+        default=None,
+        help="existing, metadata-initialized experiment component directory",
+    )
+    parser.add_argument(
+        "--edge-physical-gpus",
+        type=str,
+        default=None,
+        help=(
+            "comma-separated physical edge GPU indices selected by the preflight; "
+            "recorded in the process argv while CUDA_VISIBLE_DEVICES maps them logically"
+        ),
+    )
+    parser.add_argument(
+        "--cloud-physical-gpu",
+        type=int,
+        default=None,
+        help=(
+            "physical cloud GPU selected by the preflight; recorded in the process argv "
+            "while CUDA_VISIBLE_DEVICES maps it to cuda:0"
+        ),
+    )
+    parser.add_argument(
+        "--config",
+        type=str,
+        default=None,
+        help="immutable experiment configuration snapshot (recorded by wrappers)",
+    )
+    parser.add_argument(
+        "--method",
+        choices=["fastsd", "vanilla"],
+        default=None,
+        help="method shortcut; fastsd enables the custom scheduler, vanilla is strict FCFS",
+    )
     parser.add_argument('--eval_mode', type=str, default="sd", choices=["small", "large", "sd", "para_sd", "para_sd_wo_1", "para_sd_wo_2"], help='eval mode.')
     parser.add_argument('--num_samples_per_task', '-n', type=int, default=1, help='num_samples for a task (prompt) in humaneval dataset.')
     parser.add_argument('--seed', '-s', type=int, default=1234, help='set a random seed, which can makes the result reproducible')
@@ -102,6 +194,99 @@ def parse_arguments():
     parser.add_argument('--top_k', type=int, default=0, help='top_k for ungreedy sampling strategy.')
     parser.add_argument('--top_p', type=float, default=0.95, help='top_p for ungreedy sampling strategy.')
     parser.add_argument('--gamma', type=int, default=6, help='guess time.')
+    parser.add_argument(
+        "--tokenizer-model",
+        type=str,
+        default=None,
+        help="HF tokenizer path; defaults to target_model after model alias resolution",
+    )
+    parser.add_argument(
+        "--use-chat-template",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="render MT-Bench turns with the tokenizer chat template; defaults on for Qwen",
+    )
+    parser.add_argument(
+        "--model-dtype",
+        choices=["bfloat16", "float16", "float32"],
+        default="bfloat16",
+        help="dtype for non-quantized Hugging Face checkpoints",
+    )
+    parser.add_argument(
+        "--vocab-size",
+        type=positive_int,
+        default=None,
+        help="optional override; local tokenizer/model config is preferred",
+    )
+    parser.add_argument(
+        "--arrival-mode",
+        choices=["closed_loop", "poisson"],
+        default="closed_loop",
+        help="closed_loop keeps legacy workers; poisson replays absolute open-loop deadlines",
+    )
+    parser.add_argument(
+        "--request-rate-rps",
+        type=positive_float,
+        default=None,
+        help="global offered arrival rate when generating a Poisson trace",
+    )
+    parser.add_argument(
+        "--arrival-seed",
+        type=int,
+        default=None,
+        help="independent random seed for a generated Poisson trace",
+    )
+    parser.add_argument(
+        "--arrival-trace-in",
+        type=str,
+        default=None,
+        help="immutable shared JSONL arrival trace to replay",
+    )
+    parser.add_argument(
+        "--arrival-trace-out",
+        type=str,
+        default=None,
+        help="optional output path for a generated arrival trace",
+    )
+    parser.add_argument(
+        "--max-requests",
+        type=positive_int,
+        default=None,
+        help="global request count for an experiment trace/replay",
+    )
+    parser.add_argument(
+        "--warmup-requests-per-client",
+        type=int,
+        default=0,
+        help="closed-loop warmups per edge client; excluded from Poisson trace replay",
+    )
+    parser.add_argument(
+        "--worker-ready-timeout-s",
+        type=positive_float,
+        default=300.0,
+        help="maximum wait for all edge workers to load before a Poisson run starts",
+    )
+    parser.add_argument(
+        "--post-arrival-drain-timeout-s",
+        type=positive_float,
+        default=600.0,
+        help=(
+            "maximum drain interval after the final actual Poisson arrival; "
+            "a timeout fails the run rather than silently extending its measurement window"
+        ),
+    )
+    parser.add_argument(
+        "--bind-host",
+        type=str,
+        default=None,
+        help="cloud HTTP bind host; experiment wrappers pass the IB address explicitly",
+    )
+    parser.add_argument(
+        "--port",
+        type=positive_int,
+        default=None,
+        help="cloud HTTP port; overrides CLOUD_SERVICE_PORT when supplied",
+    )
     parser.add_argument("--num_drafts", type=int, default=4)
     parser.add_argument(
         "--batch_size",
@@ -231,6 +416,26 @@ def parse_arguments():
         help="max token comparison steps to print per verify request",
     )
     args = parser.parse_args()
+    if args.warmup_requests_per_client < 0:
+        parser.error("--warmup-requests-per-client must be non-negative")
+    if args.arrival_seed is None:
+        args.arrival_seed = args.seed
+    if args.arrival_mode == "poisson" and not (
+        args.arrival_trace_in or args.request_rate_rps is not None
+    ):
+        parser.error(
+            "--arrival-mode poisson requires --arrival-trace-in or --request-rate-rps"
+        )
+    if args.arrival_trace_out and args.arrival_mode != "poisson":
+        parser.error("--arrival-trace-out requires --arrival-mode poisson")
+    if args.method == "fastsd":
+        args.profile = "custom"
+        args.server_sched_mode = "fastsd"
+    elif args.method == "vanilla":
+        args.profile = "vanilla"
+        args.server_sched_mode = "vanilla"
+        args.enable_proactive_draft = False
+        args.enable_pipeline = False
     if args.profile != "custom":
         # Baseline profiles must not be mixed with FastSD scheduler.
         if args.server_sched_mode == "fastsd":
@@ -250,12 +455,36 @@ def parse_arguments():
         elif args.profile == "both":
             args.enable_proactive_draft = True
             args.enable_pipeline = True
-    results_root = os.environ.get(
-        "FASTSD_RESULTS_DIR", os.path.join(os.getcwd(), "exp")
-    )
-    args.exp_name = os.path.join(results_root, args.exp_name)
-    os.makedirs(args.exp_name, exist_ok=True)
     model_zoo(args)
+    if args.run_dir:
+        run_dir = Path(args.run_dir).resolve()
+        if not run_dir.is_dir():
+            parser.error(
+                "--run-dir must be created by capture_run_metadata.py before a service starts"
+            )
+        if not (run_dir / "manifest.json").is_file():
+            parser.error("--run-dir is missing its immutable manifest.json")
+        for relative in ("metrics", "outputs", "logs"):
+            if not (run_dir / relative).is_dir():
+                parser.error(f"--run-dir is missing {relative}/")
+        # Refuse a second replay before a worker ever opens output files.
+        protected = (
+            run_dir / "metrics" / "requests.jsonl",
+            run_dir / "metrics" / "summary.json",
+            run_dir / "outputs" / "completions.jsonl",
+        )
+        if any(path.exists() or path.is_symlink() for path in protected):
+            parser.error("--run-dir already contains canonical result artifacts; use a new run_id")
+        args.run_dir = str(run_dir)
+        args.exp_name = str(run_dir)
+    else:
+        results_root = os.environ.get(
+            "FASTSD_RESULTS_DIR", os.path.join(os.getcwd(), "exp")
+        )
+        args.exp_name = os.path.join(results_root, args.exp_name)
+        # Legacy entrypoints retain their historical behavior.  All formal
+        # experiment scripts use --run-dir and the fail-fast path above.
+        os.makedirs(args.exp_name, exist_ok=True)
     return args
 
 def top_k_top_p_filter(logits: torch.Tensor, top_k: int = 0, top_p: float = 0.0):

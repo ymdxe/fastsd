@@ -1,0 +1,33 @@
+# Explicit client-side subset of the pinned Official SpecEdge config schema.
+# Generate/snapshot a run-specific copy under the experiment run directory;
+# never edit `baselines/specedge/official/` to adapt a workload.
+version: 1
+opt: 2
+base:
+  result_path: /home/hdd/zhangh/results/fastsd/REPLACE_RUN_ID/official
+  exp_name: REPLACE_RUN_ID
+  dtype: bf16
+  seed: 20260812
+  max_len: 2048
+client:
+  # Must exactly equal SPECEDGE_GRPC_ADDRESS.  The adapter refuses to infer
+  # or rewrite a host/port from any other source.
+  host: 10.66.0.5:18000
+  process_name: edge-client-REPLACE_CLIENT_ID
+  draft_model: /home/hdd/zhangh/models/Qwen3-0.6B
+  dataset: mtbench
+  reasoning: false
+  sample_req_cnt: 1
+  req_offset: 0
+  max_n_beams: 32
+  max_beam_len: 4
+  max_branch_width: 16
+  max_budget: 32
+  proactive:
+    type: excluded
+    max_n_beams: 32
+    max_beam_len: 3
+    max_branch_width: 16
+    max_budget: 32
+  max_new_tokens: 256
+  max_request_num: -1

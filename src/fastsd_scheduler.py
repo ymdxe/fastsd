@@ -133,7 +133,8 @@ def compute_priority_score(req, accept_stats, now=None, lamda=0.01):
     if now is None:
         now = 0.0
 
-    elapsed = max(0.0, float(now) - float(req["current_time"]))
+    enqueue_time = req.get("server_enqueue_monotonic", req.get("current_time", now))
+    elapsed = max(0.0, float(now) - float(enqueue_time))
     wait_term = math.exp(lamda * elapsed)
     if req["task_type"] == "prefill":
         return wait_term
