@@ -185,8 +185,9 @@ Official 当前锁定 `Python 3.14`（`pyproject.toml` 与 `uv.lock` 均会被�
 先在 **node1**、**node2** 分别执行下列命令一次；它是唯一允许创建
 `/home/hdd/zhangh/envs/specedge` 的入口。脚本会在任何写入前拒绝：没有 `uv`、
 没有显式绝对路径的 Python 3.14、Official 子模块未初始化/脏、锁文件不匹配、父目录
-不可写或目标环境已存在。它使用 `uv sync --frozen --no-dev`，绝不升级锁文件、覆盖
-已有环境或清理失败残留；若创建中断，请由环境拥有者检查明确路径，而不是重跑覆盖。
+不可写或目标环境已存在。它使用 `uv sync --frozen --dev`，绝不升级锁文件、覆盖
+已有环境或清理失败残留。Official 已生成的 gRPC 模块运行时仍依赖 dev 组中的
+`protobuf`；若创建中断，请由环境拥有者检查明确路径，而不是重跑覆盖。
 
 ```bash
 # node1 和 node2：先只检查命令可用性；不要把系统的 python3.10 传入
