@@ -139,6 +139,31 @@ class _OfficialComponents:
     util: ModuleType
 
 
+def _install_bfloat16_transport_compat(components: _OfficialComponents) -> None:
+    """Preserve BF16 tensor bytes without changing Official algorithm code.
+
+    Pinned Official ``util.encode`` calls ``Tensor.numpy()`` directly.  NumPy
+    has no bfloat16 dtype, so its gRPC client fails before the first Validate
+    RPC.  Viewing a contiguous CPU BF16 tensor as uint16 preserves the exact
+    two-byte bit pattern expected by the unchanged Official BF16 decoder.
+    Every other dtype continues through the pinned Official encoder.
+    """
+
+    torch = importlib.import_module("torch")
+    network_module = importlib.import_module("specedge.network.grpc")
+    original_encode = components.util.encode
+
+    def encode_with_bfloat16_bits(target: Any) -> bytes:
+        if getattr(target, "dtype", None) == torch.bfloat16:
+            return target.contiguous().cpu().view(torch.uint16).numpy().tobytes()
+        return original_encode(target)
+
+    # network.grpc imported encode with ``from util import encode``; update
+    # both references inside this one adapter process.
+    components.util.encode = encode_with_bfloat16_bits
+    network_module.encode = encode_with_bfloat16_bits
+
+
 def _required_environment(environ: Mapping[str, str], key: str) -> str:
     value = environ.get(key)
     if value is None or not value.strip():
@@ -517,6 +542,7 @@ class OfficialSpecEdgeFactory:
         os.environ.update(self.config.to_official_environment(self.settings))
         components = _import_official_components(self.settings.official_root)
         try:
+            _install_bfloat16_transport_compat(components)
             # It is global in upstream; reset makes inherited process state
             # explicit and identical to this factory's effective YAML.
             components.client_config.reset()
