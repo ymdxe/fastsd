@@ -6,7 +6,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 from unittest import mock
 
 
@@ -287,6 +287,66 @@ class OfficialSpecEdgeFactoryTests(unittest.TestCase):
             official.OfficialSpecEdgeConfigurationError, "exceeds generated"
         ):
             official.OfficialSpecEdgeFactory._extract_official_completion(bad_client)
+
+    def test_bfloat16_transport_compat_preserves_bits_and_other_dtypes(self):
+        util_module = ModuleType("util")
+        calls = []
+
+        def original_encode(value):
+            calls.append(value)
+            return b"original"
+
+        util_module.encode = original_encode
+        network_module = ModuleType("specedge.network.grpc")
+        network_module.encode = original_encode
+        fake_torch = SimpleNamespace(bfloat16=object(), uint16=object())
+
+        class FakeArray:
+            def tobytes(self):
+                return b"\x80? \xc0\x80>"
+
+        class FakeTensor:
+            def __init__(self, dtype):
+                self.dtype = dtype
+                self.view_dtype = None
+
+            def contiguous(self):
+                return self
+
+            def cpu(self):
+                return self
+
+            def view(self, dtype):
+                self.view_dtype = dtype
+                return self
+
+            def numpy(self):
+                return FakeArray()
+
+        components = official._OfficialComponents(
+            grpc=ModuleType("grpc"),
+            client_config=object(),
+            graph_engine_type=object(),
+            pb2=ModuleType("pb2"),
+            pb2_grpc=ModuleType("pb2_grpc"),
+            spec_exec_client_type=object(),
+            util=util_module,
+        )
+
+        with mock.patch.object(
+            official.importlib,
+            "import_module",
+            side_effect=lambda name: fake_torch if name == "torch" else network_module,
+        ):
+            official._install_bfloat16_transport_compat(components)
+
+        values = FakeTensor(fake_torch.bfloat16)
+        self.assertEqual(util_module.encode(values), b"\x80? \xc0\x80>")
+        self.assertEqual(network_module.encode(values), b"\x80? \xc0\x80>")
+        self.assertIs(values.view_dtype, fake_torch.uint16)
+        fp32 = FakeTensor(object())
+        self.assertEqual(network_module.encode(fp32), b"original")
+        self.assertEqual(calls, [fp32])
 
 
 if __name__ == "__main__":
