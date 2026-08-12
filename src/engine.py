@@ -100,7 +100,8 @@ class Decoding(ABC):
         
         self.vocab_size = self.args.vocab_size
 
-    def _load_target_model_for_service(self, model_path: str, device: str):
+    def _load_causal_model_for_service(self, model_path: str, device: str):
+        """Load either a GPTQ checkpoint or a regular Hugging Face checkpoint."""
         quant_config = os.path.join(model_path, "quantize_config.json")
         if os.path.exists(quant_config):
             if AutoGPTQForCausalLM is None:
@@ -115,24 +116,43 @@ class Decoding(ABC):
                 use_triton=False,
             )
 
+        dtype_name = getattr(self.args, "model_dtype", "bfloat16")
+        dtype = {
+            "bfloat16": torch.bfloat16,
+            "float16": torch.float16,
+            "float32": torch.float32,
+        }[dtype_name]
         return AutoModelForCausalLM.from_pretrained(
             model_path,
             device_map={"": device},
-            torch_dtype=torch.bfloat16,
+            torch_dtype=dtype,
             trust_remote_code=True,
         ).eval()
+
+    def _load_target_model_for_service(self, model_path: str, device: str):
+        return self._load_causal_model_for_service(model_path, device)
+
+    def _load_draft_model_for_service(self, model_path: str, device: str):
+        return self._load_causal_model_for_service(model_path, device)
 
     def _service_target_device(self) -> str:
         return os.environ.get("FASTSD_TARGET_DEVICE", "cuda:0")
 
     def load_tokenizer(self):
         # * load tokenizers
-        self.color_print(f"Loading tokenizer of {self.args.draft_model}...", 3)
-        self.tokenizer = AutoTokenizer.from_pretrained(self.args.draft_model, trust_remote_code=True)
+        tokenizer_model = getattr(self.args, "tokenizer_model", None) or self.args.draft_model
+        self.color_print(f"Loading tokenizer of {tokenizer_model}...", 3)
+        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_model, trust_remote_code=True)
         self.tokenizer.padding_side = "right"
-        
-        # for llama models
-        self.tokenizer.pad_token_id = 2
+        # Qwen does not share Llama's hard-coded pad id.  Hugging Face models
+        # commonly omit a pad token for causal decoding, in which case EOS is
+        # the safe padding fallback for the batched cache path.
+        if self.tokenizer.pad_token_id is None:
+            if self.tokenizer.eos_token_id is None:
+                raise ValueError("tokenizer has neither pad_token_id nor eos_token_id")
+            self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
+        self.args.vocab_size = len(self.tokenizer)
+        self.vocab_size = len(self.tokenizer)
 
     def _energy_api_url(self, action: str) -> str:
         return f"http://{self.args.energy_api_host}:{self.args.energy_api_port}/measure/{action}"
@@ -409,7 +429,7 @@ class Decoding(ABC):
         target_model = self._load_target_model_for_service(
             self.args.target_model, self._service_target_device()
         )
-        self.vocab_size = self.args.vocab_size
+        self.vocab_size = len(tokenizer)
         energy_service = self._maybe_start_energy_service()
 
         target_model_caches = {}
@@ -608,13 +628,14 @@ class Decoding(ABC):
     @torch.no_grad()
     def run_target_process_batching(self, tokenizer,
                                     request_queue,  # Draft → Target 公共队列
-                                    response_queues):  # proc_id → Queue
+                                    response_queues,  # proc_id → Queue
+                                    ready_event=None):
 
         self.color_print(f"Loading target model: {self.args.target_model}", 3)
         target_model = self._load_target_model_for_service(
             self.args.target_model, self._service_target_device()
         )
-        self.vocab_size = self.args.vocab_size
+        self.vocab_size = len(tokenizer)
         energy_service = self._maybe_start_energy_service()
 
         # 批处理版 KVCache 管理器
@@ -622,7 +643,7 @@ class Decoding(ABC):
                                         temperature=self.args.temp,
                                         top_k=self.args.top_k,
                                         top_p=self.args.top_p)
-        kv_cache_manager.vocab_size = tokenizer.vocab_size
+        kv_cache_manager.vocab_size = len(tokenizer)
 
         # --------------------------- 队列与统计 ---------------------------
         task_queues = {
@@ -642,6 +663,13 @@ class Decoding(ABC):
         scheduler_state = UnifiedSchedulerState(
             prefill_max_wait_cycles=getattr(self.args, "prefill_max_wait_cycles", 2),
         )
+
+        # Cloud HTTP health must not claim readiness until the target model,
+        # tokenizer, and KV-cache manager have all been initialized.  The
+        # optional event is supplied only by cloud_service.py; legacy callers
+        # keep their existing behavior.
+        if ready_event is not None:
+            ready_event.set()
 
         def update_ema(store: dict, pid, value: float) -> float:
             alpha = float(getattr(self.args, "pipeline_ema_alpha", 0.2))
@@ -689,8 +717,8 @@ class Decoding(ABC):
             proc_ids = [req["proc_id"] for req in batch]
             prefix_len = [req["prefix_len"] for req in batch]
 
+            dispatch_monotonic = time.monotonic()
             if batch[0]["task_type"] == "prefill":
-                dispatch_monotonic = time.monotonic()
                 for req in batch:
                     req.setdefault(
                         "prefill_first_dispatch_monotonic", dispatch_monotonic
@@ -785,6 +813,11 @@ class Decoding(ABC):
                     response_queues[pid].put({
                         "status": "prefill_ok",
                         "prefill_chunks": req["prefill_chunks_completed"],
+                        # Cloud-local bounds only.  The finalizer uses them to
+                        # crop node2 GPU samples; it never compares monotonic
+                        # clocks across the two hosts.
+                        "server_enqueue_monotonic_s": enqueue_monotonic,
+                        "server_completed_monotonic_s": completed_monotonic,
                         "prefill_queue_ms": max(
                             0.0, (first_dispatch - enqueue_monotonic) * 1000.0
                         ),
@@ -839,9 +872,13 @@ class Decoding(ABC):
                         cache = kv_cache_manager._past_key_values[pid]
                         kv_cache_manager._past_key_values[pid] = move_dynamic_cache_to(cache, target_model.device)
 
-                verify_compute_start = time.time()
+                for req in batch:
+                    req.setdefault(
+                        "verify_first_dispatch_monotonic", dispatch_monotonic
+                    )
+                verify_compute_start = time.monotonic()
                 _ = kv_cache_manager.generate(x_batch, 1, proc_ids=proc_ids, pad_token_id=tokenizer.pad_token_id, is_prefill=False)
-                verify_elapsed = time.time() - verify_compute_start
+                verify_elapsed = time.monotonic() - verify_compute_start
 
                 # verify之后，将KV cache移到CPU节省显存
                 with cache_lock:
@@ -945,10 +982,27 @@ class Decoding(ABC):
                         2,
                     )
 
+                completed_monotonic = time.monotonic()
+                enqueue_monotonic = float(
+                    req.get("server_enqueue_monotonic", completed_monotonic)
+                )
+                first_dispatch = float(
+                    req.get("verify_first_dispatch_monotonic", completed_monotonic)
+                )
                 response_payload = {
                     "accepted": accepted_len,
                     "final_token": new_token,
+                    # See the analogous prefill fields above: these are
+                    # provenance for cloud energy accounting, not latency.
+                    "server_enqueue_monotonic_s": enqueue_monotonic,
+                    "server_completed_monotonic_s": completed_monotonic,
                     "verify_ms": verify_elapsed * 1000.0,
+                    "verify_queue_ms": max(
+                        0.0, (first_dispatch - enqueue_monotonic) * 1000.0
+                    ),
+                    "verify_service_ms": max(
+                        0.0, (completed_monotonic - enqueue_monotonic) * 1000.0
+                    ),
                 }
                 if getattr(self.args, "enable_pipeline", True) and getattr(self.args, "pipeline_gamma_adapt", True):
                     # Target: T_verify ~= T_edge_draft + RTT.
@@ -991,7 +1045,9 @@ class Decoding(ABC):
             return []
 
         def sort_task_queues():
-            now = time.time()
+            # The cloud owns this queue.  Never subtract a wall-clock value
+            # sent by node1 from node2's clock: NTP skew would change order.
+            now = time.monotonic()
             for ttype in ["verify", "prefill"]:
                 for cat in task_queues[ttype]:
                     items = sorted(
