@@ -50,6 +50,8 @@ START_BARRIER_TIMEOUT_S="${SPECEDGE_START_BARRIER_TIMEOUT_S:-900}"
 SYNC_TIMEOUT_S="${SPECEDGE_SYNC_TIMEOUT_S:-600}"
 DRAIN_TIMEOUT_S="${SPECEDGE_DRAIN_TIMEOUT_S:-600}"
 CLOUD_SHUTDOWN_TIMEOUT_S="${SPECEDGE_CLOUD_SHUTDOWN_TIMEOUT_S:-120}"
+SMOKE_TUNNEL_MODE="${SPECEDGE_SMOKE_TUNNEL_MODE:-0}"
+SMOKE_EFFECTIVE_CONFIG_SOURCE="${SPECEDGE_SMOKE_EFFECTIVE_CONFIG_SOURCE:-}"
 CROP_TOOL="${SCRIPT_DIR}/crop_gpu_samples.py"
 CLOUD_MARKER_TOOL="${REPO_ROOT}/scripts/experiments/write_control_marker.py"
 
@@ -83,7 +85,16 @@ validate_hdd_path "${RUN_DIR}"
 validate_hdd_path "${TRACE}"
 assert_fresh_component_run_path "${RUN_DIR}" edge
 validate_gpu_list "${EDGE_GPUS}" 2
-[[ "${GRPC_ADDRESS}" == "10.66.0.5:18000" ]] || die "SpecEdge replay must use the IB endpoint 10.66.0.5:18000."
+[[ "${SMOKE_TUNNEL_MODE}" == "0" || "${SMOKE_TUNNEL_MODE}" == "1" ]] || die "SPECEDGE_SMOKE_TUNNEL_MODE must be 0 or 1."
+if [[ "${GRPC_ADDRESS}" != "10.66.0.5:18000" ]]; then
+  if [[ "${SMOKE_TUNNEL_MODE}" != "1" || "${GRPC_ADDRESS}" != "127.0.0.1:18000" ]]; then
+    die "SpecEdge replay must use 10.66.0.5:18000; loopback is allowed only with SPECEDGE_SMOKE_TUNNEL_MODE=1 for non-performance smoke runs."
+  fi
+  [[ -n "${SMOKE_EFFECTIVE_CONFIG_SOURCE}" ]] || die "SPECEDGE_SMOKE_EFFECTIVE_CONFIG_SOURCE is required in smoke tunnel mode."
+  validate_hdd_path "${SMOKE_EFFECTIVE_CONFIG_SOURCE}"
+  require_file "${SMOKE_EFFECTIVE_CONFIG_SOURCE}"
+  note "smoke tunnel mode enabled; network timing from this run is not eligible for performance analysis"
+fi
 validate_host_alias "${CLOUD_HOST}"
 [[ "${START_BARRIER_TIMEOUT_S}" =~ ^([0-9]+([.][0-9]*)?|[.][0-9]+)$ ]] || die "SPECEDGE_START_BARRIER_TIMEOUT_S must be positive."
 [[ "${SYNC_TIMEOUT_S}" =~ ^([0-9]+([.][0-9]*)?|[.][0-9]+)$ ]] || die "SPECEDGE_SYNC_TIMEOUT_S must be positive."
@@ -159,14 +170,22 @@ CLIENT_CONFIG="${RUN_DIR}/config/specedge-server-effective.yaml"
 REMOTE_CONFIG="${CLOUD_RUN_DIR}/config/specedge-server-effective.yaml"
 if [[ "${DRY_RUN}" != true ]]; then
   assert_fresh_path "${CLIENT_CONFIG}"
-  note "copying immutable Official effective config from ${CLOUD_HOST}:${REMOTE_CONFIG}"
-  "${SSH_BIN}" "${CLOUD_HOST}" "test -f -- '${REMOTE_CONFIG}'"
-  REMOTE_CONFIG_SHA="$("${SSH_BIN}" "${CLOUD_HOST}" "sha256sum -- '${REMOTE_CONFIG}'" | awk '{print $1}')"
-  [[ "${REMOTE_CONFIG_SHA}" =~ ^[0-9a-fA-F]{64}$ ]] || die "could not obtain SHA-256 for remote effective config"
-  "${SCP_BIN}" -p -- "${CLOUD_HOST}:${REMOTE_CONFIG}" "${CLIENT_CONFIG}"
-  require_file "${CLIENT_CONFIG}"
-  LOCAL_CONFIG_SHA="$(safe_sha256 "${CLIENT_CONFIG}")"
-  [[ "${LOCAL_CONFIG_SHA}" == "${REMOTE_CONFIG_SHA}" ]] || die "copied effective config SHA-256 differs from node2 source"
+  if [[ "${SMOKE_TUNNEL_MODE}" == "1" ]]; then
+    note "copying externally verified smoke effective config from ${SMOKE_EFFECTIVE_CONFIG_SOURCE}"
+    SOURCE_CONFIG_SHA="$(safe_sha256 "${SMOKE_EFFECTIVE_CONFIG_SOURCE}")"
+    cp --no-clobber -- "${SMOKE_EFFECTIVE_CONFIG_SOURCE}" "${CLIENT_CONFIG}"
+    require_file "${CLIENT_CONFIG}"
+    [[ "$(safe_sha256 "${CLIENT_CONFIG}")" == "${SOURCE_CONFIG_SHA}" ]] || die "run-local smoke effective config SHA-256 mismatch"
+  else
+    note "copying immutable Official effective config from ${CLOUD_HOST}:${REMOTE_CONFIG}"
+    "${SSH_BIN}" "${CLOUD_HOST}" "test -f -- '${REMOTE_CONFIG}'"
+    REMOTE_CONFIG_SHA="$("${SSH_BIN}" "${CLOUD_HOST}" "sha256sum -- '${REMOTE_CONFIG}'" | awk '{print $1}')"
+    [[ "${REMOTE_CONFIG_SHA}" =~ ^[0-9a-fA-F]{64}$ ]] || die "could not obtain SHA-256 for remote effective config"
+    "${SCP_BIN}" -p -- "${CLOUD_HOST}:${REMOTE_CONFIG}" "${CLIENT_CONFIG}"
+    require_file "${CLIENT_CONFIG}"
+    LOCAL_CONFIG_SHA="$(safe_sha256 "${CLIENT_CONFIG}")"
+    [[ "${LOCAL_CONFIG_SHA}" == "${REMOTE_CONFIG_SHA}" ]] || die "copied effective config SHA-256 differs from node2 source"
+  fi
 fi
 
 SYNC_DIR="${RUN_DIR}/sync"
@@ -199,6 +218,8 @@ write_client_command() {
   printf 'env '
   printf '%q ' \
     "PYTHONNOUSERSITE=1" \
+    "NO_PROXY=10.66.0.4,10.66.0.5,127.0.0.1,localhost" \
+    "no_proxy=10.66.0.4,10.66.0.5,127.0.0.1,localhost" \
     "CUDA_VISIBLE_DEVICES=${gpu}" \
     "SPECEDGE_GRPC_ADDRESS=${GRPC_ADDRESS}" \
     "SPECEDGE_OFFICIAL_ROOT=${OFFICIAL_ROOT}" \
@@ -242,6 +263,8 @@ run_client() {
   local -a command=(
     env
     "PYTHONNOUSERSITE=1"
+    "NO_PROXY=10.66.0.4,10.66.0.5,127.0.0.1,localhost"
+    "no_proxy=10.66.0.4,10.66.0.5,127.0.0.1,localhost"
     "CUDA_VISIBLE_DEVICES=${gpu}"
     "SPECEDGE_GRPC_ADDRESS=${GRPC_ADDRESS}"
     "SPECEDGE_OFFICIAL_ROOT=${OFFICIAL_ROOT}"
@@ -474,7 +497,9 @@ if [[ "${RUN_EXIT_CODE}" -eq 0 ]]; then
   RUN_EXIT_CODE=$?
   set -e
 fi
-if [[ "${RUN_EXIT_CODE}" -eq 0 && "${DRY_RUN}" != true ]]; then
+if [[ "${RUN_EXIT_CODE}" -eq 0 && "${DRY_RUN}" != true && "${SMOKE_TUNNEL_MODE}" == "1" ]]; then
+  note "smoke tunnel replay complete; cloud shutdown and manifest verification are delegated to the external tunnel controller"
+elif [[ "${RUN_EXIT_CODE}" -eq 0 && "${DRY_RUN}" != true ]]; then
   CLOUD_SHUTDOWN_FILE="${CLOUD_RUN_DIR}/control/graceful-shutdown.json"
   note "requesting graceful shutdown of the matching SpecEdge cloud run"
   set +e
