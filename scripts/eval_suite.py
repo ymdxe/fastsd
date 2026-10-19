@@ -716,6 +716,8 @@ def print_plan(
     node2_specedge_python = execution["node2_specedge_python"]
     draft_devices = list(topology.get("specedge_draft_devices", ["cpu"]))
     worker_count = int(topology.get("draft_workers", len(draft_devices)))
+    batch_size = int(topology.get("batch_size", 4))
+    token_budget = int(topology.get("token_budget", 512))
     draft_threads = int(topology.get("draft_threads", 32 if worker_count == 1 else 8))
     physical_cpu_count = int(topology.get("physical_cpu_count", 32))
     target_host = target_host or topology.get("target_host", "127.0.0.1")
@@ -809,22 +811,24 @@ def print_plan(
             f"FASTSD_TARGET_DEVICE={topology['standard_sd_target_device']} "
             f"{shlex.quote(node2_target_python)} cloud/cloud_service.py "
             f"--target_model {models['target']} --draft_model {models['node2_draft']} --dataset {dataset} "
-            "--server_sched_mode fastsd",
+            f"--server_sched_mode fastsd --kv_batch_mode varlen --batch_size {batch_size} "
+            f"--token_budget {token_budget}",
             "\n[node3：FastSD stateful EdgeClient（/session/init + /prefill + /verify + rollback）]",
             f"cd {shlex.quote(node3_repo)} && "
             + prefixed_command(
                 command_prefix,
-                "bash scripts/run_fastsd_profile.sh "
-                f"comparison/{run_id}/fastsd {common} --num_drafts {worker_count} "
+                f"{shlex.quote(node3_edge_python)} edge/edge.py "
+                f"--server_url {shlex.quote(target_url)} --profile custom "
+                f"--server_sched_mode fastsd --kv_batch_mode varlen "
+                f"--batch_size {batch_size} --token_budget {token_budget} "
+                "--enable_latency_priority --overlap_prefill_first_draft "
+                "--enable_proactive_draft --no-enable_pipeline "
+                f"--exp_name comparison/{run_id}/fastsd {common} --num_drafts {worker_count} "
                 f"--edge_gpus 1 {'--edge_use_cpu' if cpu_draft else '--no-edge_use_cpu'} --edge_threads {draft_threads} "
                 f"--arrival_distribution {config['dataset']['arrival_distribution']} "
                 f"--arrival_rate {config['dataset']['arrival_rate_rps']} "
                 f"--arrival_seed {config['dataset']['arrival_seed']}",
-                environment={
-                    **cpu_environment,
-                    "PYTHON_BIN": node3_edge_python,
-                    "SERVER_URL": target_url,
-                },
+                environment=cpu_environment,
             ),
             "\n[node2：SpecEdge target server（official target/tree verification core；bind host 可配置）]",
             f"cd {shlex.quote(node2_repo)} && FASTSD_EVAL_ROLE=server "
@@ -845,23 +849,23 @@ def print_plan(
             f"FASTSD_TARGET_DEVICE={topology['standard_sd_target_device']} "
             f"{shlex.quote(node2_target_python)} cloud/cloud_service.py "
             f"--target_model {models['target']} --draft_model {models['node2_draft']} --dataset {dataset} "
-            "--server_sched_mode vanilla",
+            f"--server_sched_mode vanilla --kv_batch_mode varlen --batch_size {batch_size} "
+            f"--token_budget {token_budget}",
             "\n[node3：标准投机解码（同样 CPU draft + 网络 + A6000 target）]",
             f"cd {shlex.quote(node3_repo)} && "
             + prefixed_command(
                 command_prefix,
-                "bash scripts/run_vanilla_profile.sh "
-                f"vanilla comparison/{run_id}/standard_sd {common} "
+                f"{shlex.quote(node3_edge_python)} edge/edge.py "
+                f"--server_url {shlex.quote(target_url)} --profile vanilla "
+                f"--server_sched_mode vanilla --kv_batch_mode varlen "
+                f"--batch_size {batch_size} --token_budget {token_budget} "
+                f"--exp_name comparison/{run_id}/standard_sd {common} "
                 f"--num_drafts {worker_count} --edge_gpus 1 "
                 f"{'--edge_use_cpu' if cpu_draft else '--no-edge_use_cpu'} --edge_threads {draft_threads} "
                 f"--arrival_distribution {config['dataset']['arrival_distribution']} "
                 f"--arrival_rate {config['dataset']['arrival_rate_rps']} "
                 f"--arrival_seed {config['dataset']['arrival_seed']}",
-                environment={
-                    **cpu_environment,
-                    "PYTHON_BIN": node3_edge_python,
-                    "SERVER_URL": target_url,
-                },
+                environment=cpu_environment,
             ),
             "\n[node3：Draft-only（同一 CPU runtime；不访问 target）]",
             f"cd {shlex.quote(node3_repo)} && "

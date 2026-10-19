@@ -14,7 +14,7 @@ from scripts import eval_suite
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CLIENT_HOST = REPO_ROOT / "baselines" / "specedge" / "integration" / "client_host.py"
-CONFIG = REPO_ROOT / "configs" / "evaluation" / "qwen3_8b_1.7b_four_method_cpu.json"
+CONFIG = REPO_ROOT / "configs" / "evaluation" / "llama2_7b_tinyllama_four_method_cpu.json"
 
 
 class SpecEdgeClientHostTests(unittest.TestCase):
@@ -103,6 +103,10 @@ class SpecEdgeClientHostTests(unittest.TestCase):
             "\n[node3：FastSD stateful EdgeClient", 1
         )[1].split("\n[node2：SpecEdge target server", 1)[0]
         self.assertIn("--warmup_requests 10 --max_tasks_per_draft 0", fastsd_section)
+        self.assertIn("edge/edge.py", fastsd_section)
+        self.assertIn("--kv_batch_mode varlen", fastsd_section)
+        self.assertIn("--token_budget 512", fastsd_section)
+        self.assertNotIn("run_fastsd_profile.sh", fastsd_section)
 
     def test_node2_target_only_plan_exposes_repo_pythonpath_and_preserves_existing(self):
         config = json.loads(CONFIG.read_text(encoding="utf-8"))

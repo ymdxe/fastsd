@@ -202,7 +202,7 @@ class CpuEvaluationStaticTests(unittest.TestCase):
 
     def test_frozen_cpu_binding_and_track_validation(self):
         config = json.loads(
-            (REPO_ROOT / "configs" / "evaluation" / "qwen3_8b_1.7b_four_method_cpu.json").read_text(
+            (REPO_ROOT / "configs" / "evaluation" / "llama2_7b_tinyllama_four_method_cpu.json").read_text(
                 encoding="utf-8"
             )
         )

@@ -751,14 +751,11 @@ class Decoding(ABC):
         kv_cache_manager.vocab_size = self.vocab_size
         requested_kv_batch_mode = getattr(self.args, "kv_batch_mode", "varlen")
         if requested_kv_batch_mode == "varlen" and not supports_varlen_model(target_model):
-            # The padding-free implementation follows Qwen3 internals.  Keep
-            # the generic Llama/GPTQ service functional by falling back to the
-            # established Transformers cache path.
-            self.color_print(
-                "[KV] varlen is unsupported for this model; falling back to padded mode",
-                2,
+            raise ValueError(
+                "--kv_batch_mode varlen requires a supported decoder layout (such as Llama); "
+                "this model would require padding. Choose a compatible checkpoint "
+                "or explicitly select --kv_batch_mode padded."
             )
-            requested_kv_batch_mode = "padded"
 
         # --------------------------- 队列与统计 ---------------------------
         task_queues = {

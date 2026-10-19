@@ -1,6 +1,8 @@
 # FastSD Repository Guide
 
-This document is the primary orientation guide for humans and future agents working in this repository. It focuses on how the codebase is organized today, how the main runtime path works, how experiments are launched, and what caveats matter before making changes.
+> Archived guide: some shell wrappers and experiment paths below have been removed. For the supported Llama setup, see the [README](../README.md) and [run example](../scripts/command.md).
+
+This document records an earlier repository layout and experimental workflow. Some paths below are retained for historical context.
 
 ## 1. What This Repository Is
 

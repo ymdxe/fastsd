@@ -9,7 +9,7 @@ variable-length forward that never feeds padding tokens into the model:
   cache, so no KV zero-padding and no per-step full-KV copy alignment;
 - per-proc KV caches and prob history keep exactly the semantics of
   ``KVCacheModel_batching``: ``_past_key_values`` and ``_prob_history`` are
-  updated identically and the returned tuple matches ``generate``.
+  retain the same semantics and the returned list matches ``generate``.
 
 Callers (``engine.handle_request_batch``) are responsible for slicing each
 sequence to its *residual* (the tokens not yet covered by that proc's cache):
@@ -34,26 +34,39 @@ from .util import norm_logits, sample
 
 
 def supports_varlen_model(model) -> bool:
-    """Return whether the hand-fused path matches the model implementation.
+    """Recognize the decoder layout used by Llama and the existing Qwen3 path.
 
-    The current implementation explicitly follows Qwen3's q/k RMS norms,
-    rotary embedding and decoder-layer layout.  Unsupported models must use
-    the legacy Transformers path instead of failing at runtime.
+    Inspect the loaded modules as well as model_type: quantization wrappers
+    and custom remote-code models need not expose the same decoder layout.
+    Dynamic RoPE changes cached-key semantics and is not supported here.
     """
     config = getattr(model, "config", None)
-    return bool(
-        getattr(config, "model_type", None) == "qwen3"
-        and hasattr(model, "model")
-        and hasattr(model.model, "layers")
-        and bool(model.model.layers)
-        and all(
-            hasattr(layer.self_attn, "q_norm")
-            and hasattr(layer.self_attn, "k_norm")
-            for layer in model.model.layers[:1]
-        )
-    )
+    model_type = getattr(config, "model_type", None)
+    decoder = getattr(model, "model", None)
+    layers = getattr(decoder, "layers", ())
+    rope = getattr(config, "rope_scaling", None) or {}
+    if model_type not in {"llama", "qwen3"} or not layers:
+        return False
+    if rope.get("rope_type", rope.get("type", "default")) not in {"default", "linear"}:
+        return False
+    if not all(hasattr(decoder, name) for name in ("embed_tokens", "norm", "rotary_emb")):
+        return False
+    if not hasattr(model, "lm_head"):
+        return False
+    for layer in layers:
+        if not all(hasattr(layer, name) for name in (
+            "self_attn", "input_layernorm", "post_attention_layernorm", "mlp"
+        )):
+            return False
+        names = ["q_proj", "k_proj", "v_proj", "o_proj"]
+        if model_type == "qwen3":
+            names += ["q_norm", "k_norm"]
+        if not all(hasattr(layer.self_attn, name) for name in names):
+            return False
+    return True
 
 
+@torch.no_grad()
 def varlen_generate(
     kv_manager,
     model,
@@ -76,6 +89,12 @@ def varlen_generate(
         raise ValueError("residuals and proc_ids must be aligned")
     if not residuals:
         return []
+    if not supports_varlen_model(model):
+        raise ValueError("varlen requires a supported Llama/Qwen3 decoder with default or linear RoPE")
+    if len(set(proc_ids)) != len(proc_ids):
+        raise ValueError("proc_ids must be unique within a varlen batch")
+    if any(res.numel() == 0 for res in residuals):
+        raise ValueError("each varlen residual must contain at least one token")
 
     vocab_size = kv_manager.vocab_size
     temperature = kv_manager._temperature
@@ -86,11 +105,13 @@ def varlen_generate(
     # ---- 1. per-seq cached lengths & flattened input ----------------------
     cached_lens = []
     flat_parts = []
+    old_caches = []
     for pid, res in zip(proc_ids, residuals):
         cache = kv_manager._past_key_values.get(pid)
         # A missing cache means fresh prefill: the engine resets (pops) the
         # entry before admission, exactly like the padded path.
         cached_lens.append(0 if cache is None else int(cache.get_seq_length()))
+        old_caches.append(cache.to_legacy_cache() if cache is not None else None)
         flat_parts.append(res.to(device).reshape(-1))
     flat_ids = torch.cat(flat_parts, dim=0)  # (total,)
 
@@ -104,11 +125,27 @@ def varlen_generate(
     # ---- 2. layer-by-layer forward -----------------------------------------
     n_heads = model.config.num_attention_heads
     n_kv_heads = model.config.num_key_value_heads
-    head_dim = model.model.layers[0].self_attn.head_dim
+    head_dim = getattr(model.model.layers[0].self_attn, "head_dim", model.config.hidden_size // n_heads)
 
     hidden_states = model.model.embed_tokens(flat_ids)
 
-    # [layer_idx][seq_idx] -> (k_new, v_new), each (1, n_kv_heads, Lq, head_dim)
+    # Positions and continuation masks are invariant across decoder layers.
+    positions = torch.cat([
+        torch.arange(cached_len, cached_len + e - s, device=device)
+        for s, e, cached_len in seq_ranges
+    ]).unsqueeze(0)
+    cos, sin = model.model.rotary_emb(hidden_states.unsqueeze(0), positions)
+    masks = []
+    for s, e, cached_len in seq_ranges:
+        length = e - s
+        masks.append(
+            (torch.arange(length, device=device)[:, None] + cached_len
+             >= torch.arange(cached_len + length, device=device)[None, :])
+            if cached_len and length > 1 else None
+        )
+
+    # Retain the very same full K/V used by attention for cache writeback.
+    # Do not concatenate the entire history a second time after the forward.
     new_kv_per_layer = []
 
     for layer_idx, layer in enumerate(model.model.layers):
@@ -118,29 +155,24 @@ def varlen_generate(
         q = attn.q_proj(normed).view(-1, n_heads, head_dim)
         k = attn.k_proj(normed).view(-1, n_kv_heads, head_dim)
         v = attn.v_proj(normed).view(-1, n_kv_heads, head_dim)
-        q = attn.q_norm(q)
-        k = attn.k_norm(k)
+        if model.config.model_type == "qwen3":
+            q = attn.q_norm(q)
+            k = attn.k_norm(k)
+        q, k = apply_rotary_pos_emb(
+            q.unsqueeze(0).transpose(1, 2),
+            k.unsqueeze(0).transpose(1, 2), cos, sin,
+        )
 
-        attn_out = torch.zeros_like(normed)
+        attn_out = normed.new_empty((flat_ids.numel(), n_heads * head_dim))
         new_kv_layer = []
-        for (s, e, cached_len), pid in zip(seq_ranges, proc_ids):
+        for i, (s, e, cached_len) in enumerate(seq_ranges):
             seq_len = e - s
-            qi = q[s:e].unsqueeze(0).transpose(1, 2)   # (1, n_heads, Lq, hd)
-            ki = k[s:e].unsqueeze(0).transpose(1, 2)   # (1, n_kv, Lq, hd)
+            qi = q[:, :, s:e, :]
+            ki = k[:, :, s:e, :]
             vi = v[s:e].unsqueeze(0).transpose(1, 2)
-
-            # Per-sequence RoPE: both q and new k carry their global positions,
-            # starting right after the cached prefix (the cached K/V were
-            # already rotated at their own positions when stored).
-            pos = torch.arange(cached_len, cached_len + seq_len, dtype=torch.long, device=device).unsqueeze(0)
-            cos, sin = model.model.rotary_emb(qi, pos)
-            qi, _ = apply_rotary_pos_emb(qi, qi, cos, sin)
-            ki, _ = apply_rotary_pos_emb(ki, ki, cos, sin)
-
-            cache = kv_manager._past_key_values.get(pid)
             k_full, v_full = ki, vi
-            if cache is not None and cache.get_seq_length() > 0:
-                k_old, v_old = cache.to_legacy_cache()[layer_idx]
+            if cached_len:
+                k_old, v_old = old_caches[i][layer_idx]
                 k_full = torch.cat([k_old.to(ki.dtype), ki], dim=2)
                 v_full = torch.cat([v_old.to(vi.dtype), vi], dim=2)
 
@@ -148,29 +180,24 @@ def varlen_generate(
             # them to the query head count for the attention call only. The
             # per-proc cache keeps the original kv-head tensors.
             n_groups = n_heads // n_kv_heads
-            k_exp = k_full.repeat_interleave(n_groups, dim=1)
-            v_exp = v_full.repeat_interleave(n_groups, dim=1)
+            k_exp = k_full.repeat_interleave(n_groups, dim=1) if n_groups > 1 else k_full
+            v_exp = v_full.repeat_interleave(n_groups, dim=1) if n_groups > 1 else v_full
 
             # Causal masking by *global* position: query global position
             # (cached_len + i) may attend key global positions <= itself.
             # ``is_causal`` uses local indices and is only correct for a
-            # fresh prefill; cached continuations need an explicit mask.
-            Lq, Lk = seq_len, cached_len + seq_len
-            if Lq == Lk and cached_len == 0 and Lq > 1:
-                o = F.scaled_dot_product_attention(qi, k_exp, v_exp, is_causal=True)
-            else:
-                visible = (
-                    torch.arange(Lq, device=device)[:, None] + cached_len
-                    >= torch.arange(Lk, device=device)[None, :]
-                )
-                attn_bias = torch.zeros((1, 1, Lq, Lk), device=device, dtype=qi.dtype)
-                attn_bias.masked_fill_(~visible, float("-inf"))
-                o = F.scaled_dot_product_attention(qi, k_exp, v_exp, attn_mask=attn_bias)
+            # fresh prefill; multi-query cached continuations need a mask.
+            # A single last-position query may attend the entire KV history.
+            o = F.scaled_dot_product_attention(
+                qi, k_exp, v_exp, attn_mask=masks[i],
+                is_causal=cached_len == 0,
+                scale=getattr(attn, "scaling", head_dim ** -0.5),
+            )
             o = o.transpose(1, 2).reshape(seq_len, -1)
-            attn_out[s:e] = attn.o_proj(o)
-            new_kv_layer.append((ki, vi))
+            attn_out[s:e] = o
+            new_kv_layer.append((k_full, v_full))
 
-        hidden_states = hidden_states + attn_out
+        hidden_states = hidden_states + attn.o_proj(attn_out)
         hidden_states = hidden_states + layer.mlp(layer.post_attention_layernorm(hidden_states))
         new_kv_per_layer.append(new_kv_layer)
 
@@ -197,26 +224,8 @@ def varlen_generate(
         else:
             kv_manager._prob_history[pid] = logits_i
 
-        # Append new K/V per layer to the persistent cache.
-        old_cache = kv_manager._past_key_values.get(pid)
-        if old_cache is not None and old_cache.get_seq_length() > 0:
-            old_legacy = old_cache.to_legacy_cache()
-            new_legacy = [
-                (
-                    torch.cat([old_legacy[layer_idx][0].to(new_kv_per_layer[layer_idx][i][0].dtype),
-                               new_kv_per_layer[layer_idx][i][0]], dim=2),
-                    torch.cat([old_legacy[layer_idx][1].to(new_kv_per_layer[layer_idx][i][1].dtype),
-                               new_kv_per_layer[layer_idx][i][1]], dim=2),
-                )
-                for layer_idx in range(len(new_kv_per_layer))
-            ]
-            kv_manager._past_key_values[pid] = DynamicCache.from_legacy_cache(new_legacy)
-        else:
-            new_legacy = [
-                (new_kv_per_layer[layer_idx][i][0], new_kv_per_layer[layer_idx][i][1])
-                for layer_idx in range(len(new_kv_per_layer))
-            ]
-            kv_manager._past_key_values[pid] = DynamicCache.from_legacy_cache(new_legacy)
+        new_legacy = [layer[i] for layer in new_kv_per_layer]
+        kv_manager._past_key_values[pid] = DynamicCache.from_legacy_cache(new_legacy)
 
         sampled = (
             sample(logits_i[0, -1:, :])

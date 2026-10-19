@@ -1,9 +1,0 @@
-{
-  "run_id": "qwen3_8b_1.7b_mt_bench_fastsd_specedge_gpu0_gamma6_20260815",
-  "repo_path_linux": "/home/hdd/zhangh/workspace/new_fastsd",
-  "dataset": {"name": "mt_bench", "data_path": "data", "max_requests": 80, "arrival_distribution": "immediate", "arrival_rate_rps": 1.0, "arrival_seed": 1234},
-  "models": {"draft": "/home/hdd/zhangh/models/Qwen3-1.7B", "target": "/home/hdd/zhangh/models/Qwen3-8B"},
-  "generation": {"max_new_tokens": 256, "temperature": 0.0, "top_k": 0, "top_p": 1.0, "seed": 42, "gamma": 6, "stop_policy": "eos"},
-  "runtime": {"profile": "custom", "server_sched_mode": "fastsd", "kv_batch_mode": "varlen", "batch_size": 1, "token_budget": 64, "min_prefill_chunk_tokens": 16, "prefill_chunk_quantum": 128, "enable_pipeline": false, "enable_proactive_draft": true, "pipeline_gamma_adapt": false, "pipeline_gamma_min": 1, "pipeline_gamma_max": 16, "pipeline_gamma_step": 2, "disable_target_cache_offload": true},
-  "topology": {"specedge_host": "127.0.0.1:18000", "fastsd_server_url": "http://127.0.0.1:18001", "specedge_target_device": "cuda:2", "specedge_draft_devices": ["cuda:0"], "standard_sd_target_device": "cuda:2", "standard_sd_draft_device": "cuda:0"}
-}

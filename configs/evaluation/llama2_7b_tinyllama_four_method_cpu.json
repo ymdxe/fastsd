@@ -1,5 +1,5 @@
 {
-  "run_id": "qwen3_8b_1.7b_four_method_cpu_humaneval",
+  "run_id": "llama2_7b_tinyllama_four_method_cpu_humaneval",
   "repo_path_linux": "/path/to/fastsd",
   "dataset": {
     "name": "humaneval",
@@ -10,10 +10,10 @@
     "arrival_seed": 1234
   },
   "models": {
-    "draft": "/path/to/models/Qwen3-1.7B",
-    "node3_draft": "/path/to/node3/models/Qwen3-1.7B",
-    "node2_draft": "/path/to/node2/models/Qwen3-1.7B",
-    "target": "/path/to/models/Qwen3-8B"
+    "draft": "/path/to/models/TinyLlama-1.1B-Chat-v1.0",
+    "node3_draft": "/path/to/node3/models/TinyLlama-1.1B-Chat-v1.0",
+    "node2_draft": "/path/to/node2/models/TinyLlama-1.1B-Chat-v1.0",
+    "target": "/path/to/node2/models/Llama-2-7b-hf"
   },
   "generation": {
     "max_new_tokens": 256,
@@ -43,6 +43,8 @@
     "draft_workers": 1,
     "draft_threads": 32,
     "target_threads": 1,
+    "batch_size": 4,
+    "token_budget": 512,
     "cpu_prefix": "nice -n 5 numactl --physcpubind=56-71,80-95 --interleave=2,3",
     "shared_load": true,
     "fixed_cpuset": "56-71,80-95",

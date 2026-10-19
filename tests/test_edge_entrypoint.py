@@ -486,19 +486,5 @@ class EdgeEntrypointTests(unittest.TestCase):
         finally:
             executor.shutdown(wait=True)
 
-    def test_fast_sd_only_script_enables_first_draft_overlap(self):
-        fastsd_script = (REPO_ROOT / "scripts" / "run_fastsd_profile.sh").read_text(
-            encoding="utf-8"
-        )
-        vanilla_script = (REPO_ROOT / "scripts" / "run_vanilla_profile.sh").read_text(
-            encoding="utf-8"
-        )
-
-        self.assertIn("--overlap_prefill_first_draft", fastsd_script)
-        self.assertIn("--enable_latency_priority", fastsd_script)
-        self.assertNotIn("--overlap_prefill_first_draft", vanilla_script)
-        self.assertNotIn("--enable_latency_priority", vanilla_script)
-
-
 if __name__ == "__main__":
     unittest.main()

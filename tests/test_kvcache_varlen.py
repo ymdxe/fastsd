@@ -1,11 +1,12 @@
 """Parity tests: padding-free varlen forward vs legacy padded forward.
 
-Uses the real Qwen3-0.6B on GPU. Both paths must produce identical per-proc
+Uses a local Llama checkpoint on GPU. Both paths must produce matching per-proc
 prob histories, KV caches and sampled next tokens. Skipped when Torch /
 Transformers / GPU / the model checkpoint are unavailable.
 """
 
 import unittest
+import os
 from pathlib import Path
 
 try:
@@ -18,14 +19,14 @@ try:
 except Exception:  # pragma: no cover - dependency gate
     _DEPS = False
 
-MODEL_PATH = "/home/hdd/zhangh/models/Qwen3-0.6B"
+MODEL_PATH = os.environ.get("FASTSD_LLAMA_MODEL_PATH", "")
 
 
 def _cuda_available():
-    return _DEPS and torch.cuda.is_available() and Path(MODEL_PATH).exists()
+    return _DEPS and bool(MODEL_PATH) and torch.cuda.is_available() and Path(MODEL_PATH).exists()
 
 
-@unittest.skipUnless(_cuda_available(), "requires Torch + GPU + Qwen3-0.6B checkpoint")
+@unittest.skipUnless(_cuda_available(), "requires Torch + GPU + FASTSD_LLAMA_MODEL_PATH")
 class KVCacheVarlenParityTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -37,6 +38,8 @@ class KVCacheVarlenParityTests(unittest.TestCase):
             .to("cuda")
             .eval()
         )
+        if cls.model.config.model_type != "llama":
+            raise ValueError("FASTSD_LLAMA_MODEL_PATH must refer to a Llama checkpoint")
         cls.vocab_size = len(cls.tokenizer)
 
     def _fresh_manager(self):

@@ -100,7 +100,7 @@ class CommonMetricTests(unittest.TestCase):
 
 
 class DraftOnlyPromptTests(unittest.TestCase):
-    def test_mt_bench_uses_qwen_chat_template_without_thinking(self):
+    def test_mt_bench_uses_chat_template_with_optional_thinking_switch(self):
         source = (Path(__file__).parents[1] / "benchmark" / "eval_draft_pool.py").read_text(
             encoding="utf-8"
         )
@@ -118,7 +118,7 @@ class SpecEdgeAdapterTests(unittest.TestCase):
             "run_id": "run",
             "repo_path_linux": "/srv/new_fastsd",
             "dataset": {"arrival_distribution": "immediate"},
-            "models": {"draft": "/models/Qwen3-0.6B", "target": "/models/Qwen3-8B"},
+            "models": {"draft": "/models/TinyLlama-1.1B", "target": "/models/Llama-2-7B"},
             "generation": {"seed": 42, "temperature": 0, "gamma": 4, "max_new_tokens": 8},
             "topology": {
                 "specedge_host": "127.0.0.1:18000",
