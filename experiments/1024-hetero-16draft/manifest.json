@@ -1,0 +1,95 @@
+{
+  "status": "completed",
+  "node1": {
+    "workers": 8,
+    "gamma": 100
+  },
+  "node3": {
+    "workers": 8,
+    "gamma": 20
+  },
+  "draft_model": "Qwen3-1.7B",
+  "target_model": "Qwen3-32B",
+  "dtype": "float16",
+  "physical_gpu": 3,
+  "target_weight_gpu_budget_GiB": 34,
+  "target_cpu_offload": true,
+  "kv_batch_mode": "padded",
+  "batch_size": 8,
+  "token_budget": 512,
+  "max_new_tokens": 256,
+  "temperature": 0,
+  "verify_method": "greedy",
+  "warmup_requests": 0,
+  "tasks": 16,
+  "dataset": "first 16 GSM8K questions, even indices node1, odd indices node3",
+  "threads_per_draft": 1,
+  "pipeline_gamma_adapt": false,
+  "transport": "loopback SSH reverse forwarding via existing tmux6 SSH connections",
+  "source_sha": "ee0e334e222593c100b2ee6fc7fc9e4db2cf7cd3",
+  "source_hashes": {
+    "edge/edge.py": "566d176e043d8b66e019a0256598fb5ac86fae8ff2ea20313d29c4fb8a3b3b26",
+    "src/arrival.py": "aa4bb2b0aa2fec2fa4285f5aee4ebc1c91a94393866690014e8e55054bf42631",
+    "src/fastsd_scheduler.py": "ea3628b4affd60229ba749c915c67b44e7ecbe494d7fdd2436d4d1ab48bee0e3",
+    "src/metrics.py": "94bb3611ea1bd753b97e3f0c65da010e98ddba1a6293c38d7735727e79c07718",
+    "src/cache_offload_policy.py": "19bbe3a1ae901a1e0aeb69e73913d2e76241265907e5251a1de63db04af7f29f",
+    "src/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "src/energy_meter.py": "1628d16225c51b07ed312be9d1d04a347f1259313e871d0fed05557d7ffc4472",
+    "src/util.py": "22d613734e1e6ce3090dc2b490753da45d71d45af9f7e698e90c5bd755f2ed5d",
+    "src/engine_multi_draft.py": "3fe4c7ca6f6b3797284a6cf5b6600fa22c7cd0934d5e856ba062d770f4e4cec2",
+    "src/kvcache4RC.py": "9d14d0db249f5fe9c5f3b255bf255e62fe310525e49494be8747c814691b150b",
+    "src/request_validation.py": "31bab05e37003657fda887ecfcb8ca2dbc1e0dddb2b3cd2c9ab3a9024e8d6859",
+    "src/kvcache_varlen.py": "08b9fdcba6563c72e0e4180f8aa8c993310da8d3d936dca8e7871e4324901efd",
+    "src/engine.py": "9714ca30e5959d381d9b77e248fdc72c478ea1363041601387fa4975a75e2b45",
+    "src/kvcache_batching.py": "95570c39b1584b6b1554593bbcb6ded101e0fe43286bdce9062df39f8c22e1c1",
+    "src/common_metrics.py": "7c8df8c775de8a6eee5621b4110692b34754ed434d7ba0d3d06a42d49833011c",
+    "src/evaluation.py": "7fd7d43762efae5e0e69bae90e69807997572e3f7e6e96403dd0c579c492640c",
+    "src/test_OmniVLM968M.py": "461e42d31d6cb31f79292ff2800286714bf08730355eb6242463e0dfd6900dd7",
+    "src/run_artifacts.py": "4dc1b34a1f6bf58131041664122f35a6969c97f93a98820a31afee1c6af922c7",
+    "src/kvcache.py": "05595c12d405ad9f2d62a29a9f9060db83f461a5681a9438ac976923cade5a41",
+    "src/runtime.py": "ce0f142e23e5b8bfaf2ab94c5075cd8778c0da339b08ce2952c9c2185aa6ad73",
+    "src/parity.py": "9022849cea2c1526065a970cc9d3699c401b1864f060a0079fd44509abe1dc7b",
+    "src/speculative_sampling.py": "e59422e81490ac80c7137619af45cea2df9db1ca1cc818ebb2c1d45924f9886d",
+    "cloud/cloud_service.py": "c219d2b32eb380c8c9e7f92b02fb015262bf9c1f5729e089e42b5c05e386c9e5"
+  },
+  "limitations": [
+    "single paired run",
+    "shared CPU hosts, unequal background load",
+    "Target uses CPU weight offload, not full GPU-resident inference",
+    "TTFT is time until first verified token block",
+    "TPOT is request-level amortized interval",
+    "SpecEdge differs from Standard SD in one output sequence (gsm8k-0003); root cause not established",
+    "FastSD asynchronous KV prefetch submitted zero tasks in this run",
+    "SpecEdge has no equivalent to the native token_budget=512 scheduling limit"
+  ],
+  "completed_epoch": 1792784437.548195,
+  "finalized_at": "2026-10-24T01:37:36.451675+00:00",
+  "completed_requests": {
+    "standard": 16,
+    "fastsd": 16,
+    "specedge": 16
+  },
+  "rpc_errors": {
+    "standard": 0,
+    "fastsd": 0,
+    "specedge": 0
+  },
+  "output_identical_to_standard": {
+    "fastsd": 16,
+    "specedge": 15
+  },
+  "output_review": "output_review.json",
+  "method_overrides": {
+    "specedge": {
+      "method": "specedge_cpu_adapted_single_chain",
+      "transport": "gRPC",
+      "token_budget": null,
+      "max_len": 768,
+      "batch_size": 8,
+      "main_branch_width": 1,
+      "proactive_branch_width": 1,
+      "prefill_cache": false
+    }
+  },
+  "async_target_kv_prefetch_exercised": false
+}

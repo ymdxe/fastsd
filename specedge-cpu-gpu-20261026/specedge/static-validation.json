@@ -1,0 +1,11 @@
+{
+  "official_file_count": 41,
+  "official_bytes_match": true,
+  "new_entrypoints_syntax": true,
+  "mock_contract_tests": 2,
+  "mock_tests_passed": true,
+  "heterogeneous_client_mapping": "16/16 passed",
+  "real_model_run": false,
+  "dependency_import_preflight": "pending remote deployment / CPU1 grpc installation",
+  "eos_rule": "tokenizer.eos_token_id only; 151645 for Qwen3"
+}

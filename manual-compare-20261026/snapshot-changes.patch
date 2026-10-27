@@ -1,0 +1,328 @@
+--- GPU-original/src/engine.py
++++ experiment-snapshot/src/engine.py
+@@ -861,6 +861,78 @@
+         active_pids = residency.active
+         in_flight = {"plan": None}
+ 
++        # Experiment controls are handled only by the control owner.  A release
++        # can arrive after an early Verify response while the remainder of its
++        # combined plan is still executing, so it is deferred until all leases
++        # and WorkItems for that session have retired.
++        pending_session_releases = {}
++        lifecycle_metrics = {"released_sessions": 0, "peak_cache_sessions": 0}
++
++        def cache_stats():
++            with cache_lock:
++                count = len(kv_cache_manager._past_key_values)
++                lifecycle_metrics["peak_cache_sessions"] = max(
++                    lifecycle_metrics["peak_cache_sessions"], count
++                )
++                return {
++                    "cache_sessions": count,
++                    "prob_history_sessions": len(kv_cache_manager._prob_history),
++                    "resident_sessions": len(residency.resident),
++                    "active_sessions": len(residency.active),
++                    "reserved_sessions": len(residency.reserved),
++                    "residency_versions": len(residency.versions),
++                    "work_items": len(work_items),
++                    "pending_releases": len(pending_session_releases),
++                    "pending_prefill_timing": len(pending_prefill_timing),
++                    "pending_prefill_cancel": len(pending_prefill_cancel),
++                    "accept_stats_sessions": len(accept_stats),
++                    "prefix_sessions": len(committed_prefix_tokens),
++                    "rng_sessions": len(sampling_generators),
++                    "ema_sessions": max(len(verify_time_ema), len(edge_draft_per_token_ema), len(edge_rtt_ema)),
++                    **lifecycle_metrics,
++                }
++
++        def flush_session_releases():
++            cache_stats()
++            for pid, response_key in list(pending_session_releases.items()):
++                with cache_lock:
++                    if pid in residency.active or pid in residency.reserved:
++                        continue
++                    if any(item.proc_id == pid for item in work_items.values()):
++                        continue
++                    # Removing the cache invalidates both its object identity
++                    # and generation.  A prefetch copy already in flight can
++                    # finish but its install check cannot resurrect this cache.
++                    residency.bump_locked(pid)
++                    kv_cache_manager.reset(pid)
++                    residency.resident.discard(pid)
++                    residency.versions.pop(pid, None)
++                with accept_stats_lock:
++                    accept_stats.pop(pid, None)
++                for store in (committed_prefix_tokens, sampling_generators,
++                              verify_time_ema, edge_draft_per_token_ema,
++                              edge_rtt_ema, pending_prefill_timing):
++                    store.pop(pid, None)
++                pending_prefill_cancel.discard(pid)
++                pending_session_releases.pop(pid, None)
++                lifecycle_metrics["released_sessions"] += 1
++                response_queues[response_key].put({"status": "released", **cache_stats()})
++
++        def process_experiment_control(req):
++            if not isinstance(req, dict):
++                return False
++            kind = req.get("control_type")
++            if kind == "cache_stats":
++                flush_session_releases()
++                response_queues[req["response_key"]].put(cache_stats())
++                return True
++            if kind == "session_release":
++                pid = req["proc_id"]
++                pending_session_releases[pid] = req["response_key"]
++                flush_session_releases()
++                return True
++            return False
++
+         def _safe_float(value, default=0.0) -> float:
+             """Sanitize a request-sourced float: JSON can carry inf/NaN or
+             non-numeric types, which must never reach arithmetic downstream."""
+@@ -1882,6 +1954,8 @@
+             """Apply one inbound request/control on the control-owner thread."""
+ 
+             nonlocal len_r1, len_r2
++            if process_experiment_control(req):
++                return
+             if isinstance(req, dict) and req.get("control_type") == "prefill_timing":
+                 try:
+                     apply_prefill_timing(req)
+@@ -1956,6 +2030,7 @@
+             visible to lookahead prefetch before the current batch finishes.
+             """
+ 
++            flush_session_releases()
+             changed = 0
+             limit = max(1, int(self.args.batch_size) * 10)
+             next_timeout = timeout
+@@ -1976,6 +2051,7 @@
+                 if executor is not None and executor.busy():
+                     scheduler_metrics["incoming_during_forward"] += 1
+                 process_ingress_message(req)
++            flush_session_releases()
+             return changed
+ 
+         def terminate_pending_work() -> int:
+@@ -1994,6 +2070,8 @@
+         # Pipeline baseline: strict FCFS, single-request handling only.
+         # No queue categorization, no batching, no preload, no priority scheduling.
+         executor = None
++        if getattr(response_queues, "experiment_controls", False):
++            response_queues["__experiment_worker_ready__"].put({"model_ready": True})
+         try:
+             if use_strict_fcfs:
+                 while True:
+@@ -2001,6 +2079,8 @@
+                         req = request_queue.get(timeout=0.01)
+                         if req is None:
+                             return
++                        if process_experiment_control(req):
++                            continue
+                         if isinstance(req, dict) and req.get("control_type") == "prefill_timing":
+                             # A timing update is meaningful only to FastSD;
+                             # baselines never send this control message.
+@@ -2012,6 +2092,7 @@
+                             energy_service.enter_active()
+                         try:
+                             handle_request_batch([req])
++                            cache_stats()
+                         finally:
+                             if energy_service is not None:
+                                 energy_service.exit_active()
+--- GPU-original/cloud/cloud_service.py
++++ experiment-snapshot/cloud/cloud_service.py
+@@ -29,6 +29,7 @@
+ _request_max_tokens: int = 400
+ _server_sched_mode: str = "fastsd"
+ _enable_latency_priority: bool = True
++_model_ready: bool = False
+ 
+ # FastAPI 请求等待表
+ _pending: Dict[str, asyncio.Future] = {}
+@@ -199,6 +200,8 @@
+ 
+ 
+ class _ResponseQueuesProxy:
++    experiment_controls = True
++
+     def __init__(self, shared_queue: mp.Queue) -> None:
+         self.shared_queue = shared_queue
+ 
+@@ -232,6 +235,7 @@
+     从 response_queue 中取结果，唤醒对应的 HTTP 请求 Future。
+     """
+     def _run():
++        global _model_ready
+         while True:
+             if response_queue is None:
+                 time.sleep(0.01)
+@@ -260,6 +264,9 @@
+                 continue
+             req_id = msg.get("request_id")
+             payload = msg.get("payload", {})
++            if req_id == "__experiment_worker_ready__":
++                _model_ready = bool(payload.get("model_ready"))
++                continue
+             with _pending_lock:
+                 fut = _pending.pop(req_id, None)
+                 session_id = _pending_meta.pop(req_id, None)
+@@ -295,13 +302,15 @@
+         status = "draining"
+     elif worker_proc is None or not worker_proc.is_alive():
+         status = "failed"
++    elif not _model_ready:
++        status = "loading"
+     else:
+         status = "ok"
+     return {
+         "status": status,
+         "draining": draining,
+         "worker_alive": bool(worker_proc is not None and worker_proc.is_alive()),
+-        "model_ready": bool(worker_proc is not None and worker_proc.is_alive()),
++        "model_ready": bool(_model_ready and worker_proc is not None and worker_proc.is_alive()),
+     }
+ 
+ 
+@@ -377,6 +386,30 @@
+         with _pending_lock:
+             _drop_pending_locked(response_key, req_id)
+         raise
++
++
++class SessionReleaseRequest(BaseModel):
++    session_id: str
++
++
++@app.post("/session/release")
++async def session_release(req: SessionReleaseRequest) -> dict:
++    """Release all completed-request state after the caller joins its RPCs."""
++    result = await _enqueue_and_wait({"control_type": "session_release"}, req.session_id)
++    _prefill_timing_updates.pop(req.session_id, None)
++    with _pending_lock:
++        _prefill_arrivals.pop(req.session_id, None)
++    return {"session_id": req.session_id, **result}
++
++
++@app.get("/experiment/cache-stats")
++async def experiment_cache_stats() -> dict:
++    result = await _enqueue_and_wait({"control_type": "cache_stats"}, "stats-" + uuid.uuid4().hex)
++    with _pending_lock:
++        result["http_pending"] = len(_pending)
++        result["http_prefill_arrivals"] = len(_prefill_arrivals)
++        result["http_prefill_timing"] = len(_prefill_timing_updates)
++    return result
+ 
+ 
+ @app.post("/prefill/arrival")
+--- GPU-original/edge/edge.py
++++ experiment-snapshot/edge/edge.py
+@@ -444,6 +444,14 @@
+     def init_session(self) -> str:
+         resp = self._post("/session/init", {})
+         return resp["session_id"]
++
++    def release_session(self, session_id: str) -> Dict[str, Any]:
++        """Release target state after all RPCs for this session have finished."""
++
++        response = self._post("/session/release", {"session_id": session_id})
++        if response.get("status") not in {"released", "session_released", "ok"}:
++            raise RuntimeError(f"session release failed: {response}")
++        return response
+ 
+     def synchronize_clock(self, samples: int = 5) -> dict[str, int]:
+         """Calibrate cloud-edge epoch offset with NTP-style probes.
+@@ -968,6 +976,8 @@
+             )
+             if "final_token" not in response or "accepted" not in response:
+                 raise RuntimeError(f"warmup verify failed: {response}")
++            if os.environ.get("FASTSD_SUITE_WORKER"):
++                client.release_session(session_id)
+ 
+     @staticmethod
+     def _percentile(values: List[float], q: float) -> float:
+@@ -1296,6 +1306,9 @@
+         arrival_start_time=None,
+         executor_holder: Dict[str, Any] | None = None,
+     ):
++        suite_enabled = bool(os.environ.get("FASTSD_SUITE_WORKER"))
++        if suite_enabled and int(self.args.num_drafts) != 1:
++            raise ValueError("experiment suite requires one draft process per worker")
+         # Support CPU device for draft workers
+         use_cpu = getattr(self.args, "edge_use_cpu", False)
+         if use_cpu:
+@@ -1339,8 +1352,33 @@
+         with open(data_file, "r") as f:
+             samples = [json.loads(line) for line in f.readlines()]
+ 
+-        self._warmup_stateful_requests(client, draft_model, tokenizer, samples, proc_id)
++        if suite_enabled:
++            warmup_samples = samples
++            if not warmup_samples and int(getattr(self.args, "warmup_requests", 0)) > 0:
++                fixture_path = os.path.join(
++                    os.environ["FASTSD_SUITE_ROOT"], "reference", "inputs.jsonl"
++                )
++                with open(fixture_path, "r", encoding="utf-8") as fixture_file:
++                    fixture = json.loads(next(line for line in fixture_file if line.strip()))
++                warmup_samples = [{
++                    "sample_id": f"suite-empty-warmup-{proc_id}",
++                    "prompt": fixture["prompt"],
++                }]
++            # The legacy warmup has no latency-priority timing measurements.
++            saved_timing_priority = client.timing_priority
++            client.timing_priority = False
++            try:
++                self._warmup_stateful_requests(client, draft_model, tokenizer, warmup_samples, proc_id)
++            finally:
++                client.timing_priority = saved_timing_priority
++        else:
++            self._warmup_stateful_requests(client, draft_model, tokenizer, samples, proc_id)
+         client.reset_transport_stats()
++        experiment_t0 = None
++        if suite_enabled:
++            from experiment_hooks import finish_worker, wait_for_start
++
++            experiment_t0 = float(wait_for_start(self.args))
+ 
+         indexed_samples = shard_samples(
+             samples,
+@@ -1349,7 +1387,7 @@
+             max_items=self.args.max_tasks_per_draft,
+         )
+         arrival_offsets = None
+-        arrival_origin = None
++        arrival_origin = experiment_t0
+         if self.args.arrival_distribution == "poisson":
+             if samples and all("scheduled_arrival_s" in sample for sample in samples):
+                 arrival_offsets = [float(sample["scheduled_arrival_s"]) for sample in samples]
+@@ -1357,7 +1395,9 @@
+                 arrival_offsets = poisson_arrival_offsets(
+                     len(samples), self.args.arrival_rate, self.args.arrival_seed
+                 )
+-            if arrival_barrier is not None:
++            if suite_enabled:
++                arrival_origin = experiment_t0
++            elif arrival_barrier is not None:
+                 arrival_barrier.wait()
+                 if proc_id == 0:
+                     arrival_start_time.value = time.monotonic()
+@@ -2035,8 +2075,19 @@
+                     "TCP/IP, and SSH encapsulation"
+                 ),
+             }
++            if suite_enabled:
++                per_task.update({
++                    "request_start_monotonic_s": request_start,
++                    "completion_monotonic_s": completion_time,
++                    "experiment_t0_monotonic_s": experiment_t0,
++                })
+             with open(self._metrics_path(proc_id), "a") as f:
+                 f.write(json.dumps(per_task, ensure_ascii=True) + "\n")
++            if suite_enabled:
++                # Keep completion at output time; release delays the next start.
++                client.release_session(session_id)
++        if suite_enabled:
++            finish_worker(self.args)
+ 
+ 
+ def parse_edge_arguments() -> argparse.Namespace:

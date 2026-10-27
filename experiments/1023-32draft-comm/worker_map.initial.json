@@ -1,0 +1,194 @@
+[
+  {
+    "worker_id": 0,
+    "cpu": 0,
+    "numa": 0,
+    "threads": 1
+  },
+  {
+    "worker_id": 1,
+    "cpu": 24,
+    "numa": 1,
+    "threads": 1
+  },
+  {
+    "worker_id": 2,
+    "cpu": 48,
+    "numa": 2,
+    "threads": 1
+  },
+  {
+    "worker_id": 3,
+    "cpu": 72,
+    "numa": 3,
+    "threads": 1
+  },
+  {
+    "worker_id": 4,
+    "cpu": 1,
+    "numa": 0,
+    "threads": 1
+  },
+  {
+    "worker_id": 5,
+    "cpu": 25,
+    "numa": 1,
+    "threads": 1
+  },
+  {
+    "worker_id": 6,
+    "cpu": 49,
+    "numa": 2,
+    "threads": 1
+  },
+  {
+    "worker_id": 7,
+    "cpu": 73,
+    "numa": 3,
+    "threads": 1
+  },
+  {
+    "worker_id": 8,
+    "cpu": 2,
+    "numa": 0,
+    "threads": 1
+  },
+  {
+    "worker_id": 9,
+    "cpu": 26,
+    "numa": 1,
+    "threads": 1
+  },
+  {
+    "worker_id": 10,
+    "cpu": 50,
+    "numa": 2,
+    "threads": 1
+  },
+  {
+    "worker_id": 11,
+    "cpu": 74,
+    "numa": 3,
+    "threads": 1
+  },
+  {
+    "worker_id": 12,
+    "cpu": 3,
+    "numa": 0,
+    "threads": 1
+  },
+  {
+    "worker_id": 13,
+    "cpu": 27,
+    "numa": 1,
+    "threads": 1
+  },
+  {
+    "worker_id": 14,
+    "cpu": 51,
+    "numa": 2,
+    "threads": 1
+  },
+  {
+    "worker_id": 15,
+    "cpu": 75,
+    "numa": 3,
+    "threads": 1
+  },
+  {
+    "worker_id": 16,
+    "cpu": 4,
+    "numa": 0,
+    "threads": 1
+  },
+  {
+    "worker_id": 17,
+    "cpu": 28,
+    "numa": 1,
+    "threads": 1
+  },
+  {
+    "worker_id": 18,
+    "cpu": 52,
+    "numa": 2,
+    "threads": 1
+  },
+  {
+    "worker_id": 19,
+    "cpu": 76,
+    "numa": 3,
+    "threads": 1
+  },
+  {
+    "worker_id": 20,
+    "cpu": 5,
+    "numa": 0,
+    "threads": 1
+  },
+  {
+    "worker_id": 21,
+    "cpu": 29,
+    "numa": 1,
+    "threads": 1
+  },
+  {
+    "worker_id": 22,
+    "cpu": 53,
+    "numa": 2,
+    "threads": 1
+  },
+  {
+    "worker_id": 23,
+    "cpu": 77,
+    "numa": 3,
+    "threads": 1
+  },
+  {
+    "worker_id": 24,
+    "cpu": 6,
+    "numa": 0,
+    "threads": 1
+  },
+  {
+    "worker_id": 25,
+    "cpu": 30,
+    "numa": 1,
+    "threads": 1
+  },
+  {
+    "worker_id": 26,
+    "cpu": 54,
+    "numa": 2,
+    "threads": 1
+  },
+  {
+    "worker_id": 27,
+    "cpu": 78,
+    "numa": 3,
+    "threads": 1
+  },
+  {
+    "worker_id": 28,
+    "cpu": 7,
+    "numa": 0,
+    "threads": 1
+  },
+  {
+    "worker_id": 29,
+    "cpu": 31,
+    "numa": 1,
+    "threads": 1
+  },
+  {
+    "worker_id": 30,
+    "cpu": 55,
+    "numa": 2,
+    "threads": 1
+  },
+  {
+    "worker_id": 31,
+    "cpu": 79,
+    "numa": 3,
+    "threads": 1
+  }
+]

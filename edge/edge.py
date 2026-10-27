@@ -382,6 +382,8 @@ class EdgeClient:
         server_url: str,
         timeout: float = 30.0,
         timing_priority: bool = False,
+        clock_uncertainty_limit_ms: float = 10.0,
+        clock_recovery_log: str | None = None,
     ):
         self.server_url = server_url.rstrip("/")
         self.timeout = timeout
@@ -395,26 +397,55 @@ class EdgeClient:
         # Defined as cloud_epoch - edge_epoch, measured by NTP-style probes.
         self.clock_offset_ns = 0
         self.clock_uncertainty_ns = 0
+        self.clock_uncertainty_limit_ms = float(clock_uncertainty_limit_ms)
+        self.clock_recovery_log = clock_recovery_log
+        self._clock_lock = threading.RLock()
+        self._last_clock_calibration = {}
+        self._clock_calibrated_at = None
+        self._clock_recovery_sequence = 0
         self._stats_lock = threading.Lock()
         self._request_bytes = 0
         self._response_bytes = 0
         self._rpc_count = 0
+        self._clock_sync_rpc_count = 0
+        self._clock_sync_time_s = 0.0
+        self._clock_recovery_count = 0
+        self._clock_pull_recovery_count = 0
+        self._clock_upload_recovery_count = 0
+        self._clock_recovery_time_s = 0.0
+        self._clock_rejected_upload_http_s = 0.0
 
-    def snapshot_transport_stats(self) -> Dict[str, int]:
+    def snapshot_transport_stats(self) -> Dict[str, Any]:
         """Return application-layer HTTP byte/RPC counters for this client."""
 
-        return {
-            "request_bytes": int(self._request_bytes),
-            "response_bytes": int(self._response_bytes),
-            "rpc_count": int(self._rpc_count),
-        }
+        with self._stats_lock:
+            return {
+                "request_bytes": int(self._request_bytes),
+                "response_bytes": int(self._response_bytes),
+                "rpc_count": int(self._rpc_count),
+                "clock_sync_rpc_count": int(self._clock_sync_rpc_count),
+                "clock_sync_time_s": float(self._clock_sync_time_s),
+                "clock_recovery_count": int(self._clock_recovery_count),
+                "clock_pull_recovery_count": int(self._clock_pull_recovery_count),
+                "clock_upload_recovery_count": int(self._clock_upload_recovery_count),
+                "clock_recovery_time_s": float(self._clock_recovery_time_s),
+                "clock_rejected_upload_http_s": float(self._clock_rejected_upload_http_s),
+            }
 
     def reset_transport_stats(self) -> None:
         """Exclude health checks and stateful warmups from measured requests."""
 
-        self._request_bytes = 0
-        self._response_bytes = 0
-        self._rpc_count = 0
+        with self._stats_lock:
+            self._request_bytes = 0
+            self._response_bytes = 0
+            self._rpc_count = 0
+            self._clock_sync_rpc_count = 0
+            self._clock_sync_time_s = 0.0
+            self._clock_recovery_count = 0
+            self._clock_pull_recovery_count = 0
+            self._clock_upload_recovery_count = 0
+            self._clock_recovery_time_s = 0.0
+            self._clock_rejected_upload_http_s = 0.0
 
     def _post(self, path: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         url = f"{self.server_url}{path}"
@@ -429,7 +460,22 @@ class EdgeClient:
             self._request_bytes += len(body)
             self._response_bytes += len(response.content)
             self._rpc_count += 1
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except requests.HTTPError as exc:
+            # Keep validation diagnostics in the worker log.  Token payloads
+            # and prompts are deliberately omitted from this error context.
+            context = {name: payload[name] for name in (
+                "task_id", "prefix_len", "gamma", "tail_only", "has_bridge_token",
+                "edge_send_time_ns", "clock_offset_ns",
+            ) if name in payload}
+            if "draft_output" in payload:
+                context["draft_output_length"] = len(payload["draft_output"])
+            raise requests.HTTPError(
+                f"{exc}; response_detail={response.text[:4096]}; "
+                f"request_context={json.dumps(context, sort_keys=True)}",
+                request=exc.request, response=response,
+            ) from exc
         return response.json()
 
     def health(self) -> Dict[str, Any]:
@@ -445,54 +491,169 @@ class EdgeClient:
         resp = self._post("/session/init", {})
         return resp["session_id"]
 
-    def synchronize_clock(self, samples: int = 5) -> dict[str, int]:
+
+    def synchronize_clock(self, samples: int = 5) -> dict[str, Any]:
         """Calibrate cloud-edge epoch offset with NTP-style probes.
 
         The minimum-RTT sample is used as the least-contended offset estimate;
         no RTT/2 value is ever used as an application upload/pull duration.
         """
 
-        measurements = []
-        for _ in range(max(1, int(samples))):
-            edge_before = time.time_ns()
-            response = self.session.get(
-                f"{self.server_url}/clock/sync", timeout=self.timeout
-            )
-            edge_after = time.time_ns()
-            response.raise_for_status()
-            cloud_time = int(response.json()["cloud_time_ns"])
-            midpoint = (edge_before + edge_after) // 2
-            measurements.append(
-                (edge_after - edge_before, cloud_time - midpoint)
-            )
-        rtt_ns, offset_ns = min(measurements, key=lambda item: item[0])
-        self.clock_offset_ns = int(offset_ns)
-        self.clock_uncertainty_ns = max(0, int(rtt_ns // 2))
-        return {
-            "clock_offset_ns": self.clock_offset_ns,
-            "clock_uncertainty_ns": self.clock_uncertainty_ns,
-            "samples": len(measurements),
-        }
+        with self._clock_lock:
+            started = time.monotonic()
+            measurements = []
+            calibration = {"samples": measurements, "accepted": False,
+                "uncertainty_limit_ms": self.clock_uncertainty_limit_ms}
+            self._last_clock_calibration = calibration
+            try:
+                for _ in range(max(1, int(samples))):
+                    edge_before = time.time_ns()
+                    # GET has an empty application body. Count every attempt,
+                    # including a probe which later fails at transport level.
+                    with self._stats_lock:
+                        self._rpc_count += 1
+                        self._clock_sync_rpc_count += 1
+                    response = self.session.get(
+                        f"{self.server_url}/clock/sync", timeout=self.timeout
+                    )
+                    edge_after = time.time_ns()
+                    with self._stats_lock:
+                        self._response_bytes += len(response.content)
+                    response.raise_for_status()
+                    cloud_time = int(response.json()["cloud_time_ns"])
+                    midpoint = (edge_before + edge_after) // 2
+                    measurements.append({"edge_before_ns": edge_before,
+                        "edge_after_ns": edge_after, "cloud_time_ns": cloud_time,
+                        "rtt_ns": edge_after - edge_before,
+                        "clock_offset_ns": cloud_time - midpoint})
+                    if edge_after < edge_before:
+                        raise RuntimeError("edge epoch clock moved backwards during calibration")
+                best = min(measurements, key=lambda item: item["rtt_ns"])
+                uncertainty = int((best["rtt_ns"] + 1) // 2)
+                calibration.update(clock_offset_ns=int(best["clock_offset_ns"]),
+                    clock_uncertainty_ns=uncertainty, sample_count=len(measurements))
+                if self.clock_uncertainty_limit_ms > 0 and uncertainty > self.clock_uncertainty_limit_ms * 1_000_000:
+                    raise RuntimeError(
+                        "clock calibration uncertainty exceeds configured limit: "
+                        f"{uncertainty / 1_000_000:.3f}ms > {self.clock_uncertainty_limit_ms:.3f}ms"
+                    )
+                self.clock_offset_ns = calibration["clock_offset_ns"]
+                self.clock_uncertainty_ns = uncertainty
+                calibration["accepted"] = True
+                self._clock_calibrated_at = time.monotonic()
+                return calibration
+            except Exception as exc:
+                calibration["error"] = repr(exc)
+                raise
+            finally:
+                calibration["elapsed_s"] = time.monotonic() - started
+                with self._stats_lock:
+                    self._clock_sync_time_s += calibration["elapsed_s"]
 
-    def _attach_pull(self, response: Dict[str, Any], edge_receive_time_ns: int) -> Dict[str, Any]:
-        """Attach a synchronized cloud-to-edge duration to an RPC response."""
+    def _clock_snapshot(self) -> dict[str, int]:
+        with self._clock_lock:
+            return {"clock_offset_ns": int(self.clock_offset_ns),
+                "clock_uncertainty_ns": int(self.clock_uncertainty_ns)}
 
+    def _recalibrate_recovery(self, event: dict) -> None:
+        try:
+            calibration = self.synchronize_clock(samples=5)
+        except Exception:
+            event["calibrations"].append(dict(self._last_clock_calibration))
+            raise
+        event["calibrations"].append(calibration)
+
+    def _record_clock_recovery(self, event: dict, started: float, *, elapsed_s: float | None = None) -> None:
+        event["recovery_elapsed_s"] = time.monotonic() - started if elapsed_s is None else elapsed_s
+        event["recorded_epoch_ns"] = time.time_ns()
+        with self._stats_lock:
+            self._clock_recovery_sequence += 1
+            event["sequence"] = self._clock_recovery_sequence
+            self._clock_recovery_count += 1
+            if event["kind"] == "negative_pull":
+                self._clock_pull_recovery_count += 1
+            else:
+                self._clock_upload_recovery_count += 1
+            self._clock_recovery_time_s += event["recovery_elapsed_s"]
+            self._clock_rejected_upload_http_s += sum(
+                item["http_elapsed_s"] for item in event.get("rejected_uploads", [])
+            )
+            if self.clock_recovery_log:
+                parent = os.path.dirname(self.clock_recovery_log)
+                if parent:
+                    os.makedirs(parent, exist_ok=True)
+                with open(self.clock_recovery_log, "a", encoding="utf-8") as handle:
+                    handle.write(json.dumps(event, ensure_ascii=True) + "\n")
+        brief = {name: event[name] for name in ("kind", "route", "task_id", "status",
+            "sequence", "recovery_elapsed_s") if name in event}
+        brief["calibration_attempts"] = len(event["calibrations"])
+        brief["audit_file"] = self.clock_recovery_log
+        print("[CLOCK_RECOVERY] " + json.dumps(brief if self.clock_recovery_log else event), flush=True)
+
+    def _ensure_clock(self) -> bool:
+        # Bound calibration staleness; all probe costs remain in request E2E.
+        if self._clock_calibrated_at is None or time.monotonic() - self._clock_calibrated_at > 30:
+            self.synchronize_clock(samples=5)
+            return True
+        return False
+
+    def _attach_pull(self, response: Dict[str, Any], edge_receive_time_ns: int,
+                     *, route: str = "unknown", task_id: str | None = None) -> Dict[str, Any]:
+        from src.clock_bounds import duration_bounds
         cloud_send = response.get("cloud_send_time_ns")
         if cloud_send is None:
             response.setdefault("pull_s", 0.0)
+            response["pull_timing_available"] = False
             return response
+        receipt, cloud_send = int(edge_receive_time_ns), int(cloud_send)
+        if receipt <= 0 or cloud_send <= 0:
+            raise RuntimeError("invalid cloud_send_time_ns in timing response")
+        state = self._clock_snapshot()
+        raw = receipt - cloud_send + state["clock_offset_ns"]
+        event = None
         try:
-            pull_ns = int(edge_receive_time_ns) - (
-                int(cloud_send) - int(self.clock_offset_ns)
-            )
-        except (TypeError, ValueError, OverflowError) as exc:
-            raise RuntimeError("invalid cloud_send_time_ns in timing response") from exc
-        if pull_ns < 0:
-            raise RuntimeError(
-                "synchronized clocks produced a negative pull duration; retry clock calibration"
-            )
-        response["pull_s"] = pull_ns / 1_000_000_000.0
-        response["pull_ms"] = response["pull_s"] * 1000.0
+            bounds = duration_bounds(raw, state["clock_uncertainty_ns"])
+        except ValueError:
+            started = time.monotonic()
+            event = {"kind": "negative_pull", "route": route, "task_id": task_id,
+                "edge_receive_time_ns": receipt, "cloud_send_time_ns": cloud_send,
+                "model_rpc_retransmitted": False, "max_calibration_attempts": 3,
+                "observations": [{"raw_pull_ns": raw, **state}], "calibrations": []}
+            try:
+                for _ in range(3):
+                    self._recalibrate_recovery(event)
+                    state = self._clock_snapshot()
+                    raw = receipt - cloud_send + state["clock_offset_ns"]
+                    event["observations"].append({"raw_pull_ns": raw, **state})
+                    try:
+                        bounds = duration_bounds(raw, state["clock_uncertainty_ns"])
+                        break
+                    except ValueError:
+                        continue
+                else:
+                    raise RuntimeError("pull interval remains entirely negative after 3 clock calibrations")
+                event["status"] = "recovered"
+            except Exception as exc:
+                event.update(status="failed", error=repr(exc))
+                raise
+            finally:
+                self._record_clock_recovery(event, started)
+            response["clock_recovery_pull_s"] = event["recovery_elapsed_s"]
+            response["pull_is_posthoc_calibrated"] = True
+        # The scheduler consumes an explicitly labelled conservative upper
+        # estimate, not the signed midpoint or a clipped point measurement.
+        response.update(pull_s=bounds["scheduler_seconds"],
+            pull_ms=bounds["scheduler_seconds"] * 1000,
+            pull_timing_available=True, pull_timing=bounds)
+        if self.clock_recovery_log:
+            path = os.path.join(os.path.dirname(self.clock_recovery_log), "timing-observations.jsonl")
+            record = {"route": route, "task_id": task_id, "pull": bounds,
+                "push": response.get("push_timing"), "clock": state,
+                "edge_receive_time_ns": receipt, "cloud_send_time_ns": cloud_send,
+                "posthoc_calibration": event is not None}
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with self._stats_lock, open(path, "a", encoding="utf-8") as handle:
+                handle.write(json.dumps(record) + "\n")
         return response
 
     def close(self) -> None:
@@ -519,6 +680,7 @@ class EdgeClient:
             "task_id": task_id,
             "edge_send_time_ns": int(edge_send_time_ns),
             "clock_offset_ns": int(self.clock_offset_ns),
+            "clock_uncertainty_ns": int(self.clock_uncertainty_ns),
         }
         return self._post("/prefill/arrival", payload)
 
@@ -535,6 +697,8 @@ class EdgeClient:
         edge_send_time_ns: int | None = None,
         prompt_len: int | None = None,
     ) -> Dict[str, Any]:
+        if self._ensure_clock():
+            edge_send_time_ns = None
         if edge_send_time_ns is None:
             edge_send_time_ns = time.time_ns()
         payload = {
@@ -554,9 +718,10 @@ class EdgeClient:
             "timing_priority": bool(self.timing_priority and timing_required),
             "edge_send_time_ns": int(edge_send_time_ns),
             "clock_offset_ns": int(self.clock_offset_ns),
+            "clock_uncertainty_ns": int(self.clock_uncertainty_ns),
         }
         response = self._post("/prefill", payload)
-        return self._attach_pull(response, time.time_ns())
+        return self._attach_pull(response, time.time_ns(), route="/prefill", task_id=task_id)
 
     def prefill_timing(
         self,
@@ -579,6 +744,7 @@ class EdgeClient:
             "T_i_d": float(local_decode_per_token_s),
             "edge_send_time_ns": edge_send_time_ns,
             "clock_offset_ns": int(self.clock_offset_ns),
+            "clock_uncertainty_ns": int(self.clock_uncertainty_ns),
         }
         # This call intentionally uses a different Session from /prefill.
         body = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
@@ -648,6 +814,8 @@ class EdgeClient:
         sampling_seed: int | None = None,
         draft_prob_block: str | None = None,
     ) -> tuple[Dict[str, Any], float]:
+        if self._ensure_clock():
+            edge_send_time_ns = None
         if edge_send_time_ns is None:
             edge_send_time_ns = time.time_ns()
         payload = {
@@ -668,15 +836,64 @@ class EdgeClient:
             "T_i_pull": last_pull_s,
             "edge_send_time_ns": int(edge_send_time_ns),
             "clock_offset_ns": int(self.clock_offset_ns),
+            "clock_uncertainty_ns": int(self.clock_uncertainty_ns),
             "verify_method": str(verify_method),
             "sampling_seed": int(sampling_seed or 0),
             "draft_prob_block": draft_prob_block,
         }
-        transport_start = time.monotonic()
-        resp = self._post("/verify", payload)
-        edge_receive_time_ns = time.time_ns()
-        measured_http_total = max(0.0, time.monotonic() - transport_start)
-        self._attach_pull(resp, edge_receive_time_ns)
+        started = time.monotonic()
+        event = None
+        try:
+            for attempt in range(4):
+                transport_start = time.monotonic()
+                try:
+                    resp = self._post("/verify", payload)
+                except requests.HTTPError as exc:
+                    rejected_elapsed = time.monotonic() - transport_start
+                    response = exc.response
+                    detail = None
+                    if response is not None and response.status_code == 422:
+                        try:
+                            detail = response.json().get("detail")
+                        except (ValueError, AttributeError):
+                            pass
+                    # This machine-readable rejection is emitted exclusively
+                    # before target admission. Any other error is not retried.
+                    if not (isinstance(detail, dict)
+                            and detail.get("code") == "negative_upload_pre_enqueue"
+                            and detail.get("route") == "/verify"
+                            and detail.get("enqueued") is False):
+                        raise
+                    if event is None:
+                        event = {"kind": "negative_upload", "route": "/verify", "task_id": task_id,
+                            "max_calibration_attempts": 3, "calibrations": [], "rejected_uploads": []}
+                    event["rejected_uploads"].append({"server_detail": detail,
+                        "http_elapsed_s": rejected_elapsed, **self._clock_snapshot(),
+                        "request_clock_offset_ns": payload["clock_offset_ns"],
+                        "edge_send_time_ns": payload["edge_send_time_ns"]})
+                    if attempt == 3:
+                        raise RuntimeError("negative upload persists after 3 clock calibrations") from exc
+                    self._recalibrate_recovery(event)
+                    # All model inputs, task IDs and sampling state stay frozen.
+                    payload["edge_send_time_ns"] = time.time_ns()
+                    payload.update(self._clock_snapshot())
+                    continue
+                edge_receive_time_ns = time.time_ns()
+                measured_http_total = time.monotonic() - transport_start
+                break
+            if event is not None:
+                event.update(status="recovered", successful_http_s=measured_http_total)
+                overhead = time.monotonic() - started - measured_http_total
+                self._record_clock_recovery(event, started, elapsed_s=overhead)
+                resp["clock_recovery_upload_s"] = overhead
+        except Exception as exc:
+            if event is not None:
+                event.update(status="failed", error=repr(exc))
+                self._record_clock_recovery(event, started)
+            raise
+        # Only this successful attempt feeds the scheduler's transport RTT.
+        # All retries/calibration are still included in the caller's real E2E.
+        self._attach_pull(resp, edge_receive_time_ns, route="/verify", task_id=task_id)
         return resp, measured_http_total
 
 
@@ -1316,6 +1533,8 @@ class EdgeRunner(Decoding):
                 getattr(self.args, "enable_latency_priority", False)
                 and self.args.server_sched_mode == "fastsd"
             ),
+            clock_uncertainty_limit_ms=float(getattr(self.args, "timing_max_clock_uncertainty_ms", 10.0)),
+            clock_recovery_log=os.path.join(self.args.exp_name, "clock-recovery-proc%d.jsonl" % proc_id),
         )
         health = client.health()
         if health.get("status") not in {"ok", "healthy"}:
@@ -2006,6 +2225,7 @@ class EdgeRunner(Decoding):
                 "avg_draft_ms": float(sum_draft_ms / rounds) if rounds > 0 else 0.0,
                 "avg_wait_ms": float(sum_wait_ms / rounds) if rounds > 0 else 0.0,
                 "avg_http_total_ms": float(sum_http_total_ms / rounds) if rounds > 0 else 0.0,
+                "one_way_timing_policy": "calibration_upper_bound_v1",
                 "avg_cloud_total_ms": float(sum_cloud_total_ms / rounds) if rounds > 0 else 0.0,
                 "avg_verify_ms": float(sum_verify_ms / rounds) if rounds > 0 else 0.0,
                 "avg_transport_rtt_ms": float(sum_transport_rtt_ms / rounds) if rounds > 0 else 0.0,

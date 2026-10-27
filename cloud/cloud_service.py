@@ -9,7 +9,7 @@ from typing import Dict, Optional
 
 import torch
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
@@ -36,6 +36,11 @@ _pending_sessions: Dict[str, str] = {}
 _pending_meta: Dict[str, str] = {}
 _pending_task_ids: Dict[str, str] = {}
 _pending_lock = threading.Lock()
+# Admission gate shared with /exit.  Closing admission and publishing the
+# worker sentinel happen under the same lock, so an admitted request is always
+# published before None and no new request can be published after it.
+_admission_closed: bool = False
+_exit_sent: bool = False
 _prefill_arrivals: Dict[str, dict] = {}
 _prefill_timing_updates: Dict[str, dict] = {}
 _cloud_time_lock = threading.Lock()
@@ -55,30 +60,30 @@ def _finite_nonnegative(value: float, field: str) -> float:
     return number
 
 
-def _compute_upload_seconds(edge_send_time_ns: int, clock_offset_ns: int, cloud_receive_time_ns: int) -> float:
-    """Compute cloud-received minus Edge-sent using synchronized epoch clocks.
-
-    ``clock_offset_ns`` is defined as cloud_time - edge_time.  A negative
-    corrected duration is a protocol error; it is never replaced with RTT/2.
-    """
-
-    try:
-        edge_send = int(edge_send_time_ns)
-        offset = int(clock_offset_ns)
-    except (TypeError, ValueError, OverflowError) as exc:
-        raise HTTPException(status_code=422, detail="invalid synchronized timing timestamp") from exc
+def _compute_upload_timing(edge_send_time_ns: int, clock_offset_ns: int,
+                           cloud_receive_time_ns: int, clock_uncertainty_ns: int = 0) -> dict:
+    from src.clock_bounds import duration_bounds
+    edge_send = int(edge_send_time_ns)
     if edge_send <= 0:
         raise HTTPException(status_code=422, detail="edge_send_time_ns must be positive")
-    duration_ns = int(cloud_receive_time_ns) - (edge_send + offset)
-    if duration_ns < 0:
-        raise HTTPException(
-            status_code=422,
-            detail=(
-                "synchronized clocks produced a negative upload duration; "
-                "retry clock calibration"
-            ),
-        )
-    return duration_ns / 1_000_000_000.0
+    raw = int(cloud_receive_time_ns) - edge_send - int(clock_offset_ns)
+    try:
+        return duration_bounds(raw, int(clock_uncertainty_ns))
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail={
+            "code": "negative_synchronized_upload_duration",
+            "message": str(exc), "duration_ns": raw,
+            "clock_offset_ns": int(clock_offset_ns),
+            "clock_uncertainty_ns": int(clock_uncertainty_ns),
+            "edge_send_time_ns": edge_send,
+            "cloud_receive_time_ns": int(cloud_receive_time_ns)}) from exc
+
+
+
+def _compute_upload_seconds(edge_send_time_ns: int, clock_offset_ns: int,
+                            cloud_receive_time_ns: int, clock_uncertainty_ns: int = 0) -> float:
+    return _compute_upload_timing(edge_send_time_ns, clock_offset_ns,
+        cloud_receive_time_ns, clock_uncertainty_ns)["scheduler_seconds"]
 
 
 def _get_avg_cloud_total_ms() -> float:
@@ -109,6 +114,7 @@ class PrefillRequest(BaseModel):
     timing_priority: bool = False
     edge_send_time_ns: int = 0
     clock_offset_ns: int = 0
+    clock_uncertainty_ns: int = Field(default=0, ge=0, le=100_000_000)
 
 
 class PrefillArrivalRequest(BaseModel):
@@ -116,6 +122,7 @@ class PrefillArrivalRequest(BaseModel):
     task_id: str
     edge_send_time_ns: int = 0
     clock_offset_ns: int = 0
+    clock_uncertainty_ns: int = Field(default=0, ge=0, le=100_000_000)
 
 
 class PrefillTimingRequest(BaseModel):
@@ -132,6 +139,7 @@ class PrefillTimingRequest(BaseModel):
     T_i_push: Optional[float] = None
     edge_send_time_ns: int
     clock_offset_ns: int = 0
+    clock_uncertainty_ns: int = Field(default=0, ge=0, le=100_000_000)
 
 
 class PrefillCancelRequest(BaseModel):
@@ -162,6 +170,7 @@ class VerifyRequest(BaseModel):
     draft_prob_block: Optional[str] = None
     edge_send_time_ns: int = 0
     clock_offset_ns: int = 0
+    clock_uncertainty_ns: int = Field(default=0, ge=0, le=100_000_000)
 
 
 class CloudTargetWorker(Decoding):
@@ -281,14 +290,20 @@ def startup_event() -> None:
 
 @app.get("/health")
 def health() -> dict:
+    with _pending_lock:
+        draining = _admission_closed
     if request_queue is None:
         status = "not_initialized"
+    elif draining:
+        # The worker may stay alive for a while to drain accepted work.
+        status = "draining"
     elif worker_proc is None or not worker_proc.is_alive():
         status = "failed"
     else:
         status = "ok"
     return {
         "status": status,
+        "draining": draining,
         "worker_alive": bool(worker_proc is not None and worker_proc.is_alive()),
         "model_ready": bool(worker_proc is not None and worker_proc.is_alive()),
     }
@@ -310,6 +325,16 @@ def session_init() -> dict:
     return {"session_id": uuid.uuid4().hex}
 
 
+def _drop_pending_locked(response_key: str, req_id: str) -> None:
+    """Remove one request registration; caller holds ``_pending_lock``."""
+
+    _pending.pop(response_key, None)
+    _pending_meta.pop(response_key, None)
+    _pending_task_ids.pop(req_id, None)
+    if _pending_sessions.get(req_id) == response_key:
+        _pending_sessions.pop(req_id, None)
+
+
 async def _enqueue_and_wait(request_dict: dict, req_id: str) -> dict:
     if request_queue is None:
         return {"error": "queues_not_initialized"}
@@ -319,33 +344,42 @@ async def _enqueue_and_wait(request_dict: dict, req_id: str) -> dict:
     loop = asyncio.get_running_loop()
     fut = loop.create_future()
     response_key = uuid.uuid4().hex
+    request_dict["response_key"] = response_key
+    request_dict["proc_id"] = req_id
+    # Admission check, pending registration and publication are one ordered
+    # critical section.  /exit closes admission and publishes None under the
+    # same lock, so:
+    #   * exit first  -> this request gets 503 and is never queued;
+    #   * request first -> it is queued before None and will be drained.
     with _pending_lock:
+        if _admission_closed:
+            raise HTTPException(
+                status_code=503, detail="target worker is shutting down"
+            )
         if req_id in _pending_sessions:
             raise HTTPException(status_code=409, detail="session already has an in-flight request")
         _pending[response_key] = fut
         _pending_sessions[req_id] = response_key
         _pending_meta[response_key] = req_id
         _pending_task_ids[req_id] = str(request_dict.get("task_id", ""))
-    request_dict["response_key"] = response_key
-    request_dict["proc_id"] = req_id
+        try:
+            request_queue.put(request_dict)
+        except BaseException as exc:
+            _drop_pending_locked(response_key, req_id)
+            raise HTTPException(
+                status_code=503,
+                detail=f"failed to enqueue target request: {exc}",
+            ) from exc
+
     try:
-        request_queue.put(request_dict)
         return await fut
     except asyncio.CancelledError:
         with _pending_lock:
-            _pending.pop(response_key, None)
-            _pending_meta.pop(response_key, None)
-            _pending_task_ids.pop(req_id, None)
-            if _pending_sessions.get(req_id) == response_key:
-                _pending_sessions.pop(req_id, None)
+            _drop_pending_locked(response_key, req_id)
         raise
     except BaseException:
         with _pending_lock:
-            _pending.pop(response_key, None)
-            _pending_meta.pop(response_key, None)
-            _pending_task_ids.pop(req_id, None)
-            if _pending_sessions.get(req_id) == response_key:
-                _pending_sessions.pop(req_id, None)
+            _drop_pending_locked(response_key, req_id)
         raise
 
 
@@ -523,6 +557,7 @@ async def prefill_timing(req: PrefillTimingRequest) -> dict:
         req.edge_send_time_ns,
         req.clock_offset_ns,
         cloud_receive_time_ns,
+        req.clock_uncertainty_ns,
     )
     update = {
         "control_type": "prefill_timing",
@@ -607,7 +642,7 @@ async def prefill_cancel(req: PrefillCancelRequest) -> dict:
 
 @app.post("/verify")
 async def verify(req: VerifyRequest) -> dict:
-    api_start = time.time()
+    api_start = time.monotonic()
     cloud_receive_time_ns = time.time_ns()
     if request_queue is None:
         return {"error": "queues_not_initialized"}
@@ -646,11 +681,22 @@ async def verify(req: VerifyRequest) -> dict:
         # baseline requests keep their historical RTT path untouched.
         if request_dict["edge_send_time_ns"] <= 0:
             raise HTTPException(status_code=422, detail="FastSD Verify requires edge_send_time_ns")
-        request_dict["push_s"] = _compute_upload_seconds(
-            request_dict["edge_send_time_ns"],
-            request_dict["clock_offset_ns"],
-            cloud_receive_time_ns,
-        )
+        try:
+            push_timing = _compute_upload_timing(
+                request_dict["edge_send_time_ns"],
+                request_dict["clock_offset_ns"],
+                cloud_receive_time_ns,
+                req.clock_uncertainty_ns,
+            )
+            request_dict["push_s"] = push_timing["scheduler_seconds"]
+            request_dict["push_timing"] = push_timing
+        except HTTPException as exc:
+            if (exc.status_code == 422 and isinstance(exc.detail, dict)
+                    and exc.detail.get("code") == "negative_synchronized_upload_duration"):
+                # No call to _enqueue_and_wait has occurred at this point.
+                raise HTTPException(status_code=422, detail={**exc.detail,
+                    "code": "negative_upload_pre_enqueue", "route": "/verify", "enqueued": False}) from exc
+            raise
     for field in ("local_decode_per_token_s", "local_decode_per_token_ms", "last_pull_s", "pull_s"):
         if request_dict.get(field) is not None:
             request_dict[field] = _finite_nonnegative(request_dict[field], field)
@@ -679,18 +725,36 @@ async def verify(req: VerifyRequest) -> dict:
     out["cloud_send_time_ns"] = time.time_ns()
     if "push_s" in request_dict:
         out["push_s"] = float(request_dict["push_s"])
+        out["push_timing"] = request_dict["push_timing"]
     # Cloud-side end-to-end service time for this HTTP verify request.
-    out["cloud_total_ms"] = (time.time() - api_start) * 1000.0
+    out["cloud_total_ms"] = (time.monotonic() - api_start) * 1000.0
     _record_cloud_total_ms(out["cloud_total_ms"])
     return out
 
 
 @app.post("/exit")
 def exit_worker() -> dict:
+    global _admission_closed, _exit_sent
     if request_queue is None:
         return {"status": "queues_not_initialized"}
-    request_queue.put(None)
-    return {"status": "sent"}
+    with _pending_lock:
+        if _exit_sent:
+            # Idempotent: exactly one sentinel is ever published.
+            return {"status": "already_sent", "draining": True}
+        # Close admission before publishing the sentinel, in the same lock
+        # used by request admission.  Any request that won the lock earlier
+        # is already ahead of None; any later request gets 503.
+        _admission_closed = True
+        try:
+            request_queue.put(None)
+        except BaseException as exc:
+            _admission_closed = False
+            raise HTTPException(
+                status_code=503,
+                detail=f"failed to signal target shutdown: {exc}",
+            ) from exc
+        _exit_sent = True
+    return {"status": "sent", "draining": True}
 
 
 def main() -> None:

@@ -57,7 +57,8 @@ class SparseRejectionSamplingTests(unittest.TestCase):
         self.assertEqual(int(correction.item()), 1)
 
     def test_first_middle_and_last_rejections_stop_at_the_first_row(self):
-        draft = torch.tensor([[1.0, 0.0]], dtype=torch.float32)
+        # All three cases describe a three-token draft and four target rows.
+        draft = torch.tensor([[1.0, 0.0]], dtype=torch.float32).repeat(3, 1)
         ids, probs = sparse_block_from_dense(draft, 1)
 
         first_target = torch.tensor(
@@ -65,7 +66,7 @@ class SparseRejectionSamplingTests(unittest.TestCase):
             dtype=torch.float32,
         )
         accepted, correction = rejection_sample(
-            [0], first_target, ids, probs, uniforms=[1.0]
+            [0, 0, 0], first_target, ids, probs, uniforms=[1.0]
         )
         self.assertEqual(accepted, 0)
         self.assertEqual(int(correction.item()), 1)

@@ -1,0 +1,2 @@
+# CPU1 existing FastSD environment only; protobuf 5.29.6 is already installed.
+grpcio==1.75.1

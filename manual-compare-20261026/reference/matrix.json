@@ -1,0 +1,241 @@
+{
+  "status": "planned_not_executed",
+  "max_tokens": 32,
+  "warmup_per_client": 1,
+  "common_ready_barrier_required": true,
+  "fixed_gamma": {
+    "node1": 4,
+    "node3": 8
+  },
+  "methods": {
+    "ar": {
+      "label": "8B autoregressive HTTP continuous batching",
+      "status": "performance adapter required after correctness gate",
+      "draft_model": null
+    },
+    "sd": {
+      "server_sched_mode": "vanilla",
+      "profile": "vanilla",
+      "enable_pipeline": false,
+      "enable_proactive_draft": false,
+      "overlap_prefill_first_draft": false,
+      "enable_latency_priority": false,
+      "pipeline_gamma_adapt": false
+    },
+    "fastsd": {
+      "server_sched_mode": "fastsd",
+      "profile": "custom",
+      "enable_pipeline": true,
+      "enable_proactive_draft": true,
+      "overlap_prefill_first_draft": true,
+      "enable_latency_priority": true,
+      "pipeline_gamma_adapt": false
+    }
+  },
+  "runs": [
+    {
+      "level": "low",
+      "repeat": 1,
+      "method_order": [
+        "ar",
+        "sd",
+        "fastsd"
+      ],
+      "rate_per_worker": {
+        "node1": 0.01,
+        "node3": 0.02
+      },
+      "arrival_window_s": 600,
+      "request_count": 152,
+      "trace": "traces\\low_rep1.jsonl",
+      "trace_sha256": "a193ffeec0703156ab49c6b0b2ff20b1abce12d99d2a5c2dda5d6bb341082101"
+    },
+    {
+      "level": "mid",
+      "repeat": 1,
+      "method_order": [
+        "ar",
+        "sd",
+        "fastsd"
+      ],
+      "rate_per_worker": {
+        "node1": 0.025,
+        "node3": 0.05
+      },
+      "arrival_window_s": 600,
+      "request_count": 378,
+      "trace": "traces\\mid_rep1.jsonl",
+      "trace_sha256": "678e356b4a52b4153586ab7581e1e5a5042c17e93aa51838fffcc1b809da4573"
+    },
+    {
+      "level": "high",
+      "repeat": 1,
+      "method_order": [
+        "ar",
+        "sd",
+        "fastsd"
+      ],
+      "rate_per_worker": {
+        "node1": 0.05,
+        "node3": 0.1
+      },
+      "arrival_window_s": 600,
+      "request_count": 710,
+      "trace": "traces\\high_rep1.jsonl",
+      "trace_sha256": "de48df47e1c1cc8baca85d28b4c8ea6bae5ca6c595719b80417521589cb8d513"
+    },
+    {
+      "level": "overload",
+      "repeat": 1,
+      "method_order": [
+        "ar",
+        "sd",
+        "fastsd"
+      ],
+      "rate_per_worker": {
+        "node1": 5.0,
+        "node3": 10.0
+      },
+      "arrival_window_s": null,
+      "request_count": 160,
+      "trace": "traces\\overload_rep1.jsonl",
+      "trace_sha256": "b747691685b53c0459d58b7b4b06326b05a13cd5720a24e14e2c73b749368c35"
+    },
+    {
+      "level": "low",
+      "repeat": 2,
+      "method_order": [
+        "sd",
+        "fastsd",
+        "ar"
+      ],
+      "rate_per_worker": {
+        "node1": 0.01,
+        "node3": 0.02
+      },
+      "arrival_window_s": 600,
+      "request_count": 138,
+      "trace": "traces\\low_rep2.jsonl",
+      "trace_sha256": "5362094df2ed028c929dfaf1b4478ca09de04b8707779314449f24abcb586fa2"
+    },
+    {
+      "level": "mid",
+      "repeat": 2,
+      "method_order": [
+        "sd",
+        "fastsd",
+        "ar"
+      ],
+      "rate_per_worker": {
+        "node1": 0.025,
+        "node3": 0.05
+      },
+      "arrival_window_s": 600,
+      "request_count": 353,
+      "trace": "traces\\mid_rep2.jsonl",
+      "trace_sha256": "3971b205dddaa938ec65c7deb835a58012dd582c64b88761193b34ed291b2dcf"
+    },
+    {
+      "level": "high",
+      "repeat": 2,
+      "method_order": [
+        "sd",
+        "fastsd",
+        "ar"
+      ],
+      "rate_per_worker": {
+        "node1": 0.05,
+        "node3": 0.1
+      },
+      "arrival_window_s": 600,
+      "request_count": 689,
+      "trace": "traces\\high_rep2.jsonl",
+      "trace_sha256": "263277fcc4f6c2142e892d6a4a91fa88af8c01f6b55844818ba2c926bcd0fdb3"
+    },
+    {
+      "level": "overload",
+      "repeat": 2,
+      "method_order": [
+        "sd",
+        "fastsd",
+        "ar"
+      ],
+      "rate_per_worker": {
+        "node1": 5.0,
+        "node3": 10.0
+      },
+      "arrival_window_s": null,
+      "request_count": 160,
+      "trace": "traces\\overload_rep2.jsonl",
+      "trace_sha256": "8b778de27d2077f6591505aadbef3f4d029e512e5a6aa2619c9caca723cd61d4"
+    },
+    {
+      "level": "low",
+      "repeat": 3,
+      "method_order": [
+        "fastsd",
+        "ar",
+        "sd"
+      ],
+      "rate_per_worker": {
+        "node1": 0.01,
+        "node3": 0.02
+      },
+      "arrival_window_s": 600,
+      "request_count": 123,
+      "trace": "traces\\low_rep3.jsonl",
+      "trace_sha256": "8731f7a738345508ec1ee83821be81de360038c3a0443279e1921ffbf8b40afb"
+    },
+    {
+      "level": "mid",
+      "repeat": 3,
+      "method_order": [
+        "fastsd",
+        "ar",
+        "sd"
+      ],
+      "rate_per_worker": {
+        "node1": 0.025,
+        "node3": 0.05
+      },
+      "arrival_window_s": 600,
+      "request_count": 325,
+      "trace": "traces\\mid_rep3.jsonl",
+      "trace_sha256": "4eb0e575bc45329ac0960724653a79d2075fff5929e03747074161a3ccd69884"
+    },
+    {
+      "level": "high",
+      "repeat": 3,
+      "method_order": [
+        "fastsd",
+        "ar",
+        "sd"
+      ],
+      "rate_per_worker": {
+        "node1": 0.05,
+        "node3": 0.1
+      },
+      "arrival_window_s": 600,
+      "request_count": 691,
+      "trace": "traces\\high_rep3.jsonl",
+      "trace_sha256": "4dca0b1dcfb0f8911af7e77931da3204b7a7410a1544d16ed58dcce1b924c676"
+    },
+    {
+      "level": "overload",
+      "repeat": 3,
+      "method_order": [
+        "fastsd",
+        "ar",
+        "sd"
+      ],
+      "rate_per_worker": {
+        "node1": 5.0,
+        "node3": 10.0
+      },
+      "arrival_window_s": null,
+      "request_count": 160,
+      "trace": "traces\\overload_rep3.jsonl",
+      "trace_sha256": "060850dd1c229c53285af033e6fe3c9bddebc9fdb80b8beb06aef37f18ebdaac"
+    }
+  ]
+}

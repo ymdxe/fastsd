@@ -1,0 +1,32 @@
+{
+  "status": "completed",
+  "method": "FastSD",
+  "gamma": 20,
+  "max_new_tokens": 64,
+  "pipeline_gamma_adapt": false,
+  "selected_rows": 32,
+  "source_total_rows": 1319,
+  "dtype": "float16",
+  "verify_method": "greedy",
+  "source_sha": "ee0e334e222593c100b2ee6fc7fc9e4db2cf7cd3",
+  "source_snapshot_from": "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32-r2/source",
+  "workload_sha256": "14fa593891906d0f705ad2a90646d6102894bb13a311727f671233be1b6cf947",
+  "clock_setup": "FastSD: serialized native five-probe clock calibration, then barrier",
+  "target_url": "http://10.66.0.3:18601",
+  "model": "/mnt/nfs0/zhangh/models/Qwen3-1.7B",
+  "cpu_mapping": "same as prior Standard SD and FastSD experiments",
+  "note": "Output cap raised from 16 to 64 so gamma20 is meaningful. Compare the two new runs; not directly with old 16-token runs.",
+  "completed_requests": 32,
+  "failed_requests": 0,
+  "generated_tokens": 2048,
+  "observed_verify_gammas": [
+    20
+  ],
+  "target_service_stopped": true,
+  "matched_output_requests": 32,
+  "original_inference_source_modified": false,
+  "comparison_runs": [
+    "1023-sd-g20",
+    "1023-fastsd-g20"
+  ]
+}

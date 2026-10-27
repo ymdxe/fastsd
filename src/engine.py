@@ -1,5 +1,6 @@
 import os
 import json
+from dataclasses import dataclass, field
 import torch
 import transformers
 import warnings
@@ -58,6 +59,36 @@ from .fastsd_scheduler import (
     verify_logit_position,
 )
 from .request_validation import canonicalize_request
+from .scheduler_runtime import (
+    CacheResidency,
+    ExecutionOutcome,
+    KVPrefetchWorker,
+    PrefetchCoordinator,
+    SchedulerQueues,
+    ShutdownRequested,
+    SinglePlanExecutor,
+    TargetSchedulerRuntime,
+    cancel_prefill_work_items,
+    commit_admission_progress,
+    make_forward_batch_runner,
+    make_forward_job_runner,
+    set_thread_device,
+    terminate_pending_work_items,
+)
+
+
+@dataclass
+class _ExecutionJob:
+    """One admitted plan handed from the control owner to the executor."""
+
+    plan: AdmissionPlan
+    item_by_id: dict
+    verify_batch: list
+    prefill_batch: list
+    reserved_pids: set
+    completed: set = field(default_factory=set)
+    progress: dict = field(default_factory=dict)
+    verify_applied: bool = False
 
 
 class Decoding(ABC):
@@ -758,14 +789,61 @@ class Decoding(ABC):
             )
 
         # --------------------------- 队列与统计 ---------------------------
-        task_queues = {
-            "prefill": {"short": queue.Queue(), "mid": queue.Queue(), "long": queue.Queue()},
-            "verify": {"short": queue.Queue(), "mid": queue.Queue(), "long": queue.Queue()},
+        # One control owner (this thread) mutates queues/WorkItems/scheduler
+        # state; one executor thread runs forwards; one worker thread moves
+        # KV caches.  See src/scheduler_runtime.py for the ownership contract.
+        scheduler_state = {"wrr_cursor": 0, "current_cycle": 0}
+        scheduler_metrics = {
+            "iterations": 0,
+            "used_tokens": 0,
+            "plans": 0,
+            "verify_slices": 0,
+            "prefill_slices": 0,
+            "partial_verify": 0,
+            "partial_prefill": 0,
+            "prefetch_plans": 0,
+            "prefetch_hits": 0,
+            "prefetch_misses": 0,
+            "prefetch_evictions": 0,
+            "prefetch_reserved_excluded": 0,
+            "prefetch_empty_desired": 0,
+            "prefetch_no_verify_candidates": 0,
+            "prefetch_desired_unchanged": 0,
+            "prefetch_intent_inflight": 0,
+            "prefetch_retry": 0,
+            "prefetch_retry_throttled": 0,
+            "prefetch_noop": 0,
+            "prefetch_async_submitted": 0,
+            "prefetch_async_dropped": 0,
+            "prefetch_async_completed": 0,
+            "prefetch_async_moved": 0,
+            "prefetch_async_failed": 0,
+            "prefetch_async_skipped_stale": 0,
+            "prefetch_async_superseded": 0,
+            "prefetch_async_missing_cache": 0,
+            "prefetch_pending_underflow": 0,
+            "prefetch_async_last_error": None,
+            "finished_work_items_removed": 0,
+            "empty_plans": 0,
+            "empty_plans_with_live_work": 0,
+            "idle_waits": 0,
+            "incoming_during_forward": 0,
+            "shutdown_inflight_timeout": 0,
+            "shutdown_drained_plans": 0,
+            "shutdown_terminated_work_items": 0,
+            "timing_updates": 0,
+            "timing_ready_prefill_forwards": 0,
+            "prefill_cancels": 0,
+            "prefill_cancels_deferred": 0,
         }
+        task_queues = SchedulerQueues(scheduler_metrics)
         work_items = {}
         pending_prefill_timing = {}
         pending_prefill_cancel = set()
         accept_stats = defaultdict(lambda: [0, 1])  # {proc_id: [accepted_sum, total_sum]}
+        # The executor updates acceptance statistics while the control owner
+        # may be planning a lookahead; the planner always reads a copy.
+        accept_stats_lock = threading.Lock()
         committed_prefix_tokens = {}  # {proc_id: List[int]} for debug context display
         sampling_generators = {}  # session/proc id -> target-side rejection RNG
         verify_time_ema = {}
@@ -774,11 +852,14 @@ class Decoding(ABC):
         recent_prefix_lens = deque(maxlen=FASTSD_DYNAMIC_WINDOW)
         len_r1 = FASTSD_DEFAULT_R1
         len_r2 = FASTSD_DEFAULT_R2
-        cache_lock = threading.Lock()
-        preloaded_gpu_pids = set()
+        residency = CacheResidency()
+        cache_lock = residency.lock
+        preloaded_gpu_pids = residency.resident
         # pids whose cache is currently owned by the executing batch (forward +
-        # rollback window). The async prefetch worker must never touch these.
-        active_pids = set()
+        # rollback window) or by an admitted-but-not-yet-forwarded plan. The
+        # async prefetch worker must never touch these.
+        active_pids = residency.active
+        in_flight = {"plan": None}
 
         def _safe_float(value, default=0.0) -> float:
             """Sanitize a request-sourced float: JSON can carry inf/NaN or
@@ -867,58 +948,26 @@ class Decoding(ABC):
             return True
 
         def apply_prefill_cancel(control: dict) -> bool:
-            """Discard one failed timing-gated Prefill before it can execute."""
+            """Discard one failed timing-gated Prefill before it can execute.
+
+            A cancel that matches a WorkItem already admitted into the running
+            plan cannot tear down the in-flight forward.  It is deferred: the
+            item is removed from the queues immediately, and the completion
+            path drops its response after the executor returns.
+            """
 
             pid = control.get("proc_id")
             task_id = str(control.get("task_id", ""))
             pending_prefill_timing.pop(pid, None)
-            removed_ids = set()
-            for work_id, item in list(work_items.items()):
-                if item.proc_id != pid or item.task_type != "prefill":
-                    continue
-                item_task_id = str(item.request.get("task_id", ""))
-                if task_id and item_task_id != task_id:
-                    continue
-                item.finished = True
-                item.state = "finished"
-                removed_ids.add(work_id)
-                work_items.pop(work_id, None)
-
-            # A WorkItem can already have been placed in a category queue while
-            # the cancel control is being delivered.  Remove only the matching
-            # request, preserving every unrelated queued request.
-            for task_type in ("prefill", "verify"):
-                for category_queue in task_queues[task_type].values():
-                    with category_queue.mutex:
-                        kept = []
-                        removed_from_queue = 0
-                        for item in category_queue.queue:
-                            if (
-                                getattr(item, "proc_id", None) == pid
-                                and getattr(item, "task_type", None) == "prefill"
-                                and (
-                                    not task_id
-                                    or str(item.request.get("task_id", "")) == task_id
-                                )
-                            ):
-                                removed_from_queue += 1
-                                removed_ids.add(item.work_id)
-                                item.finished = True
-                                item.state = "finished"
-                            else:
-                                kept.append(item)
-                        if removed_from_queue:
-                            category_queue.queue.clear()
-                            category_queue.queue.extend(kept)
-                            # Queue.join() is not used by the scheduler, but
-                            # keep its bookkeeping internally consistent.
-                            category_queue.unfinished_tasks = max(
-                                0, category_queue.unfinished_tasks - removed_from_queue
-                            )
-            for work_id in removed_ids:
-                work_items.pop(work_id, None)
+            removed_ids, deferred = cancel_prefill_work_items(
+                work_items=work_items,
+                queues=task_queues,
+                proc_id=pid,
+                task_id=task_id,
+            )
             if removed_ids:
                 scheduler_metrics["prefill_cancels"] += len(removed_ids)
+                scheduler_metrics["prefill_cancels_deferred"] += deferred
                 return True
 
             # The cancel can race ahead of initial request ingress.  Remember
@@ -976,16 +1025,16 @@ class Decoding(ABC):
             proc_ids = [req["proc_id"] for req in batch]
             # Mark this batch's caches as active for the whole forward +
             # rollback window so the async prefetch worker never evicts or
-            # moves a cache the main thread is currently using.
-            with cache_lock:
-                active_pids.update(proc_ids)
+            # moves a cache the main thread is currently using.  Activation
+            # also bumps each pid's cache generation, invalidating any prefetch
+            # copy that was snapshotted before this forward.
+            residency.activate(proc_ids)
             try:
                 return _handle_request_batch_inner(
                     batch, return_responses, kv_batch_mode, proc_ids
                 )
             finally:
-                with cache_lock:
-                    active_pids.difference_update(proc_ids)
+                residency.deactivate(proc_ids)
 
         def _handle_request_batch_inner(
             batch, return_responses, kv_batch_mode, proc_ids
@@ -1313,8 +1362,9 @@ class Decoding(ABC):
                 kv_cache_manager.rollback(pid, accepted_len)
 
                 # 更新统计并回传
-                accept_stats[pid][0] += accepted_len - prefix_len
-                accept_stats[pid][1] += req_gamma
+                with accept_stats_lock:
+                    accept_stats[pid][0] += accepted_len - prefix_len
+                    accept_stats[pid][1] += req_gamma
                 if pid in committed_prefix_tokens:
                     if tail_only:
                         req_tokens = x[0].tolist()
@@ -1408,235 +1458,65 @@ class Decoding(ABC):
 
             return collected_responses if return_responses else None
 
-        def sort_task_queues():
-            # WorkItem waiting time is measured on the cloud monotonic clock.
-            now = time.monotonic()
-            for ttype in ["verify", "prefill"]:
-                items_by_category = {cat: [] for cat in task_queues[ttype]}
-                for cat in task_queues[ttype]:
-                    while not task_queues[ttype][cat].empty():
-                        item = task_queues[ttype][cat].get()
-                        if ttype == "prefill" and not item.finished:
-                            # A chunked Prefill keeps its WorkItem, so its
-                            # remaining length can move it between buckets.
-                            item.category = _length_category(
-                                item.remaining_tokens,
-                                len_r1,
-                                len_r2,
-                            )
-                        items_by_category[item.category].append(item)
+        def accept_stats_snapshot():
+            with accept_stats_lock:
+                return {
+                    pid: (values[0], values[1])
+                    for pid, values in accept_stats.items()
+                }
 
-                for cat, items in items_by_category.items():
-                    items.sort(
-                        key=lambda item: _compute_priority_score(
-                            item.request if isinstance(item, WorkItem) else item,
-                            accept_stats,
-                            now=now,
-                        ),
-                        reverse=True,
-                    )
-                    for item in items:
-                        task_queues[ttype][cat].put(item)
-
+        def _sort_queues_if_dirty():
+            # Wait times use the cloud monotonic clock; only re-sort when
+            # ingress/completion actually changed the queues.
+            task_queues.sort(
+                accept_stats_snapshot(),
+                now=time.monotonic(),
+                category_for=lambda item: _length_category(
+                    item.remaining_tokens, len_r1, len_r2
+                ),
+                priority=lambda request, stats, now: _compute_priority_score(
+                    request, stats, now=now
+                ),
+            )
 
         # ---- 异步 KV 预取：后台线程执行 CPU<->GPU 搬移 ----
-        # 主线程只做 dry-run 规划并提交 desired pids；搬移由 daemon 线程执行，
-        # 与主线程的 verify/prefill 前向并发。若下一轮 verify 前主线程的强制
-        # move 先执行，worker 的搬移退化为幂等 no-op（目标 device 相同）。
-        # 队列容量 1 且只保留最新预测：旧预测未执行完时被新预测替换。
-        # 执行时重新计算 current/stale/to_gpu（提交时的快照可能已过期），
-        # 且绝不触碰 active_pids（当前 batch 正在使用中的 cache）。
-        prefetch_tasks = queue.Queue(maxsize=1)
-        prefetch_stop = threading.Event()
-        prefetch_async_state = {
-            "completed": 0,
-            "moved": 0,
-            "failed": 0,
-            "last_error": None,
-        }
-        prefetch_async_state_lock = threading.Lock()
+        # The control owner only computes the latest residency intent; the
+        # daemon worker performs the copies.  Execution re-derives
+        # stale/load sets and refuses to touch active or reserved pids.
+        prefetch_enabled = os.environ.get(
+            "FASTSD_DISABLE_TARGET_CACHE_OFFLOAD", ""
+        ).lower() not in {"1", "true", "yes", "on"}
 
-        def _prefetch_worker():
-            while not prefetch_stop.is_set():
-                try:
-                    desired = prefetch_tasks.get(timeout=0.1)
-                except queue.Empty:
-                    continue
-                try:
-                    moved_count = 0
-                    with cache_lock:
-                        current = set(preloaded_gpu_pids)
-                        stale = (current - desired) - active_pids
-                        to_gpu = (desired - current) - active_pids
-                        # Evict-before-load under the lock (entry swaps only);
-                        # the actual tensor copies happen outside the lock so
-                        # the main thread is never blocked on a long transfer.
-                        # Snapshots record identity + length + device so a
-                        # stale copy is never installed over a cache that the
-                        # main thread mutated in place meanwhile.
-                        for pid in stale:
-                            preloaded_gpu_pids.discard(pid)
-                        to_cpu_snapshot = [
-                            (
-                                pid,
-                                kv_cache_manager._past_key_values.get(pid),
-                                kv_cache_manager._past_key_values.get(pid).get_seq_length()
-                                if kv_cache_manager._past_key_values.get(pid) is not None
-                                else 0,
-                            )
-                            for pid in stale
-                        ]
-                        to_gpu_snapshot = [
-                            (
-                                pid,
-                                kv_cache_manager._past_key_values.get(pid),
-                                kv_cache_manager._past_key_values.get(pid).get_seq_length()
-                                if kv_cache_manager._past_key_values.get(pid) is not None
-                                else 0,
-                            )
-                            for pid in to_gpu
-                        ]
-                    for pid, cache, seq_len in to_cpu_snapshot:
-                        if cache is None:
-                            continue
-                        moved = move_dynamic_cache_to(cache, "cpu")
-                        with cache_lock:
-                            cur = kv_cache_manager._past_key_values.get(pid)
-                            if (
-                                pid not in active_pids
-                                and cur is cache
-                                and cur.get_seq_length() == seq_len
-                            ):
-                                kv_cache_manager._past_key_values[pid] = moved
-                                moved_count += 1
-                    for pid, cache, seq_len in to_gpu_snapshot:
-                        if cache is None:
-                            continue
-                        moved = move_dynamic_cache_to(cache, target_model.device)
-                        with cache_lock:
-                            cur = kv_cache_manager._past_key_values.get(pid)
-                            if (
-                                pid not in active_pids
-                                and cur is cache
-                                and cur.get_seq_length() == seq_len
-                            ):
-                                kv_cache_manager._past_key_values[pid] = moved
-                                preloaded_gpu_pids.add(pid)
-                                moved_count += 1
-                    with prefetch_async_state_lock:
-                        prefetch_async_state["completed"] += 1
-                        prefetch_async_state["moved"] += moved_count
-                except Exception as exc:
-                    # A failed prefetch must never take down the target worker;
-                    # it only degrades to the synchronous move path next round.
-                    with prefetch_async_state_lock:
-                        prefetch_async_state["failed"] += 1
-                        prefetch_async_state["last_error"] = (
-                            f"{type(exc).__name__}: {exc}"
-                        )
-                    self.color_print(
-                        f"[KV-PREFETCH-FAILED] {type(exc).__name__}: {exc}",
-                        2,
-                    )
-                    continue
+        def _cache_get(pid):
+            return kv_cache_manager._past_key_values.get(pid)
 
-        prefetch_thread = threading.Thread(
-            target=_prefetch_worker, daemon=True, name="fastsd-kv-prefetch"
+        def _cache_set(pid, cache):
+            kv_cache_manager._past_key_values[pid] = cache
+
+        def _bind_target_device():
+            # CUDA's current device is per-thread; executor/prefetch threads
+            # must bind it explicitly (CPU returns without touching CUDA).
+            set_thread_device(target_model.device)
+
+        prefetch_worker = KVPrefetchWorker(
+            residency=residency,
+            get_cache=_cache_get,
+            set_cache=_cache_set,
+            move_cache=move_dynamic_cache_to,
+            gpu_device=target_model.device,
+            metrics=scheduler_metrics,
+            on_error=lambda message: self.color_print(
+                f"[KV-PREFETCH-FAILED] {message}", 2
+            ),
+            thread_setup=_bind_target_device,
         )
-        prefetch_thread.start()
-
-        scheduler_state = {"wrr_cursor": 0, "current_cycle": 0}
-        scheduler_metrics = {
-            "iterations": 0,
-            "used_tokens": 0,
-            "plans": 0,
-            "verify_slices": 0,
-            "prefill_slices": 0,
-            "partial_verify": 0,
-            "partial_prefill": 0,
-            "prefetch_plans": 0,
-            "prefetch_hits": 0,
-            "prefetch_misses": 0,
-            "prefetch_evictions": 0,
-            "prefetch_async_submitted": 0,
-            "prefetch_async_dropped": 0,
-            "prefetch_async_completed": 0,
-            "prefetch_async_moved": 0,
-            "prefetch_async_failed": 0,
-            "timing_updates": 0,
-            "timing_ready_prefill_forwards": 0,
-            "prefill_cancels": 0,
-        }
-
-        def _plan_queues():
-            return {
-                task_type: {
-                    cat: list(task_queues[task_type][cat].queue)
-                    for cat in ("short", "mid", "long")
-                }
-                for task_type in ("verify", "prefill")
-            }
-
-        def prefetch_next_plan(reserved_work_ids=()):
-            """Use the same pure planner for the next cache residency hint.
-
-            Called after ingress so newly drained WorkItems are included. The
-            caller may reserve the WorkItems in the current plan, making this
-            a true lookahead rather than selecting the batch that is about to
-            become active. When target-cache offload is
-            disabled the KV already stays resident on the GPU and the
-            prefetch/evict cycle is a no-op, so skip it entirely.
-
-            Only the dry-run planning and metrics run on the main thread; the
-            actual CPU<->GPU cache movement is submitted to the background
-            prefetch worker and overlaps with this round's GPU compute.
-            """
-            if os.environ.get("FASTSD_DISABLE_TARGET_CACHE_OFFLOAD", "").lower() in {
-                "1",
-                "true",
-                "yes",
-                "on",
-            }:
-                return
-            next_plan = plan_iteration(
-                _plan_queues(),
-                token_budget=int(self.args.token_budget),
-                current_cycle=scheduler_state["current_cycle"],
-                wrr_cursor=scheduler_state["wrr_cursor"],
-                max_num_seqs=int(self.args.batch_size),
-                min_prefill_chunk_tokens=int(self.args.min_prefill_chunk_tokens),
-                prefill_chunk_quantum=int(self.args.prefill_chunk_quantum),
-                accept_stats=accept_stats,
-                now=time.monotonic(),
-                reserved_work_ids=reserved_work_ids,
-            )
-            desired = set(next_plan.verify_proc_ids)
-            with cache_lock:
-                current = set(preloaded_gpu_pids)
-            stale = current - desired
-            to_gpu = desired - current
-            scheduler_metrics["prefetch_evictions"] += len(stale)
-            scheduler_metrics["prefetch_hits"] += len(current & desired)
-            scheduler_metrics["prefetch_misses"] += len(to_gpu)
-            if stale or to_gpu:
-                # Keep only the freshest prediction: if the previous task is
-                # still pending, drop it and submit the newer one. The worker
-                # re-derives current/stale at execution time, so only the
-                # desired pid set travels through the queue.
-                try:
-                    prefetch_tasks.put_nowait(desired)
-                    scheduler_metrics["prefetch_async_submitted"] += 1
-                except queue.Full:
-                    try:
-                        prefetch_tasks.get_nowait()
-                    except queue.Empty:
-                        pass
-                    try:
-                        prefetch_tasks.put_nowait(desired)
-                        scheduler_metrics["prefetch_async_submitted"] += 1
-                    except queue.Full:
-                        scheduler_metrics["prefetch_async_dropped"] += 1
-            scheduler_metrics["prefetch_plans"] += 1
+        prefetch_coordinator = PrefetchCoordinator(
+            submit=prefetch_worker.submit,
+            resident_snapshot=residency.resident_snapshot,
+            protected_snapshot=residency.protected_snapshot,
+            metrics=scheduler_metrics,
+            pending_snapshot=prefetch_worker.has_pending,
+        )
 
         def _slice_request(item: WorkItem, sl):
             req = dict(item.request)
@@ -1700,101 +1580,218 @@ class Decoding(ABC):
             )
             return req
 
-        def build_plan(reserved_work_ids=()):
+        def build_plan(reserved_work_ids=(), cycle=None, cursor=None):
+            _sort_queues_if_dirty()
             return plan_iteration(
-                _plan_queues(),
+                task_queues.snapshot(),
                 token_budget=int(self.args.token_budget),
-                current_cycle=scheduler_state["current_cycle"],
-                wrr_cursor=scheduler_state["wrr_cursor"],
+                current_cycle=(
+                    scheduler_state["current_cycle"] if cycle is None else cycle
+                ),
+                wrr_cursor=scheduler_state["wrr_cursor"] if cursor is None else cursor,
                 max_num_seqs=int(self.args.batch_size),
                 min_prefill_chunk_tokens=int(self.args.min_prefill_chunk_tokens),
                 prefill_chunk_quantum=int(self.args.prefill_chunk_quantum),
-                accept_stats=accept_stats,
+                accept_stats=accept_stats_snapshot(),
                 now=time.monotonic(),
                 reserved_work_ids=reserved_work_ids,
             )
 
-        def schedule_iteration(plan=None):
-            if plan is None:
-                plan = build_plan()
-            if not plan.selected_work_ids:
-                return plan
-            reserve_admission_plan(plan)
+        def refresh_prefetch():
+            """Recompute the lookahead residency intent from a stable snapshot.
+
+            While a plan is in flight, prediction starts from its *post* WR
+            cursor/cycle and excludes every WorkItem it owns, so the in-flight
+            batch can never be mistaken for its own successor.  Only intent
+            changes are submitted (see PrefetchCoordinator).
+            """
+
+            if not prefetch_enabled:
+                return
+            plan = in_flight["plan"]
+            if plan is None and (executor is None or not executor.busy()):
+                # A forward is not running: the next plan will be admitted
+                # momentarily.  Prefetching it here would race the reservation
+                # and be invalidated, so wait until a forward is in flight.
+                return
+            if plan is not None:
+                lookahead = build_plan(
+                    reserved_work_ids=plan.selected_work_ids,
+                    cycle=plan.next_cycle,
+                    cursor=plan.next_wrr_cursor,
+                )
+            else:
+                lookahead = build_plan()
+            if not lookahead.verify_proc_ids and not task_queues.has_live_task("verify"):
+                scheduler_metrics["prefetch_no_verify_candidates"] += 1
+            prefetch_coordinator.refresh(lookahead.verify_proc_ids)
+
+        def submit_plan(plan):
+            """Atomically admit the whole plan, then hand it to the executor."""
+
             item_by_id = {item.work_id: item for item in plan._selected_items}
-            verify_batch = [_slice_request(item_by_id[sl.work_id], sl) for sl in plan.verify_slices]
-            prefill_batch = [_slice_request(item_by_id[sl.work_id], sl) for sl in plan.prefill_slices]
-            completed = set()
-            progress = {}
-
-            def run_batch(batch, is_verify):
-                if not batch:
-                    return {}
-                if energy_service is not None:
-                    energy_service.enter_active()
-                try:
-                    return handle_request_batch(batch, return_responses=True)
-                finally:
-                    if energy_service is not None:
-                        energy_service.exit_active()
-
+            verify_batch = [
+                _slice_request(item_by_id[sl.work_id], sl) for sl in plan.verify_slices
+            ]
+            prefill_batch = [
+                _slice_request(item_by_id[sl.work_id], sl) for sl in plan.prefill_slices
+            ]
+            reserved_pids = {sl.proc_id for sl in plan.verify_slices} | {
+                sl.proc_id for sl in plan.prefill_slices
+            }
+            reserve_admission_plan(plan)
+            # Protect pids for the entire admitted-but-not-yet-forwarded
+            # window, not just while handle_request_batch marks them active.
+            residency.reserve(reserved_pids)
+            job = _ExecutionJob(
+                plan=plan,
+                item_by_id=item_by_id,
+                verify_batch=verify_batch,
+                prefill_batch=prefill_batch,
+                reserved_pids=reserved_pids,
+            )
+            in_flight["plan"] = plan
+            scheduler_metrics["iterations"] += 1
             try:
-                # Verify always runs before Prefill, even when one plan admits
-                # both types.  Each WorkItem appears at most once per plan.
-                verify_responses = run_batch(verify_batch, True)
-                for sl, sliced_req in zip(plan.verify_slices, verify_batch):
-                    item = item_by_id[sl.work_id]
-                    response = verify_responses.get(item.proc_id)
+                executor.submit(job)
+            except BaseException:
+                in_flight["plan"] = None
+                residency.release(reserved_pids)
+                abort_admission_plan(plan)
+                raise
+
+        # The Verify->Prefill phase protocol and the no_grad/energy wrapper
+        # live in scheduler_runtime so tests exercise the production executor.
+        run_job = make_forward_job_runner(
+            make_forward_batch_runner(
+                lambda batch: handle_request_batch(batch, return_responses=True),
+                on_batch_start=(
+                    energy_service.enter_active if energy_service is not None else None
+                ),
+                on_batch_end=(
+                    energy_service.exit_active if energy_service is not None else None
+                ),
+            )
+        )
+
+        def _retire_finished(job, completed):
+            finished = set(completed)
+            for item in job.item_by_id.values():
+                if (
+                    item.finished
+                    or item.remaining_tokens <= 0
+                    or getattr(item, "cancel_pending", False)
+                ):
+                    finished.add(item.work_id)
+            removed = task_queues.remove_work_ids(finished)
+            for work_id in finished:
+                work_items.pop(work_id, None)
+            scheduler_metrics["finished_work_items_removed"] += removed
+            # Also drop any item that terminated outside this plan.
+            task_queues.prune_finished()
+
+        def _apply_verify_phase(job, verify_responses):
+            """Commit Verify progress and return responses to callers."""
+
+            if job.verify_applied:
+                return
+            plan = job.plan
+            for sl, sliced_req in zip(plan.verify_slices, job.verify_batch):
+                item = job.item_by_id[sl.work_id]
+                response = verify_responses.get(item.proc_id)
+                if response is None:
+                    raise RuntimeError(f"missing verify response for {item.work_id}")
+                physical_prefix = int(sliced_req["prefix_len"])
+                accepted = int(response["accepted"])
+                accepted_chunk = max(0, accepted - physical_prefix)
+                current_prefix = item.base_prefix_len + item.accepted_so_far
+                item.cursor += accepted_chunk
+                item.accepted_so_far += accepted_chunk
+                job.progress[item.work_id] = accepted_chunk
+                if accepted_chunk < sl.draft_token_count:
+                    item.finished = True
+                    job.completed.add(item.work_id)
+                    response = dict(response)
+                    response["accepted"] = item.base_prefix_len + item.accepted_so_far
+                    response_queues[item.response_key or item.proc_id].put(response)
+                elif item.cursor >= item.total_tokens:
+                    item.finished = True
+                    job.completed.add(item.work_id)
+                    response = dict(response)
+                    response["accepted"] = item.base_prefix_len + item.accepted_so_far
+                    response_queues[item.response_key or item.proc_id].put(response)
+                else:
+                    # An all-accepted internal chunk is still one logical
+                    # speculative round.  Do not insert the target's
+                    # provisional next token between d_k and d_{k+1};
+                    # the correction/final token is used only when the
+                    # complete round finishes or a mismatch occurs.
+                    item.internal_bridge_token = None
+                    item.bridge_pending = 0
+                    if item.proc_id in committed_prefix_tokens:
+                        committed_prefix_tokens[item.proc_id] = committed_prefix_tokens[item.proc_id][:current_prefix + accepted_chunk]
+                    scheduler_metrics["partial_verify"] += 1
+            job.verify_applied = True
+
+        def _apply_prefill_phase(job, prefill_responses):
+            plan = job.plan
+            for sl in plan.prefill_slices:
+                item = job.item_by_id[sl.work_id]
+                item.cursor = sl.offset + sl.draft_token_count
+                scheduler_metrics["timing_ready_prefill_forwards"] += 1
+                if getattr(item, "cancel_pending", False):
+                    # The cancel arrived after admission; the forward is not
+                    # interruptible, but its response is suppressed.
+                    item.finished = True
+                    item.state = "finished"
+                    job.completed.add(item.work_id)
+                    continue
+                if item.cursor >= item.total_tokens:
+                    item.finished = True
+                    job.completed.add(item.work_id)
+                    response = prefill_responses.get(item.proc_id)
                     if response is None:
-                        raise RuntimeError(f"missing verify response for {item.work_id}")
-                    physical_prefix = int(sliced_req["prefix_len"])
-                    accepted = int(response["accepted"])
-                    accepted_chunk = max(0, accepted - physical_prefix)
-                    current_prefix = item.base_prefix_len + item.accepted_so_far
-                    item.cursor += accepted_chunk
-                    item.accepted_so_far += accepted_chunk
-                    progress[item.work_id] = accepted_chunk
-                    if accepted_chunk < sl.draft_token_count:
-                        item.finished = True
-                        completed.add(item.work_id)
-                        response = dict(response)
-                        response["accepted"] = item.base_prefix_len + item.accepted_so_far
-                        response_queues[item.response_key or item.proc_id].put(response)
-                    elif item.cursor >= item.total_tokens:
-                        item.finished = True
-                        completed.add(item.work_id)
-                        response = dict(response)
-                        response["accepted"] = item.base_prefix_len + item.accepted_so_far
-                        response_queues[item.response_key or item.proc_id].put(response)
-                    else:
-                        # An all-accepted internal chunk is still one logical
-                        # speculative round.  Do not insert the target's
-                        # provisional next token between d_k and d_{k+1};
-                        # the correction/final token is used only when the
-                        # complete round finishes or a mismatch occurs.
-                        item.internal_bridge_token = None
-                        item.bridge_pending = 0
-                        if item.proc_id in committed_prefix_tokens:
-                            committed_prefix_tokens[item.proc_id] = committed_prefix_tokens[item.proc_id][:current_prefix + accepted_chunk]
-                        scheduler_metrics["partial_verify"] += 1
+                        raise RuntimeError(f"missing prefill response for {item.work_id}")
+                    response_queues[item.response_key or item.proc_id].put(response)
+                else:
+                    scheduler_metrics["partial_prefill"] += 1
+            for sl in plan.prefill_slices:
+                job.progress[sl.work_id] = sl.draft_token_count
 
-                prefill_responses = run_batch(prefill_batch, False)
-                for sl in plan.prefill_slices:
-                    item = item_by_id[sl.work_id]
-                    item.cursor = sl.offset + sl.draft_token_count
-                    scheduler_metrics["timing_ready_prefill_forwards"] += 1
-                    if item.cursor >= item.total_tokens:
-                        item.finished = True
-                        completed.add(item.work_id)
-                        response = prefill_responses.get(item.proc_id)
-                        if response is None:
-                            raise RuntimeError(f"missing prefill response for {item.work_id}")
-                        response_queues[item.response_key or item.proc_id].put(response)
-                    else:
-                        scheduler_metrics["partial_prefill"] += 1
+        def apply_outcome(outcome):
+            """Control-owner body: apply one phase exactly once.
 
-                for sl in plan.prefill_slices:
-                    progress[sl.work_id] = sl.draft_token_count
-                commit_admission_plan(plan, completed_work_ids=completed, progress=progress)
+            A Verify-only intermediate phase keeps the plan in flight; the
+            final phase commits progress, advances WR state and retires
+            terminated WorkItems.
+            """
+
+            job = outcome.job
+            plan = job.plan
+            committed = False
+            try:
+                if outcome.error is not None:
+                    abort_admission_plan(plan)
+                    raise outcome.error
+
+                if outcome.phase == "verify":
+                    # Verify always runs before Prefill, even when one plan
+                    # admits both types.  Each WorkItem appears at most once.
+                    _apply_verify_phase(job, outcome.verify_responses)
+                    return
+
+                if not job.verify_applied and outcome.verify_responses:
+                    _apply_verify_phase(job, outcome.verify_responses)
+                _apply_prefill_phase(job, outcome.prefill_responses)
+                commit_admission_progress(
+                    plan,
+                    task_queues,
+                    commit_admission_plan,
+                    completed_work_ids=job.completed,
+                    progress=job.progress,
+                )
+                committed = True
+
                 cycle_delta = plan.next_cycle - scheduler_state["current_cycle"]
                 if cycle_delta > 0:
                     selected_ids = set(plan.selected_work_ids)
@@ -1811,10 +1808,18 @@ class Decoding(ABC):
                 scheduler_metrics["used_tokens"] += plan.used_tokens
                 scheduler_metrics["verify_slices"] += len(plan.verify_slices)
                 scheduler_metrics["prefill_slices"] += len(plan.prefill_slices)
-            except Exception:
-                abort_admission_plan(plan)
+                _retire_finished(job, job.completed)
+            except BaseException:
+                if not committed:
+                    abort_admission_plan(plan)
+                # An intermediate-stage failure still ends this plan.
+                in_flight["plan"] = None
+                residency.release(job.reserved_pids)
                 raise
-            return plan
+            finally:
+                if outcome.final:
+                    in_flight["plan"] = None
+                    residency.release(job.reserved_pids)
 
         # ---------------------- 主循环 -------------------------------
         sched_mode = getattr(self.args, "server_sched_mode", "fastsd")
@@ -1873,8 +1878,122 @@ class Decoding(ABC):
                 self.color_print(f"[REQUEST-REJECTED] {exc}", 2)
                 return None
 
+        def process_ingress_message(req) -> None:
+            """Apply one inbound request/control on the control-owner thread."""
+
+            nonlocal len_r1, len_r2
+            if isinstance(req, dict) and req.get("control_type") == "prefill_timing":
+                try:
+                    apply_prefill_timing(req)
+                except (TypeError, ValueError, KeyError) as exc:
+                    self.color_print(f"[TIMING-REJECTED] {exc}", 2)
+                return
+            if isinstance(req, dict) and req.get("control_type") == "prefill_cancel":
+                try:
+                    apply_prefill_cancel(req)
+                except (TypeError, ValueError, KeyError) as exc:
+                    self.color_print(f"[PREFILL-CANCEL-REJECTED] {exc}", 2)
+                return
+            if (
+                isinstance(req, dict)
+                and req.get("task_type") == "prefill"
+                and req.get("proc_id") in pending_prefill_cancel
+            ):
+                # A cancel control may arrive before the initial /prefill
+                # request reaches worker ingress.
+                pending_prefill_cancel.discard(req.get("proc_id"))
+                return
+            req = canonicalize_ingress(req)
+            if req is None:
+                return
+            recent_prefix_lens.append(req["prefix_len"])
+            len_r1, len_r2 = _update_length_thresholds(recent_prefix_lens)
+            cat = _length_category(req["prefix_len"], len_r1, len_r2)
+            work_id = str(req.get("work_id", f"{req['proc_id']}:{time.monotonic_ns()}"))
+            req["work_id"] = work_id
+            req["response_key"] = req.get("response_key", req["proc_id"])
+            # FastSD arrival-gated Prefill records its cloud arrival before the
+            # token upload.  Keep that timestamp as the scheduler wait origin;
+            # falling back to worker ingress preserves the legacy request path.
+            arrival_monotonic = req.get("arrival_monotonic_s")
+            try:
+                arrival_monotonic = float(arrival_monotonic)
+            except (TypeError, ValueError, OverflowError):
+                arrival_monotonic = None
+            if arrival_monotonic is None or not math.isfinite(arrival_monotonic):
+                arrival_monotonic = time.monotonic()
+            req["server_enqueue_monotonic"] = arrival_monotonic
+            # Priority scores use wall-clock ``current_time``; keep the
+            # monotonic timestamp separately for queue latency diagnostics.
+            req["current_time"] = time.time()
+            if req["task_type"] == "verify" and not req.get("tail_only", False):
+                with cache_lock:
+                    cached_len = kv_cache_manager._past_key_values[
+                        req["proc_id"]
+                    ].get_seq_length()
+                req["bridge_tokens"] = full_prefix_bridge_tokens(
+                    req["prefix_len"], cached_len
+                )
+            item = WorkItem.from_request(
+                req,
+                category=cat,
+                cycle=scheduler_state["current_cycle"],
+                work_id=work_id,
+            )
+            update = pending_prefill_timing.pop(req["proc_id"], None)
+            if update is not None:
+                req = dict(req)
+                req.update(update)
+                item.request = req
+            work_items[work_id] = item
+            task_queues.enqueue(item)
+
+        def poll_ingress(timeout):
+            """Drain bounded ingress; ``timeout=None`` is an event wait.
+
+            This runs on the control owner even while the executor is inside
+            a forward, which is what makes newly arrived verify requests
+            visible to lookahead prefetch before the current batch finishes.
+            """
+
+            changed = 0
+            limit = max(1, int(self.args.batch_size) * 10)
+            next_timeout = timeout
+            while changed < limit:
+                try:
+                    if next_timeout is None:
+                        req = request_queue.get()
+                    elif next_timeout <= 0:
+                        req = request_queue.get_nowait()
+                    else:
+                        req = request_queue.get(timeout=next_timeout)
+                except queue.Empty:
+                    break
+                next_timeout = 0
+                if req is None:  # 终止信号
+                    raise ShutdownRequested
+                changed += 1
+                if executor is not None and executor.busy():
+                    scheduler_metrics["incoming_during_forward"] += 1
+                process_ingress_message(req)
+            return changed
+
+        def terminate_pending_work() -> int:
+            """Explicitly finish accepted work that can never run at shutdown."""
+
+            removed = terminate_pending_work_items(
+                work_items=work_items,
+                queues=task_queues,
+                response_queues=response_queues,
+                log=lambda message: self.color_print(message, 2),
+            )
+            pending_prefill_timing.clear()
+            pending_prefill_cancel.clear()
+            return removed
+
         # Pipeline baseline: strict FCFS, single-request handling only.
         # No queue categorization, no batching, no preload, no priority scheduling.
+        executor = None
         try:
             if use_strict_fcfs:
                 while True:
@@ -1900,118 +2019,48 @@ class Decoding(ABC):
                         time.sleep(0.01)
                 return
 
-            while True:
-                # ============ 1) bounded ingress into persistent WorkItems ==============
-                drained = 0
-                try:
-                    while drained < max(1, int(self.args.batch_size) * 10):
-                        req = request_queue.get(timeout=0.01)
-                        if req is None:  # 终止信号
-                            return
-                        if isinstance(req, dict) and req.get("control_type") == "prefill_timing":
-                            try:
-                                apply_prefill_timing(req)
-                            except (TypeError, ValueError, KeyError) as exc:
-                                self.color_print(f"[TIMING-REJECTED] {exc}", 2)
-                            drained += 1
-                            continue
-                        if isinstance(req, dict) and req.get("control_type") == "prefill_cancel":
-                            try:
-                                apply_prefill_cancel(req)
-                            except (TypeError, ValueError, KeyError) as exc:
-                                self.color_print(f"[PREFILL-CANCEL-REJECTED] {exc}", 2)
-                            drained += 1
-                            continue
-                        if (
-                            isinstance(req, dict)
-                            and req.get("task_type") == "prefill"
-                            and req.get("proc_id") in pending_prefill_cancel
-                        ):
-                            # A cancel control may arrive before the initial
-                            # /prefill request reaches worker ingress.
-                            pending_prefill_cancel.discard(req.get("proc_id"))
-                            drained += 1
-                            continue
-                        req = canonicalize_ingress(req)
-                        if req is None:
-                            continue
-                        recent_prefix_lens.append(req["prefix_len"])
-                        len_r1, len_r2 = _update_length_thresholds(recent_prefix_lens)
-                        cat = _length_category(req["prefix_len"], len_r1, len_r2)
-                        work_id = str(req.get("work_id", f"{req['proc_id']}:{time.monotonic_ns()}"))
-                        req["work_id"] = work_id
-                        req["response_key"] = req.get("response_key", req["proc_id"])
-                        # FastSD arrival-gated Prefill records its cloud arrival
-                        # before the token upload.  Keep that timestamp as the
-                        # scheduler wait origin; falling back to worker ingress
-                        # preserves the legacy request path.
-                        arrival_monotonic = req.get("arrival_monotonic_s")
-                        try:
-                            arrival_monotonic = float(arrival_monotonic)
-                        except (TypeError, ValueError, OverflowError):
-                            arrival_monotonic = None
-                        if arrival_monotonic is None or not math.isfinite(arrival_monotonic):
-                            arrival_monotonic = time.monotonic()
-                        req["server_enqueue_monotonic"] = arrival_monotonic
-                        # Priority scores use wall-clock ``current_time``;
-                        # keep the monotonic timestamp separately for queue
-                        # latency diagnostics.
-                        req["current_time"] = time.time()
-                        if req["task_type"] == "verify" and not req.get("tail_only", False):
-                            cached_len = kv_cache_manager._past_key_values[
-                                req["proc_id"]
-                            ].get_seq_length()
-                            req["bridge_tokens"] = full_prefix_bridge_tokens(
-                                req["prefix_len"], cached_len
-                            )
-                        item = WorkItem.from_request(req, category=cat, cycle=scheduler_state["current_cycle"], work_id=work_id)
-                        update = pending_prefill_timing.pop(req["proc_id"], None)
-                        if update is not None:
-                            req = dict(req)
-                            req.update(update)
-                            item.request = req
-                        work_items[work_id] = item
-                        task_queues[req["task_type"]][cat].put(item)
-                        drained += 1
-                except queue.Empty:
-                    pass
-
-                # FastSD only: construct one unified plan, then execute Verify
-                # and Prefill batches in the fixed order.
-                sort_task_queues()
-
-                if getattr(self.args, "debug_pipeline", False):
-                    self.color_print(
-                        f"[FASTSD] thresholds prefix_len: short<={len_r1}, mid<={len_r2}",
-                        3,
-                    )
-
-                if any(not q.empty() for t in task_queues.values() for q in t.values()):
-                    scheduler_metrics["iterations"] += 1
-                    current_plan = build_plan()
-                    # Predict the next plan before execution, but reserve the
-                    # current plan's WorkItems.  The worker can then move
-                    # future caches while this batch owns active_pids.
-                    prefetch_next_plan(
-                        reserved_work_ids=current_plan.selected_work_ids
-                    )
-                    schedule_iteration(current_plan)
-                else:
-                    time.sleep(0.01)
+            # FastSD: one control owner (this thread) continuously accepts
+            # ingress, one executor thread runs the single model forward path,
+            # and one worker thread moves KV caches.  The control owner spends
+            # the forward window updating queues and prefetch intent instead of
+            # being blocked inside the model call.
+            executor = SinglePlanExecutor(
+                run_job,
+                name="fastsd-target-executor",
+                thread_setup=_bind_target_device,
+            )
+            executor.start()
+            prefetch_worker.start()
+            runtime = TargetSchedulerRuntime(
+                executor=executor,
+                queues=task_queues,
+                poll_ingress=poll_ingress,
+                build_plan=build_plan,
+                submit_plan=submit_plan,
+                apply_outcome=apply_outcome,
+                refresh_prefetch=refresh_prefetch,
+                metrics=scheduler_metrics,
+                terminate_unrunnable=terminate_pending_work,
+            )
+            runtime.run()
         finally:
+            # Stop worker threads before declaring cleanup complete.  A model
+            # forward and a cache copy are not interruptible, so wait for the
+            # actual call to return rather than releasing its cache leases
+            # after a forced timeout.  Normal shutdown drains first; a fatal
+            # stop only skips subsequent phases, so the wait is bounded by
+            # the current (already-running) call.
+            if executor is not None:
+                executor.stop()
+                executor.join()
+            prefetch_worker.stop()
+            prefetch_worker.join()
             if energy_service is not None:
                 energy_service.shutdown()
-            prefetch_stop.set()
-            prefetch_thread.join(timeout=2.0)
 
             # Preserve scheduler evidence for the experiment report.  GPU
             # runs may terminate through the worker's normal shutdown path,
             # so best-effort persistence belongs in ``finally``.
-            with prefetch_async_state_lock:
-                scheduler_metrics["prefetch_async_completed"] = prefetch_async_state["completed"]
-                scheduler_metrics["prefetch_async_moved"] = prefetch_async_state["moved"]
-                scheduler_metrics["prefetch_async_failed"] = prefetch_async_state["failed"]
-                scheduler_metrics["prefetch_async_last_error"] = prefetch_async_state["last_error"]
             self.last_generation_metrics["fastsd_scheduler"] = dict(scheduler_metrics)
             metrics_dir = getattr(self.args, "exp_name", None)
             if metrics_dir:
@@ -2022,14 +2071,6 @@ class Decoding(ABC):
                         json.dump(self.last_generation_metrics, metrics_file, indent=2, default=str)
                 except Exception as exc:  # pragma: no cover - diagnostics only
                     self.color_print(f"[FASTSD] failed to persist scheduler metrics: {exc}", 2)
-
-            # if (time.time() - last_prefill) < 10 and any(not q.empty() for q in task_queues["verify"].values()):
-            #     schedule_tasks("verify")
-            #     last_prefill = time.time()
-            # elif any(not q.empty() for q in task_queues["prefill"].values()):
-            #     schedule_tasks("prefill")
-            # else:
-            #     time.sleep(0.01)
 
 
     @torch.no_grad()

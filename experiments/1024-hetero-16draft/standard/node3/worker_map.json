@@ -1,0 +1,58 @@
+[
+  {
+    "cpu": 0,
+    "core": 0,
+    "socket": 0,
+    "numa": 0,
+    "observed_core_busy_fraction": 0.0
+  },
+  {
+    "cpu": 3,
+    "core": 3,
+    "socket": 0,
+    "numa": 0,
+    "observed_core_busy_fraction": 0.0
+  },
+  {
+    "cpu": 24,
+    "core": 24,
+    "socket": 1,
+    "numa": 1,
+    "observed_core_busy_fraction": 0.0
+  },
+  {
+    "cpu": 28,
+    "core": 28,
+    "socket": 1,
+    "numa": 1,
+    "observed_core_busy_fraction": 0.0
+  },
+  {
+    "cpu": 48,
+    "core": 48,
+    "socket": 2,
+    "numa": 2,
+    "observed_core_busy_fraction": 0.0
+  },
+  {
+    "cpu": 51,
+    "core": 51,
+    "socket": 2,
+    "numa": 2,
+    "observed_core_busy_fraction": 0.0
+  },
+  {
+    "cpu": 72,
+    "core": 72,
+    "socket": 3,
+    "numa": 3,
+    "observed_core_busy_fraction": 0.0
+  },
+  {
+    "cpu": 76,
+    "core": 76,
+    "socket": 3,
+    "numa": 3,
+    "observed_core_busy_fraction": 0.0
+  }
+]
