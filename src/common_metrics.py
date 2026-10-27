@@ -220,11 +220,11 @@ def exact_match_quality(records: list[dict[str, Any]], dataset: str) -> float | 
     scored = 0
     correct = 0
     for record in records:
-        if record.get("output_text") is None or record.get("reference") is None:
+        if record.get("reference") is None:
             continue
-        predicted = _last_number(record["output_text"])
+        predicted = _last_number(record.get("output_text"))
         expected = _last_number(record["reference"])
-        if predicted is None or expected is None:
+        if expected is None:
             continue
         scored += 1
         correct += int(predicted == expected)

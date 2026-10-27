@@ -1,6 +1,7 @@
 import torch
 from .util import norm_logits, sample
 from transformers.cache_utils import DynamicCache
+from .probability_window import append_rows, select_rows, crop_rows
 
 class KVCacheModel_batching():
     def __init__(self, model: torch.nn.Module, temperature: float = 1, top_k: int = 0, top_p: float = 0) -> None:
@@ -13,10 +14,28 @@ class KVCacheModel_batching():
         self._past_key_values = {}
         self._prob_history = {}
         self.vocab_size = None
+        # Legacy direct callers may inspect full history; the serving engine
+        # explicitly enables bounded windows for both execution backends.
+        self.bounded_probabilities = False
+        self._prob_start = {}
+
+    def store_probabilities(self, pid, rows, start, *, prefill=False):
+        keep = max(0, start - 1) if self.bounded_probabilities else 0
+        if prefill and self.bounded_probabilities:
+            keep = start + rows.shape[1] - 1
+        history, offset = append_rows(
+            self._prob_history.get(pid), self._prob_start.get(pid, 0), rows, start, keep
+        )
+        self._prob_history[pid] = history
+        self._prob_start[pid] = offset
+
+    def probability_rows(self, pid, start, end):
+        return select_rows(self._prob_history.get(pid), self._prob_start.get(pid, 0), start, end)
 
     def reset(self, proc_id: int):
         self._past_key_values.pop(proc_id, None)
         self._prob_history.pop(proc_id, None)
+        self._prob_start.pop(proc_id, None)
 
     @torch.no_grad()
     def generate(
@@ -76,7 +95,10 @@ class KVCacheModel_batching():
         #     cropped_pkv.append((key_cropped, value_cropped))
         # self._past_key_values[proc_id] = cropped_pkv
         self._past_key_values[proc_id].crop(end_pos)
-        self._prob_history[proc_id] = self._prob_history[proc_id][:, :end_pos, :]
+        self._prob_history[proc_id], self._prob_start[proc_id] = crop_rows(
+            self._prob_history.get(proc_id), self._prob_start.get(proc_id, 0), end_pos,
+            boundary_only=self.bounded_probabilities,
+        )
 
     @torch.no_grad()
     def forward_new_tokens(
@@ -147,7 +169,7 @@ class KVCacheModel_batching():
                 for i, valid_len in enumerate(input_lens):
                     attention_mask[i, :valid_len] = 1
             out = self._model(input_batch, attention_mask=attention_mask)
-            logits = out.logits[:, :, :self.vocab_size].float()  # shape: (B, T, V)
+            logits = out.logits[:, :, :self.vocab_size]
             past_key_values = out.past_key_values  # List of (key, value), each: (B, H, T, D)
 
             logits_list = []
@@ -160,7 +182,8 @@ class KVCacheModel_batching():
                 valid_lens.append(valid_len)
 
                 # ---- 2. 提取该样本对应的 logits ----
-                logits_i = logits[i, :valid_len, :].unsqueeze(0)  # shape: (valid_len, vocab_size)
+                first = valid_len - 1 if self.bounded_probabilities else 0
+                logits_i = logits[i, first:valid_len, :].float().unsqueeze(0)
                 logits_list.append(logits_i)
 
                 # ---- 3. 提取该样本对应的 past_key_values ----
@@ -178,6 +201,10 @@ class KVCacheModel_batching():
                     self._prob_history[pid][:, i, :] = norm_logits(self._prob_history[pid][:, i, :], self._temperature,
                                                               self._top_k,
                                                               self._top_p)
+                self._prob_history.pop(pid, None)
+                self._prob_start.pop(pid, None)
+                start = valid_lens[idx] - 1 if self.bounded_probabilities else 0
+                self.store_probabilities(pid, logits_list[idx], start, prefill=True)
                 self._past_key_values[pid] = DynamicCache.from_legacy_cache(past_key_values_list[idx])
                 last_q_idx = self._prob_history[pid][:, -1, :]
                 sampled_token = (
@@ -292,19 +319,10 @@ class KVCacheModel_batching():
             if not_cached_q.dim() == 2:
                 not_cached_q = not_cached_q.unsqueeze(0)
 
-            # IMPORTANT:
-            # Do not normalize flattened 2D logits in one shot when temperature=0.
-            # util.norm_logits' temp==0 branch is row-unsafe for batched inputs,
-            # which can mix argmax columns across rows and corrupt verify logits.
-            # Keep per-position normalization to match non-batching semantics.
-            for b in range(not_cached_q.shape[0]):
-                for t in range(not_cached_q.shape[1]):
-                    not_cached_q[b:b + 1, t, :] = norm_logits(
-                        not_cached_q[b:b + 1, t, :],
-                        self._temperature,
-                        self._top_k,
-                        self._top_p,
-                    )
+            shape = not_cached_q.shape
+            not_cached_q = norm_logits(
+                not_cached_q.reshape(-1, shape[-1]), self._temperature, self._top_k, self._top_p
+            ).reshape(shape)
 
             # Step 5: 更新每个样本的 prob_history 和 KVCache
             logits_list = []
@@ -335,9 +353,9 @@ class KVCacheModel_batching():
                 past_key_values_list.append(pkv_i)
 
             for i, pid in enumerate(proc_ids):
-                self._prob_history[pid] = torch.cat([self._prob_history[pid], logits_list[i]], dim=1)
+                self.store_probabilities(pid, logits_list[i], cached_lens[i])
                 self._past_key_values[pid] = DynamicCache.from_legacy_cache(past_key_values_list[i])
-                last_q_i = not_cached_q[i, -1, :].unsqueeze(0)
+                last_q_i = not_cached_q[i, residual_lens[i] - 1, :].unsqueeze(0)
                 sampled_token = (
                     sample(last_q_i)
                     if sample_next

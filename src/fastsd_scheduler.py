@@ -8,7 +8,7 @@ admission path and by the KV prefetch predictor.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 import math
 import random
 from typing import Any, Iterable, Mapping, MutableMapping, Sequence
@@ -462,6 +462,9 @@ def plan_iteration(
     accept_stats: Mapping[Any, Sequence[float]] | None = None,
     now: float = 0.0,
     reserved_work_ids: Iterable[str] = (),
+    selection_policy: str = "legacy",
+    candidate_value=None,
+    max_wait_s: float = 1.0,
 ) -> AdmissionPlan:
     """Build an admission plan without mutating queues or WorkItems.
 
@@ -477,6 +480,8 @@ def plan_iteration(
         raise ValueError("prefill chunk sizes must be positive")
     if min_prefill_chunk_tokens > token_budget:
         raise ValueError("min_prefill_chunk_tokens must not exceed token_budget")
+    if selection_policy not in {"legacy", "fcfs", "progress"}:
+        raise ValueError("unknown scheduler selection policy")
     state_raw = _normalise_queues(queues)
     state = {t: {c: [_as_work_item(x, t, c, current_cycle) for x in state_raw[t][c]] for c in state_raw[t]} for t in state_raw}
     accept_stats = accept_stats or {}
@@ -501,6 +506,19 @@ def plan_iteration(
                 key=lambda x: (x.is_overdue_prefill, x.task_type == "verify", _priority(x, accept_stats, now)),
                 default=None,
             )
+        if selection_policy != "legacy":
+            candidates = [x for x in _all_candidates(state, selected, reserved)
+                          if _make_slice(x, token_budget - used, prefill_chunk_quantum, min_prefill_chunk_tokens) is not None]
+            if selection_policy == "fcfs":
+                item = min(candidates, key=lambda x: x.request.get("server_enqueue_monotonic", 0), default=None)
+            else:
+                def progress_key(candidate):
+                    wait = _wait_seconds(candidate.request, now)
+                    urgent = candidate.is_overdue_prefill or wait >= max_wait_s
+                    value = (candidate_value(candidate, verify + prefill) if candidate_value is not None
+                             else _priority(candidate, accept_stats, now))
+                    return urgent, wait if urgent else 0.0, value
+                item = max(candidates, key=progress_key, default=None)
         if item is not None:
             sl = _make_slice(item, token_budget - used, prefill_chunk_quantum, min_prefill_chunk_tokens)
             if sl is not None:
@@ -522,17 +540,15 @@ def plan_iteration(
 
     # If a single selected Prefill is the only remaining work, fill the tail of
     # the budget while retaining the one-slice-per-WorkItem invariant.
-    if used < token_budget and len(selected) < max_num_seqs:
-        for item in _all_candidates(state, selected, reserved):
-            if item.task_type != "prefill":
-                continue
-            sl = _make_slice(item, token_budget - used, token_budget, min_prefill_chunk_tokens)
-            if sl is None:
-                continue
-            prefill.append(sl)
-            selected.add(item.work_id)
-            used += sl.forward_token_count
-            break
+    live = list(_all_candidates(state, set(), reserved))
+    if used < token_budget and len(live) == 1 and len(prefill) == 1 and not verify:
+        item = live[0]
+        sl = prefill[0]
+        extra = min(token_budget - used, item.remaining_tokens - sl.draft_token_count)
+        if extra > 0:
+            prefill[0] = replace(sl, draft_token_count=sl.draft_token_count + extra,
+                                 forward_token_count=sl.forward_token_count + extra)
+            used += extra
 
     total_steps = int(wrr_cursor) + slots
     next_cycle = int(current_cycle) + total_steps // len(FASTSD_VERIFY_WRR_ORDER)
@@ -548,6 +564,33 @@ def plan_iteration(
         selected_work_ids=[s.work_id for s in verify + prefill],
         _selected_items=[item for item in _all_candidates(state, set(), reserved) if item.work_id in selected],
     )
+
+
+def project_after_plan(queues, plan):
+    """Optimistic all-accept projection; never mutate live scheduler state.
+
+    Rejection can only retire a projected Verify earlier. It cannot invalidate
+    cache contents because prefetch still enforces active/version protection.
+    """
+    state = _normalise_queues(queues)
+    slices = {s.work_id: s for s in plan.verify_slices + plan.prefill_slices}
+    result = {t: {c: [] for c in cats} for t, cats in state.items()}
+    for task_type, categories in state.items():
+        for category, items in categories.items():
+            for item in items:
+                projected = replace(item, request=dict(item.request))
+                sl = slices.get(item.work_id)
+                if sl is not None:
+                    projected.cursor = max(item.cursor, sl.offset + sl.draft_token_count)
+                    projected.state = "ready"
+                    projected.last_served_cycle = plan.next_cycle
+                    projected.missed_cycles = 0
+                    if item.task_type == "verify":
+                        projected.accepted_so_far = max(item.accepted_so_far, projected.cursor)
+                        projected.bridge_pending = 0
+                if not projected.finished and projected.remaining_tokens > 0:
+                    result[task_type][category].append(projected)
+    return result
 
 
 def reserve_admission_plan(plan: AdmissionPlan) -> None:

@@ -7,6 +7,7 @@ queue; they do not start a worker, load a model, or run requests end-to-end.
 import asyncio
 import threading
 import unittest
+from unittest.mock import patch
 
 try:
     from fastapi import HTTPException
@@ -38,6 +39,30 @@ class _RecordingQueue:
 
 @unittest.skipIf(cs is None, "cloud service dependencies unavailable")
 class CloudShutdownGateTests(unittest.TestCase):
+    def test_release_interrupts_pending_request_and_waits_for_worker_ack(self):
+        async def scenario():
+            pending = asyncio.create_task(cs._enqueue_and_wait({"task_type": "verify"}, "session-1"))
+            await asyncio.sleep(0)
+            release = asyncio.create_task(cs.session_release(cs.SessionReleaseRequest(session_id="session-1")))
+            await asyncio.sleep(0)
+            self.assertEqual(await pending, {"error": "session released"})
+            self.assertFalse(release.done())
+            message = cs.request_queue.items[-1]
+            self.assertEqual(message["control_type"], "session_release")
+            cs._pending[message["response_key"]].set_result({"status": "released"})
+            self.assertEqual((await release)["status"], "released")
+        asyncio.run(scenario())
+
+    def test_request_timeout_releases_abandoned_session(self):
+        with patch.dict("os.environ", {"FASTSD_REQUEST_TIMEOUT_S": "0.01"}):
+            with self.assertRaises(HTTPException) as raised:
+                asyncio.run(cs._enqueue_and_wait({"task_type": "verify"}, "session-1"))
+        self.assertEqual(raised.exception.status_code, 504)
+        self.assertEqual(cs._pending, {})
+        self.assertEqual(cs._pending_sessions, {})
+        self.assertEqual(cs.request_queue.items[-1],
+                         {"control_type": "session_release", "proc_id": "session-1"})
+
     def setUp(self):
         self._saved = {
             "request_queue": cs.request_queue,

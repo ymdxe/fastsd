@@ -44,7 +44,8 @@ class CpuEvaluationStaticTests(unittest.TestCase):
         self.assertIn("client.init_session()", edge_source)
         self.assertIn("client.prefill(", edge_source)
         self.assertIn("client.verify(", edge_source)
-        self.assertIn("approx_model_cache.rollback(accepted)", edge_source)
+        self.assertIn("approx_model_cache.rollback(keep)", edge_source)
+        self.assertIn("approx_model_cache.rollback(min(accepted, prefix.shape[1]))", edge_source)
         self.assertIn("output_token_ids", edge_source)
 
         client_source = (

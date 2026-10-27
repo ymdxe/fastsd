@@ -100,6 +100,10 @@ def _record_cloud_total_ms(value_ms: float) -> None:
         _cloud_total_ms_count += 1
 
 
+class SessionReleaseRequest(BaseModel):
+    session_id: str
+
+
 class PrefillRequest(BaseModel):
     session_id: str
     task_id: str
@@ -107,6 +111,8 @@ class PrefillRequest(BaseModel):
     prefix_len: int
     lag: float
     current_time: float
+    local_prefill_s: Optional[float] = None
+    local_decode_per_token_s: Optional[float] = None
     prompt_len: Optional[int] = None
     gamma: int = 0
     prefill_gamma: int = 0
@@ -335,6 +341,22 @@ def _drop_pending_locked(response_key: str, req_id: str) -> None:
         _pending_sessions.pop(req_id, None)
 
 
+def _release_abandoned_session(req_id):
+    # Caller holds admission lock, so release cannot be published after exit.
+    _prefill_arrivals.pop(req_id, None)
+    _prefill_timing_updates.pop(req_id, None)
+    if request_queue is not None and not _admission_closed:
+        request_queue.put({"control_type": "session_release", "proc_id": req_id})
+
+
+@app.post("/session/release")
+async def session_release(req: SessionReleaseRequest) -> dict:
+    result = await _enqueue_and_wait({"control_type": "session_release"}, req.session_id)
+    _prefill_arrivals.pop(req.session_id, None)
+    _prefill_timing_updates.pop(req.session_id, None)
+    return {"session_id": req.session_id, **result}
+
+
 async def _enqueue_and_wait(request_dict: dict, req_id: str) -> dict:
     if request_queue is None:
         return {"error": "queues_not_initialized"}
@@ -357,7 +379,13 @@ async def _enqueue_and_wait(request_dict: dict, req_id: str) -> dict:
                 status_code=503, detail="target worker is shutting down"
             )
         if req_id in _pending_sessions:
-            raise HTTPException(status_code=409, detail="session already has an in-flight request")
+            if request_dict.get("control_type") != "session_release":
+                raise HTTPException(status_code=409, detail="session already has an in-flight request")
+            old_key = _pending_sessions[req_id]
+            old_future = _pending.get(old_key)
+            _drop_pending_locked(old_key, req_id)
+            if old_future is not None and not old_future.done():
+                old_future.set_result({"error": "session released"})
         _pending[response_key] = fut
         _pending_sessions[req_id] = response_key
         _pending_meta[response_key] = req_id
@@ -372,14 +400,17 @@ async def _enqueue_and_wait(request_dict: dict, req_id: str) -> dict:
             ) from exc
 
     try:
-        return await fut
-    except asyncio.CancelledError:
+        timeout = float(os.environ.get("FASTSD_REQUEST_TIMEOUT_S", "300"))
+        return await asyncio.wait_for(fut, timeout=timeout if timeout > 0 else None)
+    except asyncio.TimeoutError as exc:
         with _pending_lock:
             _drop_pending_locked(response_key, req_id)
-        raise
+            _release_abandoned_session(req_id)
+        raise HTTPException(status_code=504, detail="target request timed out; session released") from exc
     except BaseException:
         with _pending_lock:
             _drop_pending_locked(response_key, req_id)
+            _release_abandoned_session(req_id)
         raise
 
 
@@ -453,6 +484,8 @@ async def prefill(req: PrefillRequest) -> dict:
         "prefill_gamma": int(req.prefill_gamma or req.gamma or 0),
         "timing_required": timing_required,
         "timing_priority": bool(req.timing_priority),
+        "local_prefill_s": req.local_prefill_s,
+        "local_decode_per_token_s": req.local_decode_per_token_s,
         # Arrival-gated requests are executable only after this token upload;
         # legacy timing-gated requests retain the old control-message path.
         "timing_ready": not timing_required,
@@ -720,6 +753,8 @@ async def verify(req: VerifyRequest) -> dict:
     out = {"session_id": req_id, "accepted": accepted, "final_token": final_token_id}
     if "verify_ms" in resp:
         out["verify_ms"] = float(resp["verify_ms"])
+    if resp.get("verify_gpu_ms") is not None:
+        out["verify_gpu_ms"] = float(resp["verify_gpu_ms"])
     if "suggested_gamma" in resp:
         out["suggested_gamma"] = int(resp["suggested_gamma"])
     out["cloud_send_time_ns"] = time.time_ns()

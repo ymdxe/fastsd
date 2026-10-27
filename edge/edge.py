@@ -42,6 +42,18 @@ except ImportError:  # lightweight entrypoint tests may stub old runtime helpers
     def synchronize(device: Any) -> None:
         del device
 from src.util import parse_arguments, seed_everything
+try:
+    from src.progress_control import AheadController
+except ImportError:  # entrypoint tests replace the src package with stubs
+    AheadController = None
+
+
+def _verify_with_ready_time(verify_call, **kwargs):
+    response, elapsed = verify_call(**kwargs)
+    response = dict(response)
+    response["_response_ready_monotonic"] = time.monotonic()
+    return response, elapsed
+
 
 
 def _validate_prefill_response(response: Dict[str, Any]) -> Dict[str, Any]:
@@ -105,7 +117,7 @@ def _run_first_draft_with_prefill(
     timing_call: Callable[[Dict[str, float]], Dict[str, Any]] | None = None,
     cancel_call: Callable[[], Any] | None = None,
 ) -> tuple[Any, Dict[str, Any], Dict[str, float]]:
-    """Legacy helper for clients that send Prefill before local drafting.
+    """Start prompt Prefill independently from local first-round drafting.
 
     The returned timestamps are monotonic and describe the two operations' actual
     intervals.  Prefill validation happens before this helper returns, which gives
@@ -487,6 +499,18 @@ class EdgeClient:
         response.raise_for_status()
         return response.json()
 
+    def release_session(self, session_id: str) -> Dict[str, Any]:
+        # A separate connection can cancel a still-running verify long poll.
+        response = self.timing_session.post(
+            self.server_url + "/session/release",
+            json={"session_id": session_id}, timeout=self.timeout,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        if payload.get("status") != "released":
+            raise RuntimeError(f"session release failed: {payload}")
+        return payload
+
     def init_session(self) -> str:
         resp = self._post("/session/init", {})
         return resp["session_id"]
@@ -696,6 +720,7 @@ class EdgeClient:
         timing_required: bool = False,
         edge_send_time_ns: int | None = None,
         prompt_len: int | None = None,
+        timing_estimate: Dict[str, float] | None = None,
     ) -> Dict[str, Any]:
         if self._ensure_clock():
             edge_send_time_ns = None
@@ -712,10 +737,10 @@ class EdgeClient:
             "gamma": int(gamma),
             "prefill_gamma": int(gamma),
             "timing_required": bool(timing_required),
-            # Arrival-gated token uploads are prioritized by the cloud arrival
-            # timestamp; only the legacy timing-gated path opts into telemetry
-            # based scoring.
-            "timing_priority": bool(self.timing_priority and timing_required),
+            # Historical local estimates allow priority scoring without
+            # waiting for the current first draft to complete.
+            "timing_priority": bool(self.timing_priority and (timing_required or timing_estimate)),
+            **(timing_estimate or {}),
             "edge_send_time_ns": int(edge_send_time_ns),
             "clock_offset_ns": int(self.clock_offset_ns),
             "clock_uncertainty_ns": int(self.clock_uncertainty_ns),
@@ -1137,54 +1162,59 @@ class EdgeRunner(Decoding):
         for warmup_idx in range(count):
             seed_everything(100000 + proc_id * count + warmup_idx)
             session_id = client.init_session()
-            prefix = input_ids.clone()
-            response = client.prefill(
-                session_id=session_id,
-                task_id=f"warmup-{proc_id}-{warmup_idx}-{task_id}",
-                draft_output=prefix[0].tolist(),
-                prefix_len=prefix.shape[1],
-                lag=0.0,
-                current_time=time.time(),
-            )
-            if response.get("status") != "prefill_ok":
-                raise RuntimeError(f"warmup prefill failed: {response}")
-            verify_method = str(getattr(self.args, "verify_method", "rejection")).lower()
-            draft_top_k = int(getattr(self.args, "draft_top_k", 64))
-            cache = KVCacheModel(
-                draft_model,
-                self.args.temp,
-                draft_top_k if verify_method == "rejection" else self.args.top_k,
-                0.0 if verify_method == "rejection" else self.args.top_p,
-                generator=make_generator(
-                    int(self.args.seed) + proc_id * count + warmup_idx,
-                    draft_model.device,
-                ),
-                exact_top_k=(verify_method == "rejection"),
-            )
-            cache.vocab_size = self.args.vocab_size
-            if verify_method == "rejection":
-                draft, draft_rows = cache.generate_with_probs(prefix, 1)
-                sparse_ids, sparse_probs = sparse_block_from_dense(draft_rows, draft_top_k)
-                draft_prob_block = encode_sparse_block(sparse_ids, sparse_probs)
-            else:
-                draft = cache.generate(prefix, 1)
-                draft_prob_block = None
-            response, _ = client.verify(
-                session_id=session_id,
-                task_id=f"warmup-{proc_id}-{warmup_idx}-{task_id}",
-                draft_output=draft[0].tolist(),
-                prefix_len=prefix.shape[1],
-                lag=0.0,
-                current_time=time.time(),
-                gamma=1,
-                tail_only=False,
-                has_bridge_token=False,
-                verify_method=verify_method,
-                sampling_seed=int(self.args.seed) + proc_id * count + warmup_idx,
-                draft_prob_block=draft_prob_block,
-            )
-            if "final_token" not in response or "accepted" not in response:
-                raise RuntimeError(f"warmup verify failed: {response}")
+            try:
+                prefix = input_ids.clone()
+                response = client.prefill(
+                    session_id=session_id,
+                    task_id=f"warmup-{proc_id}-{warmup_idx}-{task_id}",
+                    draft_output=prefix[0].tolist(),
+                    prefix_len=prefix.shape[1],
+                    lag=0.0,
+                    current_time=time.time(),
+                )
+                if response.get("status") != "prefill_ok":
+                    raise RuntimeError(f"warmup prefill failed: {response}")
+                verify_method = str(getattr(self.args, "verify_method", "rejection")).lower()
+                draft_top_k = int(getattr(self.args, "draft_top_k", 64))
+                cache = KVCacheModel(
+                    draft_model,
+                    self.args.temp,
+                    draft_top_k if verify_method == "rejection" else self.args.top_k,
+                    0.0 if verify_method == "rejection" else self.args.top_p,
+                    generator=make_generator(
+                        int(self.args.seed) + proc_id * count + warmup_idx,
+                        draft_model.device,
+                    ),
+                    exact_top_k=(verify_method == "rejection"),
+                    bounded_probabilities=True,
+                )
+                cache.vocab_size = self.args.vocab_size
+                if verify_method == "rejection":
+                    draft, draft_rows = cache.generate_with_probs(prefix, 1)
+                    sparse_ids, sparse_probs = sparse_block_from_dense(draft_rows, draft_top_k)
+                    draft_prob_block = encode_sparse_block(sparse_ids, sparse_probs)
+                else:
+                    draft = cache.generate(prefix, 1)
+                    draft_prob_block = None
+                response, _ = client.verify(
+                    session_id=session_id,
+                    task_id=f"warmup-{proc_id}-{warmup_idx}-{task_id}",
+                    draft_output=draft[0].tolist(),
+                    prefix_len=prefix.shape[1],
+                    lag=0.0,
+                    current_time=time.time(),
+                    gamma=1,
+                    tail_only=False,
+                    has_bridge_token=False,
+                    verify_method=verify_method,
+                    sampling_seed=int(self.args.seed) + proc_id * count + warmup_idx,
+                    draft_prob_block=draft_prob_block,
+                )
+                if "final_token" not in response or "accepted" not in response:
+                    raise RuntimeError(f"warmup verify failed: {response}")
+            finally:
+                client.release_session(session_id)
+
 
     @staticmethod
     def _percentile(values: List[float], q: float) -> float:
@@ -1504,6 +1534,9 @@ class EdgeRunner(Decoding):
             executor = executor_holder.get("executor")
             if executor is not None:
                 _shutdown_executor(executor, wait=True)
+            client = executor_holder.get("client")
+            if client is not None:
+                client.close()
 
     def _run_draft_process_http_impl(
         self,
@@ -1536,6 +1569,8 @@ class EdgeRunner(Decoding):
             clock_uncertainty_limit_ms=float(getattr(self.args, "timing_max_clock_uncertainty_ms", 10.0)),
             clock_recovery_log=os.path.join(self.args.exp_name, "clock-recovery-proc%d.jsonl" % proc_id),
         )
+        if executor_holder is not None:
+            executor_holder["client"] = client
         health = client.health()
         if health.get("status") not in {"ok", "healthy"}:
             raise RuntimeError(f"Cloud service health check failed: {health}")
@@ -1586,6 +1621,7 @@ class EdgeRunner(Decoding):
                 arrival_origin = time.monotonic()
         seed_everything(42 + proc_id)
 
+        prefill_timing_estimate = {}
         for idx, (global_idx, sample) in enumerate(indexed_samples):
             scheduled_arrival_s = 0.0
             if arrival_offsets is not None:
@@ -1600,158 +1636,106 @@ class EdgeRunner(Decoding):
             request_start = time.monotonic()
             transport_before = client.snapshot_transport_stats()
             session_id = client.init_session()
-            sampling_seed = int(self.args.seed) + int(global_idx)
-            verify_method = str(getattr(self.args, "verify_method", "rejection")).lower()
-            draft_top_k = int(getattr(self.args, "draft_top_k", 64))
-            draft_generator = make_generator(sampling_seed, draft_model.device)
-            draft_cache_top_k = draft_top_k if verify_method == "rejection" else self.args.top_k
-            draft_cache_top_p = 0.0 if verify_method == "rejection" else self.args.top_p
-            approx_model_cache = KVCacheModel(
-                draft_model,
-                self.args.temp,
-                draft_cache_top_k,
-                draft_cache_top_p,
-                generator=draft_generator,
-                exact_top_k=(verify_method == "rejection"),
-            )
-            approx_model_cache.vocab_size = self.args.vocab_size
+            try:
+                sampling_seed = int(self.args.seed) + int(global_idx)
+                verify_method = str(getattr(self.args, "verify_method", "rejection")).lower()
+                draft_top_k = int(getattr(self.args, "draft_top_k", 64))
+                draft_generator = make_generator(sampling_seed, draft_model.device)
+                draft_cache_top_k = draft_top_k if verify_method == "rejection" else self.args.top_k
+                draft_cache_top_p = 0.0 if verify_method == "rejection" else self.args.top_p
+                approx_model_cache = KVCacheModel(
+                    draft_model,
+                    self.args.temp,
+                    draft_cache_top_k,
+                    draft_cache_top_p,
+                    generator=draft_generator,
+                    exact_top_k=(verify_method == "rejection"),
+                    bounded_probabilities=True,
+                )
+                approx_model_cache.vocab_size = self.args.vocab_size
 
-            input_text, task_id = self._sample_prompt(sample, proc_id, idx)
+                input_text, task_id = self._sample_prompt(sample, proc_id, idx)
 
-            # input_text = 'def fib(n'  # for debug
-            input_ids = self._encode_input_ids(tokenizer, input_text).to(draft_model.device)
-            prefix = input_ids.clone()
-            max_len = input_ids.shape[1] + self.args.max_tokens
-            first_token_time = None
-            pipeline_enabled = bool(getattr(self.args, "enable_pipeline", True))
-            proactive_enabled = bool(getattr(self.args, "enable_proactive_draft", True))
-            overlap_prefill_first_draft = bool(
-                getattr(self.args, "overlap_prefill_first_draft", False)
-            )
-            final_token = None
-            reused_pending_tokens: List[int] = []
-            reused_pending_prob_rows: List[torch.Tensor] = []
-            current_gamma = int(self.args.gamma)
-            verify_executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-            if executor_holder is not None:
-                executor_holder["executor"] = verify_executor
-            # ``current_time`` is a cloud scheduler protocol field (epoch time);
-            # all local duration/ordering measurements use ``monotonic``.
-            prefill_current_time = time.time()
-            prefill_send_time_ns = time.time_ns()
-            prefill_call = lambda: client.prefill(
-                session_id=session_id,
-                task_id=task_id,
-                draft_output=prefix[0].tolist(),
-                prefix_len=prefix.shape[1],
-                lag=0.0,
-                current_time=prefill_current_time,
-                gamma=current_gamma,
-                timing_required=timing_protocol,
-                edge_send_time_ns=prefill_send_time_ns,
-            )
-            arrival_call = None
-            prefill_upload_call = None
-            if timing_protocol:
-                arrival_call = lambda: client.prefill_arrival(
+                # input_text = 'def fib(n'  # for debug
+                input_ids = self._encode_input_ids(tokenizer, input_text).to(draft_model.device)
+                prefix = input_ids.clone()
+                max_len = input_ids.shape[1] + self.args.max_tokens
+                first_token_time = None
+                pipeline_enabled = bool(getattr(self.args, "enable_pipeline", True))
+                proactive_enabled = bool(getattr(self.args, "enable_proactive_draft", True))
+                overlap_prefill_first_draft = bool(timing_protocol or getattr(self.args, "overlap_prefill_first_draft", False))
+                final_token = None
+                reused_pending_tokens: List[int] = []
+                reused_pending_prob_rows: List[torch.Tensor] = []
+                current_gamma = min(int(self.args.gamma), int(self.args.max_tokens))
+                verify_executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+                if executor_holder is not None:
+                    executor_holder["executor"] = verify_executor
+                # ``current_time`` is a cloud scheduler protocol field (epoch time);
+                # all local duration/ordering measurements use ``monotonic``.
+                prefill_current_time = time.time()
+                prefill_send_time_ns = time.time_ns()
+                prefill_call = lambda: client.prefill(
                     session_id=session_id,
                     task_id=task_id,
-                    edge_send_time_ns=time.time_ns(),
+                    draft_output=prefix[0].tolist(),
+                    prefix_len=prefix.shape[1],
+                    lag=0.0,
+                    current_time=prefill_current_time,
+                    gamma=current_gamma,
+                    timing_required=False,
+                    timing_estimate=prefill_timing_estimate if timing_protocol else None,
+                    edge_send_time_ns=prefill_send_time_ns,
                 )
-
-                def prefill_upload_call(draft_output):
-                    if getattr(torch, "is_tensor", lambda value: False)(draft_output):
-                        upload_tokens = draft_output[0].detach().cpu().tolist()
-                    elif (
-                        isinstance(draft_output, (list, tuple))
-                        and draft_output
-                        and isinstance(draft_output[0], (list, tuple))
-                    ):
-                        upload_tokens = list(draft_output[0])
+                # Upload the prompt immediately and generate the first draft
+                # once. Verify waits until both independent operations finish.
+                first_round_x = None
+                first_round_draft_ms = 0.0
+                prefill_ms = 0.0
+                prefill_first_draft_overlap_ms = 0.0
+                prefill_wait_after_first_draft_ms = 0.0
+                task_start = None
+                first_round_draft_started_at = None
+                first_round_timings = {}
+                if prefix.shape[1] < max_len:
+                    if timing_protocol:
+                        first_round_x, prefill_resp, first_round_timings = _run_first_draft_with_prefill(
+                            verify_executor, prefill_call,
+                            lambda: _timed_local_draft_generate(approx_model_cache, prefix, current_gamma),
+                            overlap=True,
+                            timeout=float(getattr(self.args, "request_timeout", 0.0)),
+                            cancel_call=lambda: client.release_session(session_id),
+                        )
+                        prefill_timing_estimate = {
+                            key: float(first_round_timings[key])
+                            for key in ("local_prefill_s", "local_decode_per_token_s")
+                            if key in first_round_timings
+                        }
                     else:
-                        upload_tokens = list(draft_output)
-                    return client.prefill(
-                        session_id=session_id,
-                        task_id=task_id,
-                        draft_output=[int(token) for token in upload_tokens],
-                        prefix_len=prefix.shape[1],
-                        prompt_len=prefix.shape[1],
-                        lag=0.0,
-                        current_time=time.time(),
-                        gamma=current_gamma,
-                        timing_required=False,
-                        edge_send_time_ns=time.time_ns(),
-                    )
-
-            # The first draft is generated exactly once.  In the timing-aware
-            # FastSD profile the cloud only records arrival while this call
-            # runs; the generated tokens are uploaded before Prefill/Verify
-            # state is established.
-            first_round_x = None
-            first_round_draft_ms = 0.0
-            prefill_ms = 0.0
-            prefill_first_draft_overlap_ms = 0.0
-            prefill_wait_after_first_draft_ms = 0.0
-            task_start = None
-            first_round_draft_started_at = None
-            first_round_timings = {}
-            if prefix.shape[1] < max_len:
-                if timing_protocol:
-                    first_round_x, prefill_resp, first_round_timings = _run_first_draft_after_arrival(
-                        verify_executor,
-                        arrival_call,
-                        lambda: _timed_local_draft_generate(
-                            approx_model_cache, prefix, current_gamma
-                        ),
-                        prefill_upload_call,
-                        timeout=float(getattr(self.args, "request_timeout", 0.0)),
-                        cancel_call=lambda: client.prefill_cancel(session_id, task_id),
-                    )
-                else:
-                    first_round_x, prefill_resp, first_round_timings = _run_first_draft_with_prefill(
-                        verify_executor,
-                        prefill_call,
-                        lambda: approx_model_cache.generate(prefix, current_gamma),
-                        overlap=overlap_prefill_first_draft,
-                        timeout=float(getattr(self.args, "request_timeout", 0.0)),
-                    )
-                if timing_protocol and "cloud_send_time_ns" not in prefill_resp:
-                    raise RuntimeError("FastSD Prefill response omitted cloud_send_time_ns")
-                prefill_ms = first_round_timings["prefill_ms"]
-                first_round_draft_ms = first_round_timings["first_draft_ms"]
-                prefill_first_draft_overlap_ms = first_round_timings[
-                    "prefill_first_draft_overlap_ms"
-                ]
-                prefill_wait_after_first_draft_ms = first_round_timings[
-                    "prefill_wait_after_first_draft_ms"
-                ]
-                first_round_draft_started_at = first_round_timings["draft_started_at"]
-                task_start = first_round_timings["prefill_completed_at"]
-            else:
-                # Keep the session protocol valid even when no decode round is
-                # requested.  This branch normally does not occur in benchmark
-                # runs (max_tokens is positive), but it avoids an unnecessary
-                # local draft call for a zero-length output.
-                if timing_protocol:
-                    _, prefill_resp, first_round_timings = _run_first_draft_after_arrival(
-                        verify_executor,
-                        arrival_call,
-                        lambda: (
-                            prefix,
-                            {
-                                "local_prefill_s": 0.0,
-                                "local_decode_per_token_s": 0.0,
-                            },
-                        ),
-                        prefill_upload_call,
-                        timeout=float(getattr(self.args, "request_timeout", 0.0)),
-                        cancel_call=lambda: client.prefill_cancel(session_id, task_id),
-                    )
-                    if "cloud_send_time_ns" not in prefill_resp:
+                        first_round_x, prefill_resp, first_round_timings = _run_first_draft_with_prefill(
+                            verify_executor,
+                            prefill_call,
+                            lambda: approx_model_cache.generate(prefix, current_gamma),
+                            overlap=overlap_prefill_first_draft,
+                            timeout=float(getattr(self.args, "request_timeout", 0.0)),
+                        )
+                    if timing_protocol and "cloud_send_time_ns" not in prefill_resp:
                         raise RuntimeError("FastSD Prefill response omitted cloud_send_time_ns")
                     prefill_ms = first_round_timings["prefill_ms"]
+                    first_round_draft_ms = first_round_timings["first_draft_ms"]
+                    prefill_first_draft_overlap_ms = first_round_timings[
+                        "prefill_first_draft_overlap_ms"
+                    ]
+                    prefill_wait_after_first_draft_ms = first_round_timings[
+                        "prefill_wait_after_first_draft_ms"
+                    ]
+                    first_round_draft_started_at = first_round_timings["draft_started_at"]
                     task_start = first_round_timings["prefill_completed_at"]
                 else:
+                    # Keep the session protocol valid even when no decode round is
+                    # requested.  This branch normally does not occur in benchmark
+                    # runs (max_tokens is positive), but it avoids an unnecessary
+                    # local draft call for a zero-length output.
                     prefill_start = time.monotonic()
                     try:
                         prefill_resp = _validate_prefill_response(prefill_call())
@@ -1761,502 +1745,555 @@ class EdgeRunner(Decoding):
                     prefill_completed_at = time.monotonic()
                     prefill_ms = max(0.0, (prefill_completed_at - prefill_start) * 1000.0)
                     task_start = prefill_completed_at
-            last_transport_rtt = 0.0
-            last_pull_s = float(prefill_resp.get("pull_s", 0.0))
-            first_prefill_pull_s = last_pull_s
-            first_prefill_push_s = float(
-                first_round_timings.get("push_s", prefill_resp.get("push_s", 0.0))
-                if isinstance(first_round_timings, dict)
-                else prefill_resp.get("push_s", 0.0)
-            )
-            reuse_hit_rounds = 0
-            reuse_miss_rounds = 0
-            reuse_miss_not_full_accept_rounds = 0
-            sum_round_ms = 0.0
-            sum_draft_ms = 0.0
-            sum_wait_ms = 0.0
-            sum_http_total_ms = 0.0
-            sum_cloud_total_ms = 0.0
-            sum_verify_ms = 0.0
-            sum_transport_rtt_ms = 0.0
-            sum_push_ms = 0.0
-            sum_pull_ms = 0.0
-            accepted_total = 0
-            drafted_total = 0
-            rounds = 0
-            first_round_pending = first_round_x is not None
-            while prefix.shape[1] < max_len:
-                prefix_len = prefix.shape[1]
-                round_start = time.monotonic()
-                req_gamma = current_gamma if pipeline_enabled else int(self.args.gamma)
-                local_decode_per_token_s = None
+                last_transport_rtt = 0.0
+                last_pull_s = float(prefill_resp.get("pull_s", 0.0))
+                first_prefill_pull_s = last_pull_s
+                first_prefill_push_s = float(
+                    first_round_timings.get("push_s", prefill_resp.get("push_s", 0.0))
+                    if isinstance(first_round_timings, dict)
+                    else prefill_resp.get("push_s", 0.0)
+                )
+                ahead_control = AheadController()
+                ahead_generated_tokens = ahead_reused_tokens = 0
+                ahead_forward_s = response_consumption_delay_s = 0.0
+                ahead_forward_per_token_s = 0.0
+                previous_verify_wait_s = 0.0
+                reuse_hit_rounds = 0
+                reuse_miss_rounds = 0
+                reuse_miss_not_full_accept_rounds = 0
+                sum_round_ms = 0.0
+                sum_draft_ms = 0.0
+                sum_wait_ms = 0.0
+                sum_http_total_ms = 0.0
+                sum_cloud_total_ms = 0.0
+                sum_verify_ms = 0.0
+                sum_transport_rtt_ms = 0.0
+                sum_push_ms = 0.0
+                sum_pull_ms = 0.0
+                accepted_total = 0
+                drafted_total = 0
+                rounds = 0
+                first_round_pending = first_round_x is not None
+                while prefix.shape[1] < max_len:
+                    prefix_len = prefix.shape[1]
+                    approx_model_cache.retain_probabilities(prefix_len - 1)
+                    round_start = time.monotonic()
+                    req_gamma = min(current_gamma if pipeline_enabled else int(self.args.gamma), max_len - prefix_len)
+                    local_decode_per_token_s = None
 
-                # 若上一轮复用 token 不足 gamma，这里补齐到 gamma 后再发起验证。
-                if first_round_pending:
-                    # The helper already produced this exact first-round state;
-                    # never regenerate it after waiting for Prefill.
-                    x = first_round_x
-                    first_round_pending = False
-                    round_start = float(first_round_draft_started_at)
-                    draft_elapsed = first_round_draft_ms / 1000.0
-                    local_decode_per_token_s = float(
-                        first_round_timings.get(
-                            "local_decode_per_token_s",
-                            draft_elapsed / max(1, req_gamma),
-                        )
-                    )
-                    if verify_method == "rejection":
-                        start = max(0, prefix_len - 1)
-                        draft_rows = approx_model_cache._prob_history[
-                            0, start:start + req_gamma
-                        ].detach().float()
-                    else:
-                        draft_rows = None
-                elif reused_pending_tokens:
-                    draft_started = time.monotonic()
-                    reuse_count = min(len(reused_pending_tokens), req_gamma)
-                    reuse_tensor = torch.tensor(
-                        [reused_pending_tokens[:reuse_count]],
-                        device=prefix.device,
-                        dtype=prefix.dtype,
-                    )
-                    x = torch.cat((prefix, reuse_tensor), dim=1)
-                    if reuse_count < req_gamma:
-                        if verify_method == "rejection":
-                            x, generated_rows = approx_model_cache.generate_with_probs(
-                                x, req_gamma - reuse_count
+                    # 若上一轮复用 token 不足 gamma，这里补齐到 gamma 后再发起验证。
+                    if first_round_pending:
+                        # The helper already produced this exact first-round state;
+                        # never regenerate it after waiting for Prefill.
+                        x = first_round_x
+                        first_round_pending = False
+                        round_start = float(first_round_draft_started_at)
+                        draft_elapsed = first_round_draft_ms / 1000.0
+                        local_decode_per_token_s = float(
+                            first_round_timings.get(
+                                "local_decode_per_token_s",
+                                draft_elapsed / max(1, req_gamma),
                             )
+                        )
+                        if verify_method == "rejection":
+                            start = max(0, prefix_len - 1)
+                            draft_rows = approx_model_cache.probability_rows(start, start + req_gamma)[0].detach().float()
+                        else:
+                            draft_rows = None
+                    elif reused_pending_tokens:
+                        draft_started = time.monotonic()
+                        reuse_count = min(len(reused_pending_tokens), req_gamma)
+                        ahead_reused_tokens += reuse_count
+                        reuse_tensor = torch.tensor(
+                            [reused_pending_tokens[:reuse_count]],
+                            device=prefix.device,
+                            dtype=prefix.dtype,
+                        )
+                        x = torch.cat((prefix, reuse_tensor), dim=1)
+                        approx_model_cache.rollback(min(
+                            approx_model_cache._past_key_values.get_seq_length(), x.shape[1] - 1
+                        ))
+                        if reuse_count < req_gamma:
+                            if verify_method == "rejection":
+                                x, generated_rows = approx_model_cache.generate_with_probs(
+                                    x, req_gamma - reuse_count
+                                )
+                                draft_rows = torch.cat(
+                                    [
+                                        row.to(x.device).reshape(1, -1)
+                                        for row in reused_pending_prob_rows[:reuse_count]
+                                    ]
+                                    + [generated_rows],
+                                    dim=0,
+                                )
+                            else:
+                                x = approx_model_cache.generate(x, req_gamma - reuse_count)
+                                draft_rows = None
+                        elif verify_method == "rejection":
                             draft_rows = torch.cat(
                                 [
                                     row.to(x.device).reshape(1, -1)
                                     for row in reused_pending_prob_rows[:reuse_count]
-                                ]
-                                + [generated_rows],
+                                ],
                                 dim=0,
                             )
                         else:
-                            x = approx_model_cache.generate(x, req_gamma - reuse_count)
                             draft_rows = None
-                    elif verify_method == "rejection":
-                        draft_rows = torch.cat(
-                            [
-                                row.to(x.device).reshape(1, -1)
-                                for row in reused_pending_prob_rows[:reuse_count]
-                            ],
-                            dim=0,
-                        )
+                        draft_elapsed = max(0.0, time.monotonic() - draft_started)
+                        local_decode_per_token_s = draft_elapsed / max(1, req_gamma - reuse_count)
                     else:
-                        draft_rows = None
-                    draft_elapsed = max(0.0, time.monotonic() - draft_started)
-                    local_decode_per_token_s = draft_elapsed / max(1, req_gamma - reuse_count)
-                else:
-                    draft_started = time.monotonic()
-                    if verify_method == "rejection":
-                        x, draft_rows = approx_model_cache.generate_with_probs(
-                            prefix, req_gamma
-                        )
-                    else:
-                        x = approx_model_cache.generate(prefix, req_gamma)
-                        draft_rows = None
-                    synchronize(getattr(draft_model, "device", "cpu"))
-                    draft_elapsed = max(0.0, time.monotonic() - draft_started)
-                    local_decode_per_token_s = draft_elapsed / max(1, req_gamma)
-
-                draft_prob_block = None
-                if verify_method == "rejection":
-                    if draft_rows is None or int(draft_rows.shape[0]) != req_gamma:
-                        raise RuntimeError(
-                            "draft probability rows do not match the requested gamma"
-                        )
-                    sparse_ids, sparse_probs = sparse_block_from_dense(
-                        draft_rows, draft_top_k
-                    )
-                    draft_prob_block = encode_sparse_block(sparse_ids, sparse_probs)
-
-                has_bridge_token = pipeline_enabled and (final_token is not None)
-                if pipeline_enabled:
-                    pending_tokens = x[0, prefix_len:prefix_len + req_gamma].tolist()
-                    if has_bridge_token:
-                        # 发送：上一轮 final_token + 本轮 gamma 个 draft token
-                        payload_tokens = [final_token] + pending_tokens
-                    else:
-                        # 首轮无上一轮 final_token，仅发送本轮 gamma 个 draft token
-                        payload_tokens = pending_tokens
-                else:
-                    # vanilla verify: send full prefix + gamma draft tokens.
-                    payload_tokens = x[0, :prefix_len + req_gamma].tolist()
-                if getattr(self.args, "debug_verify_tokens", False):
-                    debug_tail = 16
-                    self.color_print(
-                        f"[VERIFY-EDGE-SEND][pid={proc_id}][session={session_id}] "
-                        f"prefix_len={prefix_len} has_bridge_token={has_bridge_token} "
-                        f"tail_ids={payload_tokens[-debug_tail:]}",
-                        3,
-                    )
-
-                verify_future = _submit_http_call(
-                    verify_executor,
-                    client.verify,
-                    session_id=session_id,
-                    task_id=task_id,
-                    draft_output=payload_tokens,
-                    prefix_len=prefix_len,
-                    # For the overlapped first round, this is draft compute only;
-                    # any wait for Prefill happened before Verify submission.
-                    lag=draft_elapsed if first_round_draft_ms > 0 and rounds == 0 else max(
-                        0.0, time.monotonic() - round_start
-                    ),
-                    current_time=time.time(),
-                    gamma=req_gamma,
-                    transport_rtt=last_transport_rtt,
-                    tail_only=pipeline_enabled,
-                    has_bridge_token=has_bridge_token,
-                    local_decode_per_token_s=local_decode_per_token_s,
-                    last_pull_s=last_pull_s,
-                    verify_method=verify_method,
-                    sampling_seed=sampling_seed,
-                    draft_prob_block=draft_prob_block,
-                )
-                if rounds > 0 or first_round_draft_ms <= 0:
-                    draft_elapsed = max(0.0, time.monotonic() - round_start)
-                if getattr(self.args, "debug_pipeline", False):
-                    self.color_print(
-                        f"[PIPELINE-EDGE][pid={proc_id}][session={session_id}] "
-                        f"send req_gamma={req_gamma} draft_ms={draft_elapsed*1000:.2f} "
-                        f"transport_rtt_prev={last_transport_rtt*1000:.2f}ms "
-                        f"prefix_len={prefix_len} payload_tokens={len(payload_tokens)}",
-                        3,
-                    )
-
-                # 验证等待期间持续 draft，最多缓存 gamma+1（bridge + gamma）个 token。
-                overlap_tokens: List[int] = []
-                overlap_prob_rows: List[torch.Tensor] = []
-                overlap_prefix = x
-                max_overlap_tokens = req_gamma + 1
-                wait_start = time.monotonic()
-                wait_draft_steps = 0
-                if getattr(self.args, "debug_verify_tokens", False):
-                    self.color_print(
-                        f"[VERIFY-EDGE-WAIT-START][pid={proc_id}][session={session_id}] "
-                        f"prefix_len={prefix_len} max_overlap_tokens={max_overlap_tokens}",
-                        3,
-                    )
-                if proactive_enabled:
-                    while len(overlap_tokens) < max_overlap_tokens and not verify_future.done():
+                        draft_started = time.monotonic()
                         if verify_method == "rejection":
-                            overlap_prefix, overlap_rows = approx_model_cache.generate_with_probs(
-                                overlap_prefix, 1
+                            x, draft_rows = approx_model_cache.generate_with_probs(
+                                prefix, req_gamma
                             )
-                            overlap_prob_rows.append(overlap_rows[0].detach().float())
                         else:
-                            overlap_prefix = approx_model_cache.generate(overlap_prefix, 1)
-                        overlap_tokens.append(int(overlap_prefix[0, -1].item()))
-                        wait_draft_steps += 1
-                        if getattr(self.args, "debug_verify_tokens", False) and (
-                            wait_draft_steps == 1
-                            or wait_draft_steps % 8 == 0
-                            or wait_draft_steps == max_overlap_tokens
-                        ):
-                            self.color_print(
-                                f"[VERIFY-EDGE-WAIT-DRAFT][pid={proc_id}][session={session_id}] "
-                                f"drafted_while_wait={wait_draft_steps} latest_token={overlap_tokens[-1]} "
-                                f"verify_done={verify_future.done()}",
-                                3,
+                            x = approx_model_cache.generate(prefix, req_gamma)
+                            draft_rows = None
+                        synchronize(getattr(draft_model, "device", "cpu"))
+                        draft_elapsed = max(0.0, time.monotonic() - draft_started)
+                        local_decode_per_token_s = draft_elapsed / max(1, req_gamma)
+
+                    draft_prob_block = None
+                    if verify_method == "rejection":
+                        if draft_rows is None or int(draft_rows.shape[0]) != req_gamma:
+                            raise RuntimeError(
+                                "draft probability rows do not match the requested gamma"
                             )
-                else:
-                    while not verify_future.done():
-                        time.sleep(0.0005)
+                        sparse_ids, sparse_probs = sparse_block_from_dense(
+                            draft_rows, draft_top_k
+                        )
+                        draft_prob_block = encode_sparse_block(sparse_ids, sparse_probs)
 
-                if getattr(self.args, "debug_verify_tokens", False):
-                    wait_ms = (time.monotonic() - wait_start) * 1000.0
-                    debug_tail = 8
-                    self.color_print(
-                        f"[VERIFY-EDGE-WAIT-END][pid={proc_id}][session={session_id}] "
-                        f"wait_ms={wait_ms:.2f} drafted_while_wait={wait_draft_steps} "
-                        f"verify_done={verify_future.done()} overlap_tail={overlap_tokens[-debug_tail:]}",
-                        3,
-                    )
-
-                verify_resp, measured_http_total = verify_future.result()
-                if timing_protocol and "cloud_send_time_ns" not in verify_resp:
-                    raise RuntimeError("FastSD Verify response omitted cloud_send_time_ns")
-                if "pull_s" in verify_resp:
-                    last_pull_s = float(verify_resp["pull_s"])
-                verify_ms = float(verify_resp.get("verify_ms", 0.0))
-                cloud_total_ms = float(verify_resp.get("cloud_total_ms", 0.0))
-                push_s = float(verify_resp.get("push_s", 0.0))
-                pull_s = float(verify_resp.get("pull_s", last_pull_s))
-                # A purer transport estimate: subtract cloud-side service time from end-to-end HTTP time.
-                last_transport_rtt = max(0.0, measured_http_total - cloud_total_ms / 1000.0)
-                round_elapsed = max(0.0, time.monotonic() - round_start)
-                wait_elapsed_ms = max(0.0, (time.monotonic() - wait_start) * 1000.0)
-                sum_round_ms += round_elapsed * 1000.0
-                sum_draft_ms += draft_elapsed * 1000.0
-                sum_wait_ms += wait_elapsed_ms
-                sum_http_total_ms += measured_http_total * 1000.0
-                sum_cloud_total_ms += cloud_total_ms
-                sum_verify_ms += verify_ms
-                sum_transport_rtt_ms += last_transport_rtt * 1000.0
-                sum_push_ms += push_s * 1000.0
-                sum_pull_ms += pull_s * 1000.0
-                rounds += 1
-
-                accepted = int(verify_resp["accepted"])
-                accepted_cnt = accepted - prefix_len
-                accepted_total += max(0, accepted_cnt)
-                drafted_total += max(1, req_gamma)
-                final_token = int(verify_resp["final_token"])
-                if pipeline_enabled and "suggested_gamma" in verify_resp:
-                    current_gamma = int(verify_resp["suggested_gamma"])
-                if getattr(self.args, "debug_pipeline", False):
-                    self.color_print(
-                        f"[PIPELINE-EDGE][pid={proc_id}][session={session_id}] "
-                        f"recv accepted={accepted_cnt}/{req_gamma} round_ms={round_elapsed*1000:.2f} "
-                        f"transport_rtt={last_transport_rtt*1000:.2f}ms "
-                        f"http_total_ms={measured_http_total*1000:.2f} cloud_total_ms={cloud_total_ms:.2f} "
-                        f"verify_ms={verify_ms:.2f} "
-                        f"suggested_gamma={current_gamma}",
-                        3,
-                    )
-                if getattr(self.args, "debug_verify_tokens", False):
-                    self.color_print(
-                        f"[VERIFY-EDGE-RESP][pid={proc_id}][session={session_id}] "
-                        f"accepted={accepted} final_token={final_token} req_gamma={req_gamma} suggested_gamma={current_gamma} "
-                        f"drafted_while_wait={wait_draft_steps}",
-                        3,
-                    )
-                final_token_tensor = torch.tensor([[final_token]], device=x.device, dtype=x.dtype)
-
-                prefix = torch.cat((x[:, :accepted], final_token_tensor), dim=1)
-                prefix, hit_eos = self._truncate_at_eos(prefix, tokenizer.eos_token_id, prefix_len)
-                prefix = prefix[:, :max_len]
-                if first_token_time is None and prefix.shape[1] > input_ids.shape[1]:
-                    first_token_time = time.monotonic()
-                approx_model_cache.rollback(accepted)
-                reused_pending_tokens = []
-                reused_pending_prob_rows = []
-
-                if proactive_enabled and accepted_cnt == req_gamma and overlap_tokens:
-                    if overlap_tokens[0] == final_token:
-                        reused_pending_tokens = overlap_tokens[1 : 1 + req_gamma]
-                        if verify_method == "rejection":
-                            reused_pending_prob_rows = [
-                                row.detach().float()
-                                for row in overlap_prob_rows[1 : 1 + req_gamma]
-                            ]
-                        reuse_hit_rounds += 1
-                        if getattr(self.args, "debug_verify_tokens", False):
-                            self.color_print(
-                                f"[VERIFY-EDGE-REUSE-HIT][pid={proc_id}][session={session_id}] "
-                                f"final_token={final_token} overlap_first={overlap_tokens[0]} "
-                                f"reused_count={len(reused_pending_tokens)}",
-                                2,
-                            )
+                    has_bridge_token = pipeline_enabled and (final_token is not None)
+                    if pipeline_enabled:
+                        pending_tokens = x[0, prefix_len:prefix_len + req_gamma].tolist()
+                        if has_bridge_token:
+                            # 发送：上一轮 final_token + 本轮 gamma 个 draft token
+                            payload_tokens = [final_token] + pending_tokens
+                        else:
+                            # 首轮无上一轮 final_token，仅发送本轮 gamma 个 draft token
+                            payload_tokens = pending_tokens
                     else:
+                        # vanilla verify: send full prefix + gamma draft tokens.
+                        payload_tokens = x[0, :prefix_len + req_gamma].tolist()
+                    if getattr(self.args, "debug_verify_tokens", False):
+                        debug_tail = 16
+                        self.color_print(
+                            f"[VERIFY-EDGE-SEND][pid={proc_id}][session={session_id}] "
+                            f"prefix_len={prefix_len} has_bridge_token={has_bridge_token} "
+                            f"tail_ids={payload_tokens[-debug_tail:]}",
+                            3,
+                        )
+
+                    verify_future = _submit_http_call(
+                        verify_executor,
+                        _verify_with_ready_time,
+                        client.verify,
+                        session_id=session_id,
+                        task_id=task_id,
+                        draft_output=payload_tokens,
+                        prefix_len=prefix_len,
+                        # For the overlapped first round, this is draft compute only;
+                        # any wait for Prefill happened before Verify submission.
+                        lag=draft_elapsed if first_round_draft_ms > 0 and rounds == 0 else max(
+                            0.0, time.monotonic() - round_start
+                        ),
+                        current_time=time.time(),
+                        gamma=req_gamma,
+                        transport_rtt=last_transport_rtt,
+                        tail_only=pipeline_enabled,
+                        has_bridge_token=has_bridge_token,
+                        local_decode_per_token_s=local_decode_per_token_s,
+                        last_pull_s=last_pull_s,
+                        verify_method=verify_method,
+                        sampling_seed=sampling_seed,
+                        draft_prob_block=draft_prob_block,
+                    )
+                    if rounds > 0 or first_round_draft_ms <= 0:
+                        draft_elapsed = max(0.0, time.monotonic() - round_start)
+                    if getattr(self.args, "debug_pipeline", False):
+                        self.color_print(
+                            f"[PIPELINE-EDGE][pid={proc_id}][session={session_id}] "
+                            f"send req_gamma={req_gamma} draft_ms={draft_elapsed*1000:.2f} "
+                            f"transport_rtt_prev={last_transport_rtt*1000:.2f}ms "
+                            f"prefix_len={prefix_len} payload_tokens={len(payload_tokens)}",
+                            3,
+                        )
+
+                    # Proactive length is independently capped and benefit-gated.
+                    overlap_tokens: List[int] = []
+                    overlap_prob_rows: List[torch.Tensor] = []
+                    overlap_prefix = x
+                    max_overlap_tokens = max(0, min(int(getattr(self.args, "ahead_max_tokens", 4)), max_len - x.shape[1]))
+                    ahead_started = time.monotonic()
+                    wait_start = time.monotonic()
+                    wait_draft_steps = 0
+                    if getattr(self.args, "debug_verify_tokens", False):
+                        self.color_print(
+                            f"[VERIFY-EDGE-WAIT-START][pid={proc_id}][session={session_id}] "
+                            f"prefix_len={prefix_len} max_overlap_tokens={max_overlap_tokens}",
+                            3,
+                        )
+                    if proactive_enabled:
+                        while not verify_future.done() and ahead_control.allow(
+                            steps=len(overlap_tokens), cap=max_overlap_tokens,
+                            elapsed_s=time.monotonic() - ahead_started,
+                            expected_wait_s=previous_verify_wait_s,
+                            draft_s=ahead_forward_per_token_s,
+                        ):
+                            step_started = time.monotonic()
+                            if verify_method == "rejection":
+                                overlap_prefix, overlap_rows = approx_model_cache.generate_with_probs(
+                                    overlap_prefix, 1
+                                )
+                                overlap_prob_rows.append(overlap_rows[0].detach().float())
+                            else:
+                                overlap_prefix = approx_model_cache.generate(overlap_prefix, 1)
+                            overlap_tokens.append(int(overlap_prefix[0, -1].item()))
+                            wait_draft_steps += 1
+                            step_s = time.monotonic() - step_started
+                            ahead_forward_s += step_s
+                            ahead_forward_per_token_s = (0.8 * ahead_forward_per_token_s + 0.2 * step_s
+                                                         if ahead_forward_per_token_s else step_s)
+                            if getattr(self.args, "debug_verify_tokens", False) and (
+                                wait_draft_steps == 1
+                                or wait_draft_steps % 8 == 0
+                                or wait_draft_steps == max_overlap_tokens
+                            ):
+                                self.color_print(
+                                    f"[VERIFY-EDGE-WAIT-DRAFT][pid={proc_id}][session={session_id}] "
+                                    f"drafted_while_wait={wait_draft_steps} latest_token={overlap_tokens[-1]} "
+                                    f"verify_done={verify_future.done()}",
+                                    3,
+                                )
+                    else:
+                        while not verify_future.done():
+                            time.sleep(0.0005)
+
+                    if getattr(self.args, "debug_verify_tokens", False):
+                        wait_ms = (time.monotonic() - wait_start) * 1000.0
+                        debug_tail = 8
+                        self.color_print(
+                            f"[VERIFY-EDGE-WAIT-END][pid={proc_id}][session={session_id}] "
+                            f"wait_ms={wait_ms:.2f} drafted_while_wait={wait_draft_steps} "
+                            f"verify_done={verify_future.done()} overlap_tail={overlap_tokens[-debug_tail:]}",
+                            3,
+                        )
+
+                    verify_resp, measured_http_total = verify_future.result()
+                    response_consumed_at = time.monotonic()
+                    response_delay = max(0.0, response_consumed_at - verify_resp.get("_response_ready_monotonic", response_consumed_at))
+                    response_consumption_delay_s += response_delay
+                    previous_verify_wait_s = measured_http_total
+                    ahead_generated_tokens += len(overlap_tokens)
+                    if timing_protocol and "cloud_send_time_ns" not in verify_resp:
+                        raise RuntimeError("FastSD Verify response omitted cloud_send_time_ns")
+                    if "pull_s" in verify_resp:
+                        last_pull_s = float(verify_resp["pull_s"])
+                    verify_ms = float(verify_resp.get("verify_ms", 0.0))
+                    cloud_total_ms = float(verify_resp.get("cloud_total_ms", 0.0))
+                    push_s = float(verify_resp.get("push_s", 0.0))
+                    pull_s = float(verify_resp.get("pull_s", last_pull_s))
+                    # A purer transport estimate: subtract cloud-side service time from end-to-end HTTP time.
+                    last_transport_rtt = max(0.0, measured_http_total - cloud_total_ms / 1000.0)
+                    round_elapsed = max(0.0, time.monotonic() - round_start)
+                    wait_elapsed_ms = max(0.0, (time.monotonic() - wait_start) * 1000.0)
+                    sum_round_ms += round_elapsed * 1000.0
+                    sum_draft_ms += draft_elapsed * 1000.0
+                    sum_wait_ms += wait_elapsed_ms
+                    sum_http_total_ms += measured_http_total * 1000.0
+                    sum_cloud_total_ms += cloud_total_ms
+                    sum_verify_ms += verify_ms
+                    sum_transport_rtt_ms += last_transport_rtt * 1000.0
+                    sum_push_ms += push_s * 1000.0
+                    sum_pull_ms += pull_s * 1000.0
+                    rounds += 1
+
+                    accepted = int(verify_resp["accepted"])
+                    accepted_cnt = accepted - prefix_len
+                    accepted_total += max(0, accepted_cnt)
+                    drafted_total += max(1, req_gamma)
+                    final_token = int(verify_resp["final_token"])
+                    if pipeline_enabled and "suggested_gamma" in verify_resp:
+                        current_gamma = int(verify_resp["suggested_gamma"])
+                    if getattr(self.args, "debug_pipeline", False):
+                        self.color_print(
+                            f"[PIPELINE-EDGE][pid={proc_id}][session={session_id}] "
+                            f"recv accepted={accepted_cnt}/{req_gamma} round_ms={round_elapsed*1000:.2f} "
+                            f"transport_rtt={last_transport_rtt*1000:.2f}ms "
+                            f"http_total_ms={measured_http_total*1000:.2f} cloud_total_ms={cloud_total_ms:.2f} "
+                            f"verify_ms={verify_ms:.2f} "
+                            f"suggested_gamma={current_gamma}",
+                            3,
+                        )
+                    if getattr(self.args, "debug_verify_tokens", False):
+                        self.color_print(
+                            f"[VERIFY-EDGE-RESP][pid={proc_id}][session={session_id}] "
+                            f"accepted={accepted} final_token={final_token} req_gamma={req_gamma} suggested_gamma={current_gamma} "
+                            f"drafted_while_wait={wait_draft_steps}",
+                            3,
+                        )
+                    final_token_tensor = torch.tensor([[final_token]], device=x.device, dtype=x.dtype)
+
+                    prefix = torch.cat((x[:, :accepted], final_token_tensor), dim=1)
+                    prefix, hit_eos = self._truncate_at_eos(prefix, tokenizer.eos_token_id, prefix_len)
+                    prefix = prefix[:, :max_len]
+                    if first_token_time is None and prefix.shape[1] > input_ids.shape[1]:
+                        first_token_time = time.monotonic()
+                    reused_pending_tokens = []
+                    reused_pending_prob_rows = []
+
+                    if proactive_enabled and accepted_cnt == req_gamma and overlap_tokens:
+                        if overlap_tokens[0] == final_token:
+                            reuse_limit = min(current_gamma, max(0, max_len - prefix.shape[1]))
+                            reused_pending_tokens = overlap_tokens[1 : 1 + reuse_limit]
+                            if verify_method == "rejection":
+                                reused_pending_prob_rows = [
+                                    row.detach().float()
+                                    for row in overlap_prob_rows[1 : 1 + len(reused_pending_tokens)]
+                                ]
+                            reuse_hit_rounds += 1
+                            if getattr(self.args, "debug_verify_tokens", False):
+                                self.color_print(
+                                    f"[VERIFY-EDGE-REUSE-HIT][pid={proc_id}][session={session_id}] "
+                                    f"final_token={final_token} overlap_first={overlap_tokens[0]} "
+                                    f"reused_count={len(reused_pending_tokens)}",
+                                    2,
+                                )
+                        else:
+                            reuse_miss_rounds += 1
+                            if getattr(self.args, "debug_verify_tokens", False):
+                                self.color_print(
+                                    f"[VERIFY-EDGE-DROP][pid={proc_id}][session={session_id}] "
+                                    f"final_token={final_token} overlap_first={overlap_tokens[0]}",
+                                    3,
+                                )
+                    elif proactive_enabled and accepted_cnt == req_gamma:
                         reuse_miss_rounds += 1
                         if getattr(self.args, "debug_verify_tokens", False):
                             self.color_print(
-                                f"[VERIFY-EDGE-DROP][pid={proc_id}][session={session_id}] "
-                                f"final_token={final_token} overlap_first={overlap_tokens[0]}",
+                                f"[VERIFY-EDGE-REUSE-MISS][pid={proc_id}][session={session_id}] "
+                                f"reason=overlap_empty final_token={final_token}",
                                 3,
                             )
-                elif proactive_enabled and accepted_cnt == req_gamma:
-                    reuse_miss_rounds += 1
-                    if getattr(self.args, "debug_verify_tokens", False):
-                        self.color_print(
-                            f"[VERIFY-EDGE-REUSE-MISS][pid={proc_id}][session={session_id}] "
-                            f"reason=overlap_empty final_token={final_token}",
-                            3,
-                        )
-                elif proactive_enabled:
-                    reuse_miss_not_full_accept_rounds += 1
-                    if getattr(self.args, "debug_verify_tokens", False):
-                        self.color_print(
-                            f"[VERIFY-EDGE-REUSE-SKIP][pid={proc_id}][session={session_id}] "
-                            f"reason=not_full_accept accepted_cnt={accepted_cnt} gamma={req_gamma}",
-                            3,
-                        )
+                    elif proactive_enabled:
+                        reuse_miss_not_full_accept_rounds += 1
+                        if getattr(self.args, "debug_verify_tokens", False):
+                            self.color_print(
+                                f"[VERIFY-EDGE-REUSE-SKIP][pid={proc_id}][session={session_id}] "
+                                f"reason=not_full_accept accepted_cnt={accepted_cnt} gamma={req_gamma}",
+                                3,
+                            )
 
-                if hit_eos:
-                    if getattr(self.args, "debug_verify_tokens", False):
+                    if reused_pending_tokens and not hit_eos and prefix.shape[1] < max_len:
+                        # The last generated token has no KV yet. Keep exactly the
+                        # prefix used for next round, including confirmed ahead KV.
+                        keep = min(approx_model_cache._past_key_values.get_seq_length(),
+                                   prefix.shape[1] + len(reused_pending_tokens) - 1)
+                        approx_model_cache.rollback(keep)
+                    else:
+                        approx_model_cache.rollback(min(accepted, prefix.shape[1]))
+                        reused_pending_tokens = []
+                        reused_pending_prob_rows = []
+
+                    ahead_control.observe(len(overlap_tokens), len(reused_pending_tokens),
+                                          ahead_forward_per_token_s, response_delay)
+
+                    if hit_eos:
+                        if getattr(self.args, "debug_verify_tokens", False):
+                            self.color_print(
+                                f"[VERIFY-EDGE-STOP][pid={proc_id}][session={session_id}] reason=eos_token",
+                                2,
+                            )
+                        break
+                    if self._is_degenerate_repeat(prefix, input_ids.shape[1]):
                         self.color_print(
-                            f"[VERIFY-EDGE-STOP][pid={proc_id}][session={session_id}] reason=eos_token",
-                            2,
-                        )
-                    break
-                if self._is_degenerate_repeat(prefix, input_ids.shape[1]):
-                    self.color_print(
-                        f"[VERIFY-EDGE-STOP][pid={proc_id}][session={session_id}] reason=degenerate_repeat",
-                        2,
-                    )
-                    break
-                if self.args.stop_policy == "dataset" and self.args.dataset == "humaneval":
-                    current_text = tokenizer.decode(
-                        prefix[0, input_ids.shape[1]:], skip_special_tokens=True
-                    )
-                    truncated_text, marker_hit = self._truncate_on_humaneval_markers(current_text)
-                    if marker_hit:
-                        trunc_ids = tokenizer.encode(truncated_text, add_special_tokens=False)
-                        trunc_tensor = torch.tensor(
-                            [trunc_ids], device=prefix.device, dtype=prefix.dtype
-                        )
-                        prefix = torch.cat((input_ids, trunc_tensor), dim=1)
-                        self.color_print(
-                            f"[VERIFY-EDGE-STOP][pid={proc_id}][session={session_id}] reason=humaneval_stop_marker",
+                            f"[VERIFY-EDGE-STOP][pid={proc_id}][session={session_id}] reason=degenerate_repeat",
                             2,
                         )
                         break
-                if self.args.stop_policy == "dataset" and self.args.dataset == "gsm8k":
-                    current_text = tokenizer.decode(
-                        prefix[0, input_ids.shape[1]:], skip_special_tokens=True
-                    )
-                    truncated_text, marker_hit = self._truncate_on_gsm8k_markers(current_text)
-                    if marker_hit:
-                        trunc_ids = tokenizer.encode(truncated_text, add_special_tokens=False)
-                        trunc_tensor = torch.tensor(
-                            [trunc_ids], device=prefix.device, dtype=prefix.dtype
+                    if self.args.stop_policy == "dataset" and self.args.dataset == "humaneval":
+                        current_text = tokenizer.decode(
+                            prefix[0, input_ids.shape[1]:], skip_special_tokens=True
                         )
-                        prefix = torch.cat((input_ids, trunc_tensor), dim=1)
-                        self.color_print(
-                            f"[VERIFY-EDGE-STOP][pid={proc_id}][session={session_id}] reason=gsm8k_next_question_marker",
-                            2,
+                        truncated_text, marker_hit = self._truncate_on_humaneval_markers(current_text)
+                        if marker_hit:
+                            trunc_ids = tokenizer.encode(truncated_text, add_special_tokens=False)
+                            trunc_tensor = torch.tensor(
+                                [trunc_ids], device=prefix.device, dtype=prefix.dtype
+                            )
+                            prefix = torch.cat((input_ids, trunc_tensor), dim=1)
+                            self.color_print(
+                                f"[VERIFY-EDGE-STOP][pid={proc_id}][session={session_id}] reason=humaneval_stop_marker",
+                                2,
+                            )
+                            break
+                    if self.args.stop_policy == "dataset" and self.args.dataset == "gsm8k":
+                        current_text = tokenizer.decode(
+                            prefix[0, input_ids.shape[1]:], skip_special_tokens=True
                         )
-                        break
+                        truncated_text, marker_hit = self._truncate_on_gsm8k_markers(current_text)
+                        if marker_hit:
+                            trunc_ids = tokenizer.encode(truncated_text, add_special_tokens=False)
+                            trunc_tensor = torch.tensor(
+                                [trunc_ids], device=prefix.device, dtype=prefix.dtype
+                            )
+                            prefix = torch.cat((input_ids, trunc_tensor), dim=1)
+                            self.color_print(
+                                f"[VERIFY-EDGE-STOP][pid={proc_id}][session={session_id}] reason=gsm8k_next_question_marker",
+                                2,
+                            )
+                            break
 
-            _shutdown_executor(verify_executor, wait=True)
-            if executor_holder is not None:
-                executor_holder["executor"] = None
-            completion_time = time.monotonic()
-            transport_after = client.snapshot_transport_stats()
-            transport_delta = {
-                key: int(transport_after[key] - transport_before[key])
-                for key in ("request_bytes", "response_bytes", "rpc_count")
-            }
+                _shutdown_executor(verify_executor, wait=True)
+                if executor_holder is not None:
+                    executor_holder["executor"] = None
+                completion_time = time.monotonic()
+                transport_after = client.snapshot_transport_stats()
+                transport_delta = {
+                    key: int(transport_after[key] - transport_before[key])
+                    for key in ("request_bytes", "response_bytes", "rpc_count")
+                }
 
-            generated_text = tokenizer.decode(
-                prefix[0, input_ids.shape[1]:], skip_special_tokens=True
-            )
-            total_reuse_rounds = reuse_hit_rounds + reuse_miss_rounds
-            reuse_hit_rate = (reuse_hit_rounds / total_reuse_rounds) if total_reuse_rounds > 0 else 0.0
-            self.color_print(
-                f"[Edge {proc_id}] task {task_id} reuse stats: "
-                f"hit={reuse_hit_rounds} miss={reuse_miss_rounds} "
-                f"skip_not_full_accept={reuse_miss_not_full_accept_rounds} "
-                f"hit_rate={reuse_hit_rate:.3f}",
-                2,
-            )
-            self.color_print(
-                f"[Edge {proc_id}] finished task {task_id}, generated {prefix.shape[1] - input_ids.shape[1]} tokens",
-                2,
-            )
-            self.color_print(f"[Edge {proc_id}] task {task_id} output:\n{generated_text}", 2)
+                generated_text = tokenizer.decode(
+                    prefix[0, input_ids.shape[1]:], skip_special_tokens=True
+                )
+                total_reuse_rounds = reuse_hit_rounds + reuse_miss_rounds
+                reuse_hit_rate = (reuse_hit_rounds / total_reuse_rounds) if total_reuse_rounds > 0 else 0.0
+                self.color_print(
+                    f"[Edge {proc_id}] task {task_id} reuse stats: "
+                    f"hit={reuse_hit_rounds} miss={reuse_miss_rounds} "
+                    f"skip_not_full_accept={reuse_miss_not_full_accept_rounds} "
+                    f"hit_rate={reuse_hit_rate:.3f}",
+                    2,
+                )
+                self.color_print(
+                    f"[Edge {proc_id}] finished task {task_id}, generated {prefix.shape[1] - input_ids.shape[1]} tokens",
+                    2,
+                )
+                self.color_print(f"[Edge {proc_id}] task {task_id} output:\n{generated_text}", 2)
 
-            generated_tokens = int(prefix.shape[1] - input_ids.shape[1])
-            task_e2e_ms = elapsed_ms(task_start, completion_time)
-            request_e2e_ms = elapsed_ms(request_start, completion_time)
-            ttft_value = (
-                elapsed_ms(request_start, first_token_time)
-                if first_token_time is not None
-                else None
-            )
-            decode_ttft_value = (
-                elapsed_ms(task_start, first_token_time)
-                if first_token_time is not None
-                else None
-            )
-            tpot_value = (
-                tpot_ms(first_token_time, completion_time, generated_tokens)
-                if first_token_time is not None
-                else None
-            )
-            completion_s = (
-                max(0.0, completion_time - arrival_origin)
-                if arrival_origin is not None
-                else request_e2e_ms / 1000.0
-            )
-            per_task = {
-                "task_id": task_id,
-                "proc_id": int(proc_id),
-                "profile": self.args.profile,
-                "server_sched_mode": self.args.server_sched_mode,
-                "verify_method": verify_method,
-                "draft_top_k": int(draft_top_k),
-                # q_k is the exact normalized top-k draft distribution, so its
-                # transmitted sparse support has zero omitted mass.  Keep the
-                # experiment-facing q_tail name alongside the detailed field.
-                "q_tail": 0.0 if verify_method == "rejection" else None,
-                "draft_support_tail_mass": 0.0 if verify_method == "rejection" else None,
-                "enable_pipeline": pipeline_enabled,
-                "enable_proactive_draft": proactive_enabled,
-                "enable_latency_priority": timing_protocol,
-                "generated_tokens": generated_tokens,
-                "global_sample_index": int(global_idx),
-                "sampling_seed": int(sampling_seed),
-                "scheduled_arrival_s": scheduled_arrival_s,
-                "actual_arrival_s": actual_arrival_s,
-                "arrival_lag_ms": arrival_lag_ms,
-                "prefill_ms": prefill_ms,
-                "local_prefill_s": float(first_round_timings.get("local_prefill_s", 0.0)),
-                "local_prefill_ms": float(first_round_timings.get("local_prefill_ms", 0.0)),
-                "local_decode_per_token_s": float(
-                    first_round_timings.get("local_decode_per_token_s", 0.0)
-                ),
-                "local_decode_per_token_ms": float(
-                    first_round_timings.get("local_decode_per_token_ms", 0.0)
-                ),
-                "prefill_push_ms": first_prefill_push_s * 1000.0,
-                "prefill_timing_upload_ms": float(
-                    first_round_timings.get("timing_upload_ms", 0.0)
-                ),
-                "prefill_pull_ms": first_prefill_pull_s * 1000.0,
-                "overlap_prefill_first_draft": overlap_prefill_first_draft,
-                "first_draft_ms": first_round_draft_ms,
-                "prefill_first_draft_overlap_ms": prefill_first_draft_overlap_ms,
-                "prefill_wait_after_first_draft_ms": prefill_wait_after_first_draft_ms,
-                "request_e2e_ms": request_e2e_ms,
-                "ttft_ms": ttft_value,
-                "decode_ttft_ms": decode_ttft_value,
-                "tpot_ms": tpot_value,
-                "completion_s": completion_s,
-                "task_e2e_ms": task_e2e_ms,
-                "tok_per_s_task": float(generated_tokens / (task_e2e_ms / 1000.0)) if task_e2e_ms > 0 else 0.0,
-                "rounds": int(rounds),
-                "avg_round_ms": float(sum_round_ms / rounds) if rounds > 0 else 0.0,
-                "avg_draft_ms": float(sum_draft_ms / rounds) if rounds > 0 else 0.0,
-                "avg_wait_ms": float(sum_wait_ms / rounds) if rounds > 0 else 0.0,
-                "avg_http_total_ms": float(sum_http_total_ms / rounds) if rounds > 0 else 0.0,
-                "one_way_timing_policy": "calibration_upper_bound_v1",
-                "avg_cloud_total_ms": float(sum_cloud_total_ms / rounds) if rounds > 0 else 0.0,
-                "avg_verify_ms": float(sum_verify_ms / rounds) if rounds > 0 else 0.0,
-                "avg_transport_rtt_ms": float(sum_transport_rtt_ms / rounds) if rounds > 0 else 0.0,
-                "avg_push_ms": float(sum_push_ms / rounds) if rounds > 0 else 0.0,
-                "avg_pull_ms": float(sum_pull_ms / rounds) if rounds > 0 else 0.0,
-                "accepted_total": int(accepted_total),
-                "drafted_total": int(drafted_total),
-                "accept_rate": float(accepted_total / drafted_total) if drafted_total > 0 else 0.0,
-                "mean_accepted_tokens_per_verify": (
-                    float(accepted_total / rounds) if rounds > 0 else None
-                ),
-                "reuse_hit_rounds": int(reuse_hit_rounds),
-                "reuse_miss_rounds": int(reuse_miss_rounds),
-                "reuse_skip_not_full_accept_rounds": int(reuse_miss_not_full_accept_rounds),
-                "output_text": generated_text,
-                "output_token_ids": [
-                    int(token_id)
-                    for token_id in prefix[0, input_ids.shape[1] :].tolist()
-                ],
-                "reference": sample.get("reference", sample.get("answer")),
-                "workload_hash": self.args.workload_hash,
-                "request_bytes": transport_delta["request_bytes"],
-                "response_bytes": transport_delta["response_bytes"],
-                "rpc_count": transport_delta["rpc_count"],
-                "transport_bytes_definition": (
-                    "application-layer HTTP JSON body/response bytes; excludes HTTP framing, "
-                    "TCP/IP, and SSH encapsulation"
-                ),
-            }
-            with open(self._metrics_path(proc_id), "a") as f:
-                f.write(json.dumps(per_task, ensure_ascii=True) + "\n")
+                generated_tokens = int(prefix.shape[1] - input_ids.shape[1])
+                task_e2e_ms = elapsed_ms(task_start, completion_time)
+                request_e2e_ms = elapsed_ms(request_start, completion_time)
+                ttft_value = (
+                    elapsed_ms(request_start, first_token_time)
+                    if first_token_time is not None
+                    else None
+                )
+                decode_ttft_value = (
+                    elapsed_ms(task_start, first_token_time)
+                    if first_token_time is not None
+                    else None
+                )
+                tpot_value = (
+                    tpot_ms(first_token_time, completion_time, generated_tokens)
+                    if first_token_time is not None
+                    else None
+                )
+                completion_s = (
+                    max(0.0, completion_time - arrival_origin)
+                    if arrival_origin is not None
+                    else request_e2e_ms / 1000.0
+                )
+                per_task = {
+                    "task_id": task_id,
+                    "proc_id": int(proc_id),
+                    "profile": self.args.profile,
+                    "server_sched_mode": self.args.server_sched_mode,
+                    "verify_method": verify_method,
+                    "draft_top_k": int(draft_top_k),
+                    # q_k is the exact normalized top-k draft distribution, so its
+                    # transmitted sparse support has zero omitted mass.  Keep the
+                    # experiment-facing q_tail name alongside the detailed field.
+                    "q_tail": 0.0 if verify_method == "rejection" else None,
+                    "draft_support_tail_mass": 0.0 if verify_method == "rejection" else None,
+                    "enable_pipeline": pipeline_enabled,
+                    "enable_proactive_draft": proactive_enabled,
+                    "enable_latency_priority": timing_protocol,
+                    "generated_tokens": generated_tokens,
+                    "global_sample_index": int(global_idx),
+                    "sampling_seed": int(sampling_seed),
+                    "scheduled_arrival_s": scheduled_arrival_s,
+                    "actual_arrival_s": actual_arrival_s,
+                    "arrival_lag_ms": arrival_lag_ms,
+                    "prefill_ms": prefill_ms,
+                    "local_prefill_s": float(first_round_timings.get("local_prefill_s", 0.0)),
+                    "local_prefill_ms": float(first_round_timings.get("local_prefill_ms", 0.0)),
+                    "local_decode_per_token_s": float(
+                        first_round_timings.get("local_decode_per_token_s", 0.0)
+                    ),
+                    "local_decode_per_token_ms": float(
+                        first_round_timings.get("local_decode_per_token_ms", 0.0)
+                    ),
+                    "prefill_push_ms": first_prefill_push_s * 1000.0,
+                    "prefill_timing_upload_ms": float(
+                        first_round_timings.get("timing_upload_ms", 0.0)
+                    ),
+                    "prefill_pull_ms": first_prefill_pull_s * 1000.0,
+                    "overlap_prefill_first_draft": overlap_prefill_first_draft,
+                    "first_draft_ms": first_round_draft_ms,
+                    "prefill_first_draft_overlap_ms": prefill_first_draft_overlap_ms,
+                    "prefill_wait_after_first_draft_ms": prefill_wait_after_first_draft_ms,
+                    "request_e2e_ms": request_e2e_ms,
+                    "ttft_ms": ttft_value,
+                    "decode_ttft_ms": decode_ttft_value,
+                    "tpot_ms": tpot_value,
+                    "completion_s": completion_s,
+                    "task_e2e_ms": task_e2e_ms,
+                    "tok_per_s_task": float(generated_tokens / (task_e2e_ms / 1000.0)) if task_e2e_ms > 0 else 0.0,
+                    "rounds": int(rounds),
+                    "avg_round_ms": float(sum_round_ms / rounds) if rounds > 0 else 0.0,
+                    "avg_draft_ms": float(sum_draft_ms / rounds) if rounds > 0 else 0.0,
+                    "avg_wait_ms": float(sum_wait_ms / rounds) if rounds > 0 else 0.0,
+                    "avg_http_total_ms": float(sum_http_total_ms / rounds) if rounds > 0 else 0.0,
+                    "one_way_timing_policy": "calibration_upper_bound_v1",
+                    "avg_cloud_total_ms": float(sum_cloud_total_ms / rounds) if rounds > 0 else 0.0,
+                    "avg_verify_ms": float(sum_verify_ms / rounds) if rounds > 0 else 0.0,
+                    "avg_transport_rtt_ms": float(sum_transport_rtt_ms / rounds) if rounds > 0 else 0.0,
+                    "avg_push_ms": float(sum_push_ms / rounds) if rounds > 0 else 0.0,
+                    "avg_pull_ms": float(sum_pull_ms / rounds) if rounds > 0 else 0.0,
+                    "accepted_total": int(accepted_total),
+                    "drafted_total": int(drafted_total),
+                    "accept_rate": float(accepted_total / drafted_total) if drafted_total > 0 else 0.0,
+                    "mean_accepted_tokens_per_verify": (
+                        float(accepted_total / rounds) if rounds > 0 else None
+                    ),
+                    "ahead_generated_tokens": ahead_generated_tokens,
+                    "ahead_reused_tokens": ahead_reused_tokens,
+                    "ahead_discarded_tokens": ahead_generated_tokens - ahead_reused_tokens,
+                    "ahead_forward_ms": ahead_forward_s * 1000.0,
+                    "response_ready_to_consumed_ms": response_consumption_delay_s * 1000.0,
+                    "draft_forward_tokens": approx_model_cache.forward_tokens,
+                    "draft_forward_cpu_ms": approx_model_cache.forward_cpu_s * 1000.0,
+                    "ahead_max_tokens": int(getattr(self.args, "ahead_max_tokens", 4)),
+                    "reuse_hit_rounds": int(reuse_hit_rounds),
+                    "reuse_miss_rounds": int(reuse_miss_rounds),
+                    "reuse_skip_not_full_accept_rounds": int(reuse_miss_not_full_accept_rounds),
+                    "output_text": generated_text,
+                    "output_token_ids": [
+                        int(token_id)
+                        for token_id in prefix[0, input_ids.shape[1] :].tolist()
+                    ],
+                    "reference": sample.get("reference", sample.get("answer")),
+                    "workload_hash": self.args.workload_hash,
+                    "request_bytes": transport_delta["request_bytes"],
+                    "response_bytes": transport_delta["response_bytes"],
+                    "rpc_count": transport_delta["rpc_count"],
+                    "transport_bytes_definition": (
+                        "application-layer HTTP JSON body/response bytes; excludes HTTP framing, "
+                        "TCP/IP, and SSH encapsulation"
+                    ),
+                }
+                with open(self._metrics_path(proc_id), "a") as f:
+                    f.write(json.dumps(per_task, ensure_ascii=True) + "\n")
+            finally:
+                try:
+                    client.release_session(session_id)
+                except Exception as exc:
+                    self.color_print(f"[SESSION-RELEASE-FAILED] {session_id}: {exc}", 2)
+
 
 
 def parse_edge_arguments() -> argparse.Namespace:

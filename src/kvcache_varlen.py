@@ -25,12 +25,14 @@ selected with ``--kv_batch_mode padded``.
 
 from __future__ import annotations
 
+import os
 import torch
 import torch.nn.functional as F
 from transformers.cache_utils import DynamicCache
 from transformers.models.llama.modeling_llama import apply_rotary_pos_emb
 
 from .util import norm_logits, sample
+from .cache_views import dynamic_cache_from_views
 
 
 def supports_varlen_model(model) -> bool:
@@ -84,7 +86,7 @@ def varlen_generate(
     to each proc's ``DynamicCache``, and returns the per-proc extended
     sequences (input + sampled token), identical in structure to ``generate``.
     """
-    del pad_token_id, input_lens, is_prefill  # no padding / no flag split in this path
+    del pad_token_id, input_lens  # no padding / no flag split in this path
     if len(residuals) != len(proc_ids):
         raise ValueError("residuals and proc_ids must be aligned")
     if not residuals:
@@ -106,12 +108,14 @@ def varlen_generate(
     cached_lens = []
     flat_parts = []
     old_caches = []
+    old_buffers = []
     for pid, res in zip(proc_ids, residuals):
         cache = kv_manager._past_key_values.get(pid)
         # A missing cache means fresh prefill: the engine resets (pops) the
         # entry before admission, exactly like the padded path.
         cached_lens.append(0 if cache is None else int(cache.get_seq_length()))
         old_caches.append(cache.to_legacy_cache() if cache is not None else None)
+        old_buffers.append(getattr(cache, "_fastsd_buffers", None))
         flat_parts.append(res.to(device).reshape(-1))
     flat_ids = torch.cat(flat_parts, dim=0)  # (total,)
 
@@ -147,6 +151,10 @@ def varlen_generate(
     # Retain the very same full K/V used by attention for cache writeback.
     # Do not concatenate the entire history a second time after the forward.
     new_kv_per_layer = []
+    buffers_per_layer = []
+    block_size = max(1, int(os.environ.get("FASTSD_KV_BLOCK_TOKENS", "128")))
+    native_gqa = "enable_gqa" in (F.scaled_dot_product_attention.__doc__ or "")
+    native_gqa = native_gqa and os.environ.get("FASTSD_NATIVE_GQA", "1") != "0"
 
     for layer_idx, layer in enumerate(model.model.layers):
         attn = layer.self_attn
@@ -165,23 +173,34 @@ def varlen_generate(
 
         attn_out = normed.new_empty((flat_ids.numel(), n_heads * head_dim))
         new_kv_layer = []
+        buffer_layer = []
         for i, (s, e, cached_len) in enumerate(seq_ranges):
             seq_len = e - s
             qi = q[:, :, s:e, :]
             ki = k[:, :, s:e, :]
             vi = v[s:e].unsqueeze(0).transpose(1, 2)
-            k_full, v_full = ki, vi
-            if cached_len:
-                k_old, v_old = old_caches[i][layer_idx]
-                k_full = torch.cat([k_old.to(ki.dtype), ki], dim=2)
-                v_full = torch.cat([v_old.to(vi.dtype), vi], dim=2)
+            required = cached_len + seq_len
+            existing = old_buffers[i][layer_idx] if old_buffers[i] is not None else None
+            if existing is not None and existing[0].shape[-2] >= required:
+                k_buffer, v_buffer = existing
+            else:
+                capacity = ((required + block_size - 1) // block_size) * block_size
+                shape = (1, n_kv_heads, capacity, head_dim)
+                k_buffer, v_buffer = ki.new_empty(shape), vi.new_empty(shape)
+                if cached_len:
+                    k_old, v_old = old_caches[i][layer_idx]
+                    k_buffer[:, :, :cached_len].copy_(k_old)
+                    v_buffer[:, :, :cached_len].copy_(v_old)
+            k_buffer[:, :, cached_len:required].copy_(ki)
+            v_buffer[:, :, cached_len:required].copy_(vi)
+            k_full, v_full = k_buffer[:, :, :required], v_buffer[:, :, :required]
+            buffer_layer.append((k_buffer, v_buffer))
 
-            # GQA: SDPA in torch 2.2 does not broadcast kv heads, so expand
-            # them to the query head count for the attention call only. The
-            # per-proc cache keeps the original kv-head tensors.
+            # Use the native GQA path where supported; older PyTorch keeps
+            # the explicit expansion fallback. Stored KV always uses KV heads.
             n_groups = n_heads // n_kv_heads
-            k_exp = k_full.repeat_interleave(n_groups, dim=1) if n_groups > 1 else k_full
-            v_exp = v_full.repeat_interleave(n_groups, dim=1) if n_groups > 1 else v_full
+            k_exp = k_full.repeat_interleave(n_groups, dim=1) if n_groups > 1 and not native_gqa else k_full
+            v_exp = v_full.repeat_interleave(n_groups, dim=1) if n_groups > 1 and not native_gqa else v_full
 
             # Causal masking by *global* position: query global position
             # (cached_len + i) may attend key global positions <= itself.
@@ -192,6 +211,7 @@ def varlen_generate(
                 qi, k_exp, v_exp, attn_mask=masks[i],
                 is_causal=cached_len == 0,
                 scale=getattr(attn, "scaling", head_dim ** -0.5),
+                **({"enable_gqa": True} if native_gqa and n_groups > 1 else {}),
             )
             o = o.transpose(1, 2).reshape(seq_len, -1)
             attn_out[s:e] = o
@@ -200,11 +220,16 @@ def varlen_generate(
         hidden_states = hidden_states + attn.o_proj(attn_out)
         hidden_states = hidden_states + layer.mlp(layer.post_attention_layernorm(hidden_states))
         new_kv_per_layer.append(new_kv_layer)
+        buffers_per_layer.append(buffer_layer)
 
     hidden_states = model.model.norm(hidden_states)
     # Normalize and retain probabilities in FP32 even when the model runs in
     # BF16/FP16; this is the representation used by rejection residual math.
-    logits = model.lm_head(hidden_states)[:, :vocab_size].float()  # (total, V)
+    # Prefill needs only the final boundary distribution for each sequence.
+    # Avoid materializing total_prompt_tokens x vocabulary FP32 logits.
+    boundary_only = is_prefill and kv_manager.bounded_probabilities
+    head_input = hidden_states[[e - 1 for _, e, _ in seq_ranges]] if boundary_only else hidden_states
+    logits = model.lm_head(head_input)[:, :vocab_size].float()
 
     # ---- 3. write back per-proc prob history / KV cache --------------------
     new_x = []
@@ -212,20 +237,16 @@ def varlen_generate(
         s, e, cached_len = seq_ranges[i]
         seq_len = e - s
 
-        logits_i = logits[s:e].unsqueeze(0)  # (1, Lq, V)
-        # Per-position normalization matches the padded path (temp==0 branch is
-        # row-unsafe for batched inputs, so normalize position by position).
-        for t in range(logits_i.shape[1]):
-            logits_i[0:1, t, :] = norm_logits(logits_i[0:1, t, :], temperature, top_k, top_p)
+        logits_i = (logits[i:i + 1] if boundary_only else logits[s:e]).unsqueeze(0)  # (1, Lq, V)
+        # norm_logits normalizes every row independently, including greedy.
+        logits_i = norm_logits(logits_i[0], temperature, top_k, top_p).unsqueeze(0)
 
-        prev = kv_manager._prob_history.get(pid)
-        if prev is not None and prev.shape[1] > 0:
-            kv_manager._prob_history[pid] = torch.cat([prev, logits_i], dim=1)
-        else:
-            kv_manager._prob_history[pid] = logits_i
+        row_start = cached_len + seq_len - 1 if boundary_only else cached_len
+        kv_manager.store_probabilities(pid, logits_i, row_start, prefill=is_prefill)
 
         new_legacy = [layer[i] for layer in new_kv_per_layer]
-        kv_manager._past_key_values[pid] = DynamicCache.from_legacy_cache(new_legacy)
+        kv_manager._past_key_values[pid] = dynamic_cache_from_views(new_legacy)
+        kv_manager._past_key_values[pid]._fastsd_buffers = [layer[i] for layer in buffers_per_layer]
 
         sampled = (
             sample(logits_i[0, -1:, :])

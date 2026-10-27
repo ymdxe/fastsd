@@ -37,6 +37,47 @@ class ShutdownRequested(Exception):
     """Raised by the ingress callback when the worker receives ``None``."""
 
 
+class NotifyingQueue(queue.Queue):
+    """Publish before notifying, so a consumer can clear/drain/wait safely."""
+
+    def __init__(self, wake_event):
+        super().__init__()
+        self.wake_event = wake_event
+
+    def put(self, item, block=True, timeout=None):
+        super().put(item, block=block, timeout=timeout)
+        self.wake_event.set()
+
+
+class IngressRelay:
+    """Bridge process ingress into the control loop's shared event channel."""
+
+    def __init__(self, source, wake_event):
+        self.source = source
+        self.queue = NotifyingQueue(wake_event)
+        self._stop = threading.Event()
+        self._thread = threading.Thread(target=self._run, daemon=True, name="fastsd-ingress")
+
+    def start(self):
+        self._thread.start()
+
+    def _run(self):
+        while not self._stop.is_set():
+            try:
+                item = self.source.get(timeout=0.1)
+            except queue.Empty:
+                continue
+            except (EOFError, OSError):
+                item = None
+            self.queue.put(item)
+            if item is None:
+                return
+
+    def close(self):
+        self._stop.set()
+        self._thread.join()
+
+
 def invoke_no_grad(callback: Callable[[], Any]) -> Any:
     """Run one model batch with autograd disabled in the *current* thread.
 
@@ -709,33 +750,20 @@ class KVPrefetchWorker:
             resident = set(residency.resident)
             stale = sorted(resident - desired - protected)
             to_gpu = sorted(desired - resident - protected)
-            snapshots = []
-            for pid in stale:
-                cache = self._get_cache(pid)
-                snapshots.append(
-                    (
-                        pid,
-                        False,
-                        cache,
-                        residency.versions.get(pid, 0),
-                        cache.get_seq_length() if cache is not None else 0,
-                    )
-                )
-            for pid in to_gpu:
-                cache = self._get_cache(pid)
-                snapshots.append(
-                    (
-                        pid,
-                        True,
-                        cache,
-                        residency.versions.get(pid, 0),
-                        cache.get_seq_length() if cache is not None else 0,
-                    )
-                )
+            transfers = [(pid, False) for pid in stale] + [(pid, True) for pid in to_gpu]
 
         moved_count = 0
         skipped = 0
-        for pid, load_to_gpu, cache, version, seq_len in snapshots:
+        for pid, load_to_gpu in transfers:
+            # Clear the preceding transfer's references before allocating a
+            # new GPU cache. Snapshot only this transfer, never all caches.
+            cache = moved_cache = current = None
+            with residency.lock:
+                if pid in residency.active or pid in residency.reserved:
+                    continue
+                cache = self._get_cache(pid)
+                version = residency.versions.get(pid, 0)
+                seq_len = cache.get_seq_length() if cache is not None else 0
             if self._is_superseded(desired):
                 # A newer intent replaced this one while it was executing.
                 # Its transfers must not evict/install anything; the newer
@@ -757,6 +785,12 @@ class KVPrefetchWorker:
                 continue
             target_device = self._gpu_device if load_to_gpu else "cpu"
             moved_cache = self._move_cache(cache, target_device)
+            if not load_to_gpu:
+                # Reclaim the evicted GPU allocation before starting a load.
+                # The source must remain alive until its D2H DMA completes.
+                ready = getattr(moved_cache, "_fastsd_ready_event", None)
+                if ready is not None:
+                    ready.synchronize()
             with residency.lock:
                 if self._is_superseded(desired):
                     self.metrics["prefetch_async_superseded"] += 1
@@ -838,12 +872,13 @@ class SinglePlanExecutor:
         run_job: Callable[[Any], ExecutionOutcome],
         name: str = "fastsd-target-executor",
         thread_setup: Optional[Callable[[], None]] = None,
+        wake_event: Optional[threading.Event] = None,
     ) -> None:
         self._run_job = run_job
         self._name = name
         self._thread_setup = thread_setup
         self._jobs: queue.Queue = queue.Queue(maxsize=1)
-        self._results: queue.Queue = queue.Queue()
+        self._results: queue.Queue = NotifyingQueue(wake_event) if wake_event is not None else queue.Queue()
         self._stop = threading.Event()
         self._thread: Optional[threading.Thread] = None
         self._outstanding = 0
@@ -992,6 +1027,8 @@ class TargetSchedulerRuntime:
         executor_poll_timeout: float = 0.01,
         shutdown_timeout: Optional[float] = None,
         terminate_unrunnable: Optional[Callable[[], int]] = None,
+        wake_event: Optional[threading.Event] = None,
+        maintenance: Optional[Callable[[], None]] = None,
     ) -> None:
         self.executor = executor
         self.queues = queues
@@ -1005,6 +1042,8 @@ class TargetSchedulerRuntime:
         self.executor_poll_timeout = executor_poll_timeout
         self.shutdown_timeout = shutdown_timeout
         self._shutdown = False
+        self._wake_event = wake_event
+        self._maintenance = maintenance
 
     def run(self) -> None:
         try:
@@ -1021,6 +1060,12 @@ class TargetSchedulerRuntime:
 
     def _run_loop(self) -> None:
         while True:
+            if self._wake_event is not None:
+                # Clear before observing either queue. A racing producer then
+                # leaves the event set; no completion/ingress wakeup is lost.
+                self._wake_event.clear()
+            if self._maintenance is not None:
+                self._maintenance()
             stage = self.executor.poll_result()
             if stage is not None:
                 self._apply_stage(stage)
@@ -1029,8 +1074,10 @@ class TargetSchedulerRuntime:
             if self.executor.busy():
                 # Forward in flight: keep accepting requests so the lookahead
                 # can see B while A is still computing, and notice shutdown.
-                if self._poll_ingress(self.executor_poll_timeout):
+                if self._poll_ingress(0 if self._wake_event is not None else self.executor_poll_timeout):
                     self._refresh_prefetch()
+                elif self._wake_event is not None:
+                    self._wake_event.wait(1.0)
                 continue
 
             # Executor idle.  Drain a bounded batch first, then *always* try
@@ -1052,7 +1099,10 @@ class TargetSchedulerRuntime:
             # an event wait, not a poll, so finished-work leftovers can never
             # spin the planner.
             self.metrics["idle_waits"] += 1
-            self._poll_ingress(None)
+            if self._wake_event is not None:
+                self._wake_event.wait(1.0)
+            else:
+                self._poll_ingress(None)
 
     def _apply_stage(self, stage: ExecutorResult) -> None:
         """Apply one phase; only acknowledge it if application succeeded."""

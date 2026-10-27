@@ -1,13 +1,18 @@
 import os
 
 
-def should_offload_target_cache(task_type: str, pid=None, pinned_gpu_pids=None) -> bool:
+def should_offload_target_cache(task_type: str, pid=None, pinned_gpu_pids=None,
+                               *, continuing=False, memory_pressure=False) -> bool:
     if os.environ.get("FASTSD_DISABLE_TARGET_CACHE_OFFLOAD", "").lower() in {
         "1",
         "true",
         "yes",
         "on",
     }:
+        return False
+    if memory_pressure and task_type in {"prefill", "verify"}:
+        return True
+    if continuing:
         return False
     if task_type == "prefill":
         return True

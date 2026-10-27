@@ -18,6 +18,9 @@ from .kvcache_batching import KVCacheModel_batching
 from .kvcache_varlen import varlen_generate, supports_varlen_model
 from .kvcache4RC import KVCacheModel as KVCache2Model
 from .cache_offload_policy import should_offload_target_cache
+from .session_lifecycle import SessionLifecycle
+from .cache_transfer import CacheTransferManager
+from .progress_control import AcceptanceProfile, BatchCostModel, choose_gamma, draft_seconds_per_token
 from .util import seed_everything, norm_logits, sample, max_fn
 from .runtime import resolve_dtype, synchronize
 from .speculative_sampling import (
@@ -53,6 +56,7 @@ from .fastsd_scheduler import (
     abort_admission_plan,
     commit_admission_plan,
     plan_iteration,
+    project_after_plan,
     reserve_admission_plan,
     should_switch_to_prefill as _should_switch_to_prefill,
     update_length_thresholds as _update_length_thresholds,
@@ -61,6 +65,7 @@ from .fastsd_scheduler import (
 from .request_validation import canonicalize_request
 from .scheduler_runtime import (
     CacheResidency,
+    IngressRelay,
     ExecutionOutcome,
     KVPrefetchWorker,
     PrefetchCoordinator,
@@ -780,6 +785,7 @@ class Decoding(ABC):
                                         top_k=self.args.top_k,
                                         top_p=self.args.top_p)
         kv_cache_manager.vocab_size = self.vocab_size
+        kv_cache_manager.bounded_probabilities = True
         requested_kv_batch_mode = getattr(self.args, "kv_batch_mode", "varlen")
         if requested_kv_batch_mode == "varlen" and not supports_varlen_model(target_model):
             raise ValueError(
@@ -846,6 +852,9 @@ class Decoding(ABC):
         accept_stats_lock = threading.Lock()
         committed_prefix_tokens = {}  # {proc_id: List[int]} for debug context display
         sampling_generators = {}  # session/proc id -> target-side rejection RNG
+        progress_profiles = {}
+        batch_cost = BatchCostModel()
+        batch_cost_lock = threading.RLock()
         verify_time_ema = {}
         edge_draft_per_token_ema = {}
         edge_rtt_ema = {}
@@ -860,6 +869,51 @@ class Decoding(ABC):
         # async prefetch worker must never touch these.
         active_pids = residency.active
         in_flight = {"plan": None}
+
+        def cancel_session(pid):
+            removed = set()
+            for work_id, item in list(work_items.items()):
+                if item.proc_id != pid:
+                    continue
+                item.cancel_pending = True
+                removed.add(work_id)
+                work_items.pop(work_id, None)
+                response_queues[item.response_key or pid].put({"error": "session released"})
+            task_queues.remove_work_ids(removed)
+
+        def cleanup_session(pid):
+            with cache_lock:
+                residency.bump_locked(pid)
+                kv_cache_manager.reset(pid)
+                residency.resident.discard(pid)
+                # In-flight prefetch installation also checks cache identity.
+                # Removing this entry does not let a stale copy resurrect it.
+                residency.versions.pop(pid, None)
+            with accept_stats_lock:
+                accept_stats.pop(pid, None)
+            for store in (committed_prefix_tokens, sampling_generators, verify_time_ema,
+                          edge_draft_per_token_ema, edge_rtt_ema, pending_prefill_timing, progress_profiles):
+                store.pop(pid, None)
+            pending_prefill_cancel.discard(pid)
+
+        lifecycle = SessionLifecycle(
+            cleanup=cleanup_session, cancel=cancel_session,
+            protected=residency.protected_snapshot,
+            busy=lambda: {item.proc_id for item in work_items.values() if not item.finished},
+            reply=lambda key, payload: response_queues[key].put(payload),
+            idle_timeout=float(getattr(self.args, "session_idle_timeout", 300.0)),
+        )
+
+        def flush_session_releases():
+            transfers.collect()
+            lifecycle.sweep()
+            scheduler_metrics["released_sessions"] = lifecycle.released
+            scheduler_metrics["cache_sessions"] = len(kv_cache_manager._past_key_values)
+            scheduler_metrics["probability_sessions"] = len(kv_cache_manager._prob_history)
+            scheduler_metrics["peak_cache_sessions"] = max(
+                scheduler_metrics.get("peak_cache_sessions", 0),
+                scheduler_metrics["cache_sessions"],
+            )
 
         def _safe_float(value, default=0.0) -> float:
             """Sanitize a request-sourced float: JSON can carry inf/NaN or
@@ -1002,19 +1056,41 @@ class Decoding(ABC):
             text = tokenizer.decode(token_ids, skip_special_tokens=False)
             return repr(text)
 
-        # 将 DynamicCache 中的每一层的 key/value 移动到 CPU 上
-        def move_dynamic_cache_to(cache, device):
-            legacy_cache = cache.to_legacy_cache()
-            current_device = legacy_cache[0][0].device  # 任意一层 key 的 device 作为参考
-            target_device = torch.device(device)
+        transfers = CacheTransferManager(
+            target_model.device,
+            enabled=bool(getattr(self.args, "async_kv_transfer", True)),
+            pinned_pool_bytes=int(getattr(self.args, "pinned_pool_mb", 128)) * 1024 ** 2,
+        )
+        move_dynamic_cache_to = transfers.move
 
-            if current_device == target_device:
-                return cache  # 已在目标设备上，无需迁移
+        def cache_memory_pressure():
+            if target_model.device.type != "cuda":
+                return False
+            free, _ = torch.cuda.mem_get_info(target_model.device)
+            reserve = float(getattr(self.args, "kv_headroom_mb", 512.0)) * 1024 ** 2
+            return free < reserve
 
-            new_cache = []
-            for k, v in legacy_cache:
-                new_cache.append((k.to(target_device), v.to(target_device)))
-            return DynamicCache.from_legacy_cache(new_cache)
+        def finish_cache_phase(batch):
+            # Retain unfinished work across slices. Under pressure fall back
+            # to offload; the lookahead worker may evict it when other work is
+            # predicted to run first.
+            with cache_lock:
+                for req in batch:
+                    pid = req["proc_id"]
+                    transfers.mark_computed(kv_cache_manager._past_key_values[pid])
+                    continuing = (not req.get("_prefill_final", True)
+                                  if req["task_type"] == "prefill"
+                                  else bool(req.get("_internal_chunk_nonfinal", False)))
+                    cache = kv_cache_manager._past_key_values[pid]
+                    offload = should_offload_target_cache(
+                        req["task_type"], pid=pid, pinned_gpu_pids=preloaded_gpu_pids,
+                        continuing=continuing, memory_pressure=cache_memory_pressure(),
+                    )
+                    if offload:
+                        kv_cache_manager._past_key_values[pid] = move_dynamic_cache_to(cache, "cpu")
+                        preloaded_gpu_pids.discard(pid)
+                    elif target_model.device.type == "cuda":
+                        preloaded_gpu_pids.add(pid)
 
         # --------------------- 批量处理（Prefill / Verify） ----------------
         def handle_request_batch(batch: list[dict], return_responses: bool = False):
@@ -1030,9 +1106,13 @@ class Decoding(ABC):
             # copy that was snapshotted before this forward.
             residency.activate(proc_ids)
             try:
-                return _handle_request_batch_inner(
-                    batch, return_responses, kv_batch_mode, proc_ids
-                )
+                started = time.perf_counter()
+                result = _handle_request_batch_inner(batch, return_responses, kv_batch_mode, proc_ids)
+                rows = [(int(req["prefix_len"]), int(req.get("_forward_tokens", req.get("gamma") or req["draft_output"].shape[1])))
+                        for req in batch]
+                with batch_cost_lock:
+                    batch_cost.observe(batch[0]["task_type"], rows, time.perf_counter() - started)
+                return result
             finally:
                 residency.deactivate(proc_ids)
 
@@ -1136,13 +1216,6 @@ class Decoding(ABC):
                             sample_next=False,
                         )
 
-                # prefill之后，将KV cache移到CPU节省显存
-                with cache_lock:
-                    for pid in proc_ids:
-                        cache = kv_cache_manager._past_key_values[pid]
-                        if should_offload_target_cache("prefill", pid=pid):
-                            kv_cache_manager._past_key_values[pid] = move_dynamic_cache_to(cache, "cpu")
-
                 self.color_print(f"process prefill tasks from: {proc_ids}", 3)
             else:  # verify 批量
                 seqs = [req["draft_output"].to(target_model.device) for req in batch]
@@ -1170,7 +1243,11 @@ class Decoding(ABC):
                         cache = kv_cache_manager._past_key_values[pid]
                         kv_cache_manager._past_key_values[pid] = move_dynamic_cache_to(cache, target_model.device)
 
-                verify_compute_start = time.time()
+                verify_compute_start = time.perf_counter()
+                gpu_start = gpu_end = None
+                if target_model.device.type == "cuda":
+                    gpu_start, gpu_end = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)
+                    gpu_start.record()
                 if kv_batch_mode == "varlen":
                     # Padding-free path: tail_only rows pass the received tail
                     # as residual; full-prefix rows pass only the uncached part.
@@ -1239,17 +1316,13 @@ class Decoding(ABC):
                         input_lens=verify_input_lens,
                         sample_next=False,
                     )
-                verify_elapsed = time.time() - verify_compute_start
-
-                # verify之后，将KV cache移到CPU节省显存
-                with cache_lock:
-                    for pid in proc_ids:
-                        if not should_offload_target_cache("verify", pid=pid, pinned_gpu_pids=preloaded_gpu_pids):
-                            continue
-                        cache = kv_cache_manager._past_key_values[pid]
-                        kv_cache_manager._past_key_values[pid] = move_dynamic_cache_to(cache, "cpu")
-
-                # self.color_print(f"process verify tasks from: {proc_ids}", 3)
+                verify_elapsed = time.perf_counter() - verify_compute_start
+                verify_gpu_ms = None
+                if gpu_end is not None:
+                    gpu_end.record()
+                    gpu_end.synchronize()
+                    verify_gpu_ms = gpu_start.elapsed_time(gpu_end)
+                    verify_elapsed = time.perf_counter() - verify_compute_start
 
             # ---------- 逐样本接受 / 采样 ---------------------------------
             probs_full = [kv_cache_manager._prob_history[pid] for pid in proc_ids]  # (1, *, V) each
@@ -1288,7 +1361,7 @@ class Decoding(ABC):
                     draft_tokens = x[:, prefix_len:prefix_len + req_gamma]
                 target_rows = torch.cat(
                     [
-                        probs[:, verify_logit_position(prefix_len, i), :self.vocab_size]
+                        kv_cache_manager.probability_rows(pid, verify_logit_position(prefix_len, i), verify_logit_position(prefix_len, i) + 1)[:, 0, :self.vocab_size]
                         for i in range(req_gamma)
                     ]
                     + [probs[:, -1, :self.vocab_size]],
@@ -1391,6 +1464,7 @@ class Decoding(ABC):
                     "accepted": accepted_len,
                     "final_token": int(new_token.item()) if new_token is not None else None,
                     "verify_ms": verify_elapsed * 1000.0,
+                    "verify_gpu_ms": verify_gpu_ms,
                 }
                 if getattr(self.args, "enable_pipeline", True) and getattr(self.args, "pipeline_gamma_adapt", True):
                     # Target: edge 在等待 verify 的完整往返窗口
@@ -1400,8 +1474,11 @@ class Decoding(ABC):
                     # All request floats are sanitized first: JSON can carry
                     # inf/NaN, and int(round(inf)) would crash the target
                     # worker (remotely triggerable DoS).
-                    drafted_tokens = max(1, req_gamma)
-                    edge_per_tok = _safe_float(req.get("lag", 0.0)) / drafted_tokens
+                    logical_gamma = max(1, _safe_int(req.get("logical_gamma", req_gamma), req_gamma))
+                    drafted_tokens = logical_gamma
+                    edge_per_tok = _safe_float(req.get("local_decode_per_token_s"), 0.0)
+                    if edge_per_tok <= 0:
+                        edge_per_tok = _safe_float(req.get("lag", 0.0)) / drafted_tokens
                     avg_cloud_total_ms = max(
                         0.0, _safe_float(req.get("avg_cloud_total_ms", 0.0))
                     )
@@ -1440,7 +1517,7 @@ class Decoding(ABC):
                         suggested = int(round(quotient))
                     suggested = max(min_gamma, min(max_gamma, suggested))
                     gamma_step = max(1, int(getattr(self.args, "pipeline_gamma_step", 2)))
-                    suggested = max(req_gamma - gamma_step, min(req_gamma + gamma_step, suggested))
+                    suggested = max(logical_gamma - gamma_step, min(logical_gamma + gamma_step, suggested))
                     suggested = max(min_gamma, min(max_gamma, suggested))
                     response_payload["suggested_gamma"] = suggested
                     if getattr(self.args, "debug_pipeline", False):
@@ -1456,6 +1533,7 @@ class Decoding(ABC):
 
                 deliver(pid, response_payload)
 
+            finish_cache_phase(batch)
             return collected_responses if return_responses else None
 
         def accept_stats_snapshot():
@@ -1521,6 +1599,7 @@ class Decoding(ABC):
         def _slice_request(item: WorkItem, sl):
             req = dict(item.request)
             source = req["draft_output"]
+            req["_forward_tokens"] = sl.forward_token_count
             if item.task_type == "prefill":
                 end = sl.offset + sl.draft_token_count
                 req["draft_output"] = source[:, :end]
@@ -1572,6 +1651,7 @@ class Decoding(ABC):
                 req["draft_output"] = draft_tokens
                 req["has_bridge_token"] = False
             req["prefix_len"] = base_prefix
+            req["logical_gamma"] = int(item.total_tokens)
             req["gamma"] = req_gamma
             req["tail_only"] = True
             req["_chunked_internal"] = True
@@ -1580,10 +1660,37 @@ class Decoding(ABC):
             )
             return req
 
-        def build_plan(reserved_work_ids=(), cycle=None, cursor=None):
+        def candidate_value(item, selected):
+            same = [s for s in selected if s.task_type == item.task_type]
+            rows = [(work_items[s.work_id].base_prefix_len, s.forward_token_count)
+                    for s in same if s.work_id in work_items]
+            remaining_budget = max(1, int(self.args.token_budget) - sum(s.forward_token_count for s in selected))
+            tokens = min(item.remaining_tokens, remaining_budget)
+            if item.task_type == "prefill":
+                tokens = min(tokens, int(self.args.prefill_chunk_quantum))
+            context = item.base_prefix_len + item.accepted_so_far if item.task_type == "verify" else item.cursor
+            with batch_cost_lock:
+                marginal = max(1e-6, batch_cost.estimate(item.task_type, rows + [(context, tokens)])
+                              - batch_cost.estimate(item.task_type, rows))
+            with cache_lock:
+                cache = kv_cache_manager._past_key_values.get(item.proc_id)
+                legacy = cache.to_legacy_cache() if cache is not None else ()
+                if legacy and legacy[0][0].device != target_model.device:
+                    nbytes = sum(t.numel() * t.element_size() for layer in legacy for t in layer)
+                    marginal += nbytes / max(1.0, float(getattr(self.args, "kv_transfer_gbps", 10.0)) * 1e9)
+            if item.task_type == "prefill":
+                # Prefill progresses toward a first token; it does not produce
+                # tokens immediately like Verify. Favor short remaining work
+                # while the planner enforces its wait/starvation bound.
+                wait = max(0.0, time.monotonic() - item.request.get("server_enqueue_monotonic", time.monotonic()))
+                return (1.0 + wait) / max(1e-6, marginal * item.remaining_tokens / max(1, tokens))
+            profile = progress_profiles.get(item.proc_id, AcceptanceProfile())
+            return profile.expected_progress(tokens) / marginal
+
+        def build_plan(reserved_work_ids=(), cycle=None, cursor=None, projected_plan=None):
             _sort_queues_if_dirty()
             return plan_iteration(
-                task_queues.snapshot(),
+                project_after_plan(task_queues.snapshot(), projected_plan) if projected_plan is not None else task_queues.snapshot(),
                 token_budget=int(self.args.token_budget),
                 current_cycle=(
                     scheduler_state["current_cycle"] if cycle is None else cycle
@@ -1595,18 +1702,20 @@ class Decoding(ABC):
                 accept_stats=accept_stats_snapshot(),
                 now=time.monotonic(),
                 reserved_work_ids=reserved_work_ids,
+                selection_policy=getattr(self.args, "scheduler_policy", "legacy"),
+                candidate_value=candidate_value,
+                max_wait_s=float(getattr(self.args, "scheduler_max_wait_s", 1.0)),
             )
 
         def refresh_prefetch():
             """Recompute the lookahead residency intent from a stable snapshot.
 
-            While a plan is in flight, prediction starts from its *post* WR
-            cursor/cycle and excludes every WorkItem it owns, so the in-flight
-            batch can never be mistaken for its own successor.  Only intent
-            changes are submitted (see PrefetchCoordinator).
+            Prediction starts from the post-plan cursor/cycle and a copy of
+            the projected residual work. Partially completed requests remain
+            candidates; the residency layer still protects active caches.
             """
 
-            if not prefetch_enabled:
+            if not prefetch_enabled or not getattr(self.args, "kv_prefetch", True):
                 return
             plan = in_flight["plan"]
             if plan is None and (executor is None or not executor.busy()):
@@ -1616,7 +1725,7 @@ class Decoding(ABC):
                 return
             if plan is not None:
                 lookahead = build_plan(
-                    reserved_work_ids=plan.selected_work_ids,
+                    projected_plan=plan,
                     cycle=plan.next_cycle,
                     cursor=plan.next_wrr_cursor,
                 )
@@ -1685,10 +1794,35 @@ class Decoding(ABC):
                     finished.add(item.work_id)
             removed = task_queues.remove_work_ids(finished)
             for work_id in finished:
-                work_items.pop(work_id, None)
+                item = work_items.pop(work_id, None)
+                if item is not None:
+                    lifecycle.touch(item.proc_id)
             scheduler_metrics["finished_work_items_removed"] += removed
             # Also drop any item that terminated outside this plan.
             task_queues.prune_finished()
+
+        def finish_logical_verify(item, response):
+            profile = progress_profiles.setdefault(item.proc_id, AcceptanceProfile())
+            profile.observe(item.accepted_so_far, item.total_tokens)
+            response["expected_progress"] = profile.expected_progress(item.total_tokens)
+            response["verify_ms"] = item.verify_ms_total
+            if getattr(item, "verify_gpu_ms_total", None) is not None:
+                response["verify_gpu_ms"] = item.verify_gpu_ms_total
+            if (getattr(self.args, "pipeline_gamma_adapt", True)
+                    and getattr(self.args, "enable_pipeline", True)
+                    and getattr(self.args, "gamma_policy", "progress") == "progress"):
+                service = item.verify_ms_total / 1000.0
+                elapsed = max(0.0, time.monotonic() - item.request.get("server_enqueue_monotonic", time.monotonic()))
+                response["suggested_gamma"] = choose_gamma(
+                    profile, current=item.total_tokens,
+                    draft_s=draft_seconds_per_token(item.request), verify_s=service,
+                    rtt_s=max(0.0, _safe_float(item.request.get("transport_rtt", 0.0))),
+                    queue_s=max(0.0, elapsed - service),
+                    minimum=int(getattr(self.args, "pipeline_gamma_min", 1)),
+                    maximum=int(getattr(self.args, "pipeline_gamma_max", 16)),
+                    step=int(getattr(self.args, "pipeline_gamma_step", 2)),
+                )
+            return response
 
         def _apply_verify_phase(job, verify_responses):
             """Commit Verify progress and return responses to callers."""
@@ -1698,9 +1832,16 @@ class Decoding(ABC):
             plan = job.plan
             for sl, sliced_req in zip(plan.verify_slices, job.verify_batch):
                 item = job.item_by_id[sl.work_id]
+                if getattr(item, "cancel_pending", False):
+                    item.finished = True
+                    job.completed.add(item.work_id)
+                    continue
                 response = verify_responses.get(item.proc_id)
                 if response is None:
                     raise RuntimeError(f"missing verify response for {item.work_id}")
+                item.verify_ms_total = getattr(item, "verify_ms_total", 0.0) + float(response.get("verify_ms", 0.0))
+                if response.get("verify_gpu_ms") is not None:
+                    item.verify_gpu_ms_total = getattr(item, "verify_gpu_ms_total", 0.0) + float(response["verify_gpu_ms"])
                 physical_prefix = int(sliced_req["prefix_len"])
                 accepted = int(response["accepted"])
                 accepted_chunk = max(0, accepted - physical_prefix)
@@ -1713,12 +1854,14 @@ class Decoding(ABC):
                     job.completed.add(item.work_id)
                     response = dict(response)
                     response["accepted"] = item.base_prefix_len + item.accepted_so_far
+                    response = finish_logical_verify(item, response)
                     response_queues[item.response_key or item.proc_id].put(response)
                 elif item.cursor >= item.total_tokens:
                     item.finished = True
                     job.completed.add(item.work_id)
                     response = dict(response)
                     response["accepted"] = item.base_prefix_len + item.accepted_so_far
+                    response = finish_logical_verify(item, response)
                     response_queues[item.response_key or item.proc_id].put(response)
                 else:
                     # An all-accepted internal chunk is still one logical
@@ -1882,6 +2025,12 @@ class Decoding(ABC):
             """Apply one inbound request/control on the control-owner thread."""
 
             nonlocal len_r1, len_r2
+            if isinstance(req, dict) and req.get("control_type") == "session_release":
+                lifecycle.release(req.get("proc_id"), req.get("response_key"))
+                flush_session_releases()
+                return
+            if isinstance(req, dict):
+                lifecycle.touch(req.get("proc_id"))
             if isinstance(req, dict) and req.get("control_type") == "prefill_timing":
                 try:
                     apply_prefill_timing(req)
@@ -1891,6 +2040,7 @@ class Decoding(ABC):
             if isinstance(req, dict) and req.get("control_type") == "prefill_cancel":
                 try:
                     apply_prefill_cancel(req)
+                    lifecycle.release(req.get("proc_id"))
                 except (TypeError, ValueError, KeyError) as exc:
                     self.color_print(f"[PREFILL-CANCEL-REJECTED] {exc}", 2)
                 return
@@ -1905,6 +2055,9 @@ class Decoding(ABC):
                 return
             req = canonicalize_ingress(req)
             if req is None:
+                return
+            if req["task_type"] == "verify" and req["proc_id"] not in kv_cache_manager._past_key_values:
+                response_queues[req.get("response_key", req["proc_id"])].put({"error": "session has no target cache; prefill required"})
                 return
             recent_prefix_lens.append(req["prefix_len"])
             len_r1, len_r2 = _update_length_thresholds(recent_prefix_lens)
@@ -1994,6 +2147,8 @@ class Decoding(ABC):
         # Pipeline baseline: strict FCFS, single-request handling only.
         # No queue categorization, no batching, no preload, no priority scheduling.
         executor = None
+        ingress_relay = None
+        wake_event = threading.Event()
         try:
             if use_strict_fcfs:
                 while True:
@@ -2005,8 +2160,17 @@ class Decoding(ABC):
                             # A timing update is meaningful only to FastSD;
                             # baselines never send this control message.
                             continue
+                        if isinstance(req, dict) and req.get("control_type") == "session_release":
+                            lifecycle.release(req.get("proc_id"), req.get("response_key"))
+                            flush_session_releases()
+                            continue
+                        if isinstance(req, dict):
+                            lifecycle.touch(req.get("proc_id"))
                         req = canonicalize_ingress(req)
                         if req is None:
+                            continue
+                        if req["task_type"] == "verify" and req["proc_id"] not in kv_cache_manager._past_key_values:
+                            response_queues[req.get("response_key", req["proc_id"])].put({"error": "session has no target cache; prefill required"})
                             continue
                         if energy_service is not None:
                             energy_service.enter_active()
@@ -2016,7 +2180,7 @@ class Decoding(ABC):
                             if energy_service is not None:
                                 energy_service.exit_active()
                     except queue.Empty:
-                        time.sleep(0.01)
+                        flush_session_releases()
                 return
 
             # FastSD: one control owner (this thread) continuously accepts
@@ -2024,10 +2188,14 @@ class Decoding(ABC):
             # and one worker thread moves KV caches.  The control owner spends
             # the forward window updating queues and prefetch intent instead of
             # being blocked inside the model call.
+            ingress_relay = IngressRelay(request_queue, wake_event)
+            request_queue = ingress_relay.queue
+            ingress_relay.start()
             executor = SinglePlanExecutor(
                 run_job,
                 name="fastsd-target-executor",
                 thread_setup=_bind_target_device,
+                wake_event=wake_event,
             )
             executor.start()
             prefetch_worker.start()
@@ -2041,6 +2209,8 @@ class Decoding(ABC):
                 refresh_prefetch=refresh_prefetch,
                 metrics=scheduler_metrics,
                 terminate_unrunnable=terminate_pending_work,
+                wake_event=wake_event,
+                maintenance=flush_session_releases,
             )
             runtime.run()
         finally:
@@ -2055,6 +2225,14 @@ class Decoding(ABC):
                 executor.join()
             prefetch_worker.stop()
             prefetch_worker.join()
+            if ingress_relay is not None:
+                ingress_relay.close()
+            for pid in list(lifecycle.last_seen):
+                lifecycle.release(pid)
+            flush_session_releases()
+            transfers.close()
+            scheduler_metrics["cache_transfers"] = dict(transfers.metrics)
+            scheduler_metrics["batch_cost_profiles"] = {str(k): v for k, v in batch_cost.table.items()}
             if energy_service is not None:
                 energy_service.shutdown()
 

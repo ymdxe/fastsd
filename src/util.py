@@ -2,7 +2,7 @@ import os
 import random
 import argparse
 import json
-import os
+import math
 import torch
 import torch.nn.functional as F
 import numpy as np
@@ -337,6 +337,23 @@ def parse_arguments():
         default=8,
         help="max token comparison steps to print per verify request",
     )
+    parser.add_argument("--session_idle_timeout", type=float, default=300.0,
+                        help="release inactive sessions after this many seconds; 0 disables expiry")
+    parser.add_argument("--ahead_max_tokens", type=int, default=4,
+                        help="independent proactive token cap, including the bridge token")
+    parser.add_argument("--kv_headroom_mb", type=float, default=512.0,
+                        help="free CUDA memory reserve below which continuing KV is offloaded")
+    parser.add_argument("--async_kv_transfer", action=argparse.BooleanOptionalAction, default=True,
+                        help="use event-fenced CUDA copies and pinned CPU buffers")
+    parser.add_argument("--pinned_pool_mb", type=int, default=128,
+                        help="maximum retained reusable pinned CPU memory in MiB")
+    parser.add_argument("--scheduler_policy", choices=("legacy", "fcfs", "progress"), default="legacy",
+                        help="selection rule within the same batched backend and KV runtime")
+    parser.add_argument("--scheduler_max_wait_s", type=float, default=1.0)
+    parser.add_argument("--kv_transfer_gbps", type=float, default=10.0,
+                        help="initial exposed-transfer cost estimate; calibrate for the host")
+    parser.add_argument("--kv_prefetch", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--gamma_policy", choices=("legacy", "progress"), default="progress")
     args = parser.parse_args()
     if args.arrival_distribution == "poisson" and args.arrival_rate <= 0:
         parser.error("--arrival_rate must be positive for Poisson arrivals")
@@ -356,6 +373,14 @@ def parse_arguments():
         parser.error("--prefill_chunk_quantum must be positive")
     if args.min_prefill_chunk_tokens > args.token_budget:
         parser.error("--min_prefill_chunk_tokens must not exceed --token_budget")
+    if args.session_idle_timeout < 0 or args.ahead_max_tokens < 0:
+        parser.error("session timeout and ahead limit must be non-negative")
+    for name in ("session_idle_timeout", "kv_headroom_mb", "scheduler_max_wait_s", "kv_transfer_gbps"):
+        value = getattr(args, name)
+        if not math.isfinite(value) or value < 0:
+            parser.error(f"--{name} must be finite and non-negative")
+    if args.pinned_pool_mb < 0 or args.kv_transfer_gbps == 0 or args.scheduler_max_wait_s == 0:
+        parser.error("pinned pool must be non-negative; transfer bandwidth and maximum wait must be positive")
     if args.pipeline_gamma_min < 1:
         parser.error("--pipeline_gamma_min must be positive")
     if args.pipeline_gamma_max < args.pipeline_gamma_min:
@@ -439,7 +464,7 @@ def norm_logits(
     if temperature == 0:
         idx = logits.argmax(dim=1)
         new_logits = torch.zeros_like(logits, device=logits.device)
-        new_logits[:, idx] = 1
+        new_logits.scatter_(1, idx.unsqueeze(1), 1)
         return new_logits.float()
     logits = logits / temperature
     if exact_top_k and top_k > 0:

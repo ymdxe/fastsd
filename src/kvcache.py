@@ -1,5 +1,7 @@
 import torch
 from .util import norm_logits, sample
+from .probability_window import append_rows, select_rows, crop_rows
+import time
 
 
 class KVCacheModel():
@@ -11,6 +13,7 @@ class KVCacheModel():
         top_p: float = 0,
         generator: torch.Generator | None = None,
         exact_top_k: bool = False,
+        bounded_probabilities: bool = False,
     ) -> None:
         self._model = model
         self._past_key_values = None
@@ -21,15 +24,36 @@ class KVCacheModel():
         self._top_p = top_p
         self._generator = generator
         self._exact_top_k = bool(exact_top_k)
+        self.bounded_probabilities = bool(bounded_probabilities)
+        self._prob_start = 0
+        self._prob_keep_from = 0
+        self.forward_tokens = 0
+        self.forward_cpu_s = 0.0
+
+    def probability_rows(self, start, end):
+        return select_rows(self._prob_history, self._prob_start, start, end)
+
+    def retain_probabilities(self, start):
+        if self.bounded_probabilities:
+            self._prob_keep_from = max(0, int(start))
+            if self._prob_history is not None:
+                cut = max(self._prob_start, self._prob_keep_from)
+                self._prob_history = self._prob_history[:, cut - self._prob_start:, :].clone()
+                self._prob_start = cut
 
     def _forward_with_kvcache(self, input_ids : torch.Tensor) -> torch.Tensor:
         if self._past_key_values is None:
             # print("hello3")
+            started = time.process_time()
             outputs = self._model(input_ids)
+            self.forward_cpu_s += time.process_time() - started
+            self.forward_tokens += int(input_ids.numel())
             # Keep normalized probabilities in FP32.  Model logits may be
             # BF16/FP16, but writing the distribution back into that storage
             # would change both the uploaded q block and the residual math.
-            self._prob_history = outputs.logits[:, :, :self.vocab_size].float()
+            self._prob_start = input_ids.shape[1] - 1 if self.bounded_probabilities else 0
+            self._prob_keep_from = self._prob_start
+            self._prob_history = outputs.logits[:, self._prob_start:, :self.vocab_size].float().clone()
             for i in range(self._prob_history.shape[-2]):   
                 self._prob_history[:, i, :] = norm_logits(
                     self._prob_history[:, i, :],
@@ -45,12 +69,19 @@ class KVCacheModel():
             # return the last token's logits
             cached_len = self._past_key_values.get_seq_length()
                 
+            if cached_len == input_ids.shape[1]:
+                return self.probability_rows(cached_len - 1, cached_len)[:, 0, :]
+            if cached_len > input_ids.shape[1]:
+                raise ValueError("draft KV extends beyond input; crop unused ahead tokens first")
             last_input_id = input_ids[:, cached_len:]
 
             if last_input_id.dim() == 1:
                 last_input_id = torch.unsqueeze(last_input_id, 0)
             
+            started = time.process_time()
             outputs = self._model(last_input_id, past_key_values=self._past_key_values, use_cache=True)
+            self.forward_cpu_s += time.process_time() - started
+            self.forward_tokens += int(last_input_id.numel())
             
             not_cached_q = outputs.logits[:, :, :self.vocab_size].float()
             
@@ -66,7 +97,10 @@ class KVCacheModel():
                     exact_top_k=self._exact_top_k,
                 )
                 
-            self._prob_history = torch.cat([self._prob_history, not_cached_q], dim=1)
+            self._prob_history, self._prob_start = append_rows(
+                self._prob_history, self._prob_start, not_cached_q, cached_len,
+                self._prob_keep_from if self.bounded_probabilities else 0,
+            )
             
             last_q = not_cached_q[:, -1, :]
             self._past_key_values = outputs.past_key_values
@@ -137,5 +171,7 @@ class KVCacheModel():
     
     @torch.no_grad()
     def rollback(self, end_pos : int):
-        self._past_key_values.crop(end_pos)
-        self._prob_history = self._prob_history[:, :end_pos, :]
+        if self._past_key_values is not None:
+            self._past_key_values.crop(end_pos)
+        self._prob_history, self._prob_start = crop_rows(self._prob_history, self._prob_start, end_pos)
+        self._prob_keep_from = min(self._prob_keep_from, max(0, end_pos - 1))
