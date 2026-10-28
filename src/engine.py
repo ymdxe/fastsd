@@ -21,7 +21,7 @@ from .kvcache4RC import KVCacheModel as KVCache2Model
 from .cache_offload_policy import should_offload_target_cache
 from .session_lifecycle import SessionLifecycle
 from .cache_transfer import CacheTransferManager
-from .progress_control import AcceptanceProfile, BatchCostModel, choose_gamma, draft_seconds_per_token
+from .progress_control import AcceptanceProfile, BatchCostModel, GammaController, choose_gamma, draft_seconds_per_token
 from .util import seed_everything, norm_logits, sample, max_fn
 from .runtime import resolve_dtype, synchronize
 from .speculative_sampling import (
@@ -45,6 +45,7 @@ import requests
 from .energy_meter import EnergyControlService, EnergyServiceConfig
 from .fastsd_scheduler import (
     AdmissionPlan,
+    cost_features,
     FASTSD_DEFAULT_R1,
     FASTSD_DEFAULT_R2,
     FASTSD_DYNAMIC_WINDOW,
@@ -548,6 +549,15 @@ class Decoding(ABC):
                     )
 
     @torch.no_grad()
+    def _gamma_controller(self):
+        return GammaController(policy=getattr(self.args, "gamma_policy", "progress"),
+            adaptive=getattr(self.args, "pipeline_gamma_adapt", True),
+            minimum=int(getattr(self.args, "pipeline_gamma_min", 1)),
+            maximum=int(getattr(self.args, "pipeline_gamma_max", 16)),
+            step=int(getattr(self.args, "pipeline_gamma_step", 2)),
+            alpha=float(getattr(self.args, "pipeline_ema_alpha", 0.2)))
+
+    @torch.no_grad()
     def run_target_process(self, tokenizer, request_queue, response_queues):
         self.color_print(f"Loading models:\n{self.args.target_model}", 3)
         target_model = self._load_target_model_for_service(
@@ -556,6 +566,8 @@ class Decoding(ABC):
         self.vocab_size = self.args.vocab_size
         energy_service = self._maybe_start_energy_service()
 
+        require_full_attention(target_model)
+        gamma_control = self._gamma_controller()
         target_model_caches = {}
         sampling_generators = {}
         accept_stats = defaultdict(lambda: [0, 1])  # [accepted_sum, total_sum], avoid div0
@@ -615,7 +627,11 @@ class Decoding(ABC):
                 )
                 x_for_target = torch.cat((pad, x), dim=1)
 
+            synchronize(target_model.device)
+            compute_started = time.perf_counter()
             _ = cache.generate(x_for_target, 1, sample_next=False)
+            synchronize(target_model.device)
+            verify_s = time.perf_counter() - compute_started
 
             if request["task_type"] == "prefill":
                 # prefill 仅用于初始化目标侧 cache，需要回滚到 prefix 长度
@@ -682,6 +698,9 @@ class Decoding(ABC):
             response_queues[proc_id].put({
                 "accepted": accepted_len,
                 "final_token": int(new_token.item()),
+                "verify_ms": verify_s * 1000,
+                **gamma_control.finish(proc_id, accepted=accepted_cnt,
+                    proposed=req_gamma, request=request, verify_s=verify_s),
             })
 
             # Update accept statistics
@@ -815,6 +834,9 @@ class Decoding(ABC):
             "prefill_slices": 0,
             "partial_verify": 0,
             "partial_prefill": 0,
+            "prefetch_ready_hit": 0,
+            "prefetch_pending_hit": 0,
+            "prefetch_demand_miss": 0,
             "prefetch_plans": 0,
             "prefetch_hits": 0,
             "prefetch_misses": 0,
@@ -860,12 +882,10 @@ class Decoding(ABC):
         accept_stats_lock = threading.Lock()
         committed_prefix_tokens = {}  # {proc_id: List[int]} for debug context display
         sampling_generators = {}  # session/proc id -> target-side rejection RNG
-        progress_profiles = {}
+        gamma_control = self._gamma_controller()
+        progress_profiles = gamma_control.profiles
         batch_cost = BatchCostModel()
         batch_cost_lock = threading.RLock()
-        verify_time_ema = {}
-        edge_draft_per_token_ema = {}
-        edge_rtt_ema = {}
         recent_prefix_lens = deque(maxlen=FASTSD_DYNAMIC_WINDOW)
         len_r1 = FASTSD_DEFAULT_R1
         len_r2 = FASTSD_DEFAULT_R2
@@ -897,9 +917,9 @@ class Decoding(ABC):
                 transfers.retire(ticket)
             with accept_stats_lock:
                 accept_stats.pop(pid, None)
-            for store in (committed_prefix_tokens, sampling_generators, verify_time_ema,
-                          edge_draft_per_token_ema, edge_rtt_ema, pending_prefill_timing, progress_profiles):
+            for store in (committed_prefix_tokens, sampling_generators, pending_prefill_timing):
                 store.pop(pid, None)
+            gamma_control.forget(pid)
             pending_prefill_cancel.discard(pid)
 
         lifecycle = SessionLifecycle(
@@ -1037,15 +1057,6 @@ class Decoding(ABC):
             scheduler_metrics["prefill_cancels"] += 1
             return False
 
-        def update_ema(store: dict, pid, value: float) -> float:
-            alpha = float(getattr(self.args, "pipeline_ema_alpha", 0.2))
-            old = store.get(pid, None)
-            if old is None:
-                store[pid] = value
-            else:
-                store[pid] = (1 - alpha) * old + alpha * value
-            return store[pid]
-
         def token_repr(token_id: int) -> str:
             tok_id = int(token_id)
             piece = tokenizer.convert_ids_to_tokens(tok_id)
@@ -1070,6 +1081,7 @@ class Decoding(ABC):
             prefetch_bytes=int(getattr(self.args, "kv_prefetch_mb", 64)) * 1024 ** 2,
             chunk_bytes=int(getattr(self.args, "kv_prefetch_chunk_kb", 4096)) * 1024,
             headroom_bytes=int(getattr(self.args, "kv_headroom_mb", 512)) * 1024 ** 2,
+            disturbance_budget=float(getattr(self.args, "kv_overlap_max_slowdown", 0.1)),
         )
         phase_leases = []
 
@@ -1108,11 +1120,17 @@ class Decoding(ABC):
             launched = time.monotonic()
             for req in current_batch:
                 req["_batch_start_delay_ms"] = (launched - req.get("_plan_ready_at", launched)) * 1000.0
+            spec_before = transfers.metrics["speculative_submitted_bytes"]
+            spec_active = transfers.speculative_inflight()
             result = callback(*args, **kwargs)
             if end is not None:
                 end.record(compute_stream)
                 end.synchronize()
-                forward_measurements.append(start.elapsed_time(end))
+                elapsed_gpu = start.elapsed_time(end)
+                forward_measurements.append(elapsed_gpu)
+                shape = (current_batch[0]["task_type"], tuple(cost_features(req) for req in current_batch))
+                transfers.observe_forward(shape, elapsed_gpu, speculative=spec_active or
+                    transfers.metrics["speculative_submitted_bytes"] > spec_before)
             return result
 
         def cache_memory_pressure():
@@ -1155,6 +1173,11 @@ class Decoding(ABC):
             current_batch[:] = batch
             try:
                 started = time.perf_counter()
+                for req in batch:
+                    with cache_lock:
+                        existing = kv_cache_manager._past_key_values.get(req["proc_id"])
+                        req["_cached_context"] = (int(existing.get_seq_length()) if existing is not None
+                            and (req["task_type"] != "prefill" or req.get("_prefill_continuation", False)) else 0)
                 with torch.cuda.stream(compute_stream) if compute_stream is not None else nullcontext():
                     result = _handle_request_batch_inner(batch, True, requested_kv_batch_mode, proc_ids)
                     stall = sum(lease.exposed_stall_ms() for lease in phase_leases)
@@ -1165,14 +1188,24 @@ class Decoding(ABC):
                             payload.update(forward_gpu_ms=gpu_ms,
                                 exposed_h2d_stall_ms=stall,
                                 batch_start_delay_ms=req.get("_batch_start_delay_ms", 0.0))
-                    rows = [(int(req["prefix_len"]), int(req.get("_forward_tokens", req.get("gamma") or req["draft_output"].shape[1])))
-                            for req in batch]
+                    rows = [cost_features(req) for req in batch]
                     with batch_cost_lock:
-                        batch_cost.observe(batch[0]["task_type"], rows, time.perf_counter() - started)
+                        batch_cost.observe(batch[0]["task_type"], rows,
+                            gpu_ms / 1000 if compute_stream is not None else time.perf_counter() - started)
                 if not return_responses:
                     for req in batch:
                         payload = result.get(req["proc_id"])
                         if payload is not None:
+                            if req["task_type"] == "verify":
+                                elapsed = max(0.0, time.monotonic() - req.get("server_enqueue_monotonic", started))
+                                service = float(payload.get("forward_gpu_ms", 0) if compute_stream is not None
+                                                else payload.get("verify_ms", 0)) / 1000.0
+                                payload.update(gamma_control.finish(req["proc_id"],
+                                    accepted=int(payload["accepted"]) - int(req["prefix_len"]),
+                                    proposed=int(req["gamma"]), request=req,
+                                    verify_s=service, queue_s=max(0, elapsed - service)))
+                                payload["request_e2e_ms"] = elapsed * 1000.0
+                                scheduler_metrics["gamma_rounds"] = gamma_control.rounds
                             response_queues[req.get("response_key", req["proc_id"])].put(payload)
                 return result if return_responses else None
             finally:
@@ -1376,8 +1409,7 @@ class Decoding(ABC):
                     # prefill 仅初始化 cache，回滚到 prefix 长度供下一轮 verify 使用
                     kv_cache_manager.rollback(pid, prefix_len)
                     committed_prefix_tokens[pid] = req["draft_output"][0, :prefix_len].tolist()
-                    if req.get("_prefill_final", True):
-                        deliver(pid, {"status": "prefill_ok"})
+                    deliver(pid, {"status": "prefill_ok" if req.get("_prefill_final", True) else "prefill_partial"})
                     continue
 
                 # Verify either with the legacy strict-match rule or with the
@@ -1500,71 +1532,6 @@ class Decoding(ABC):
                     "verify_ms": verify_elapsed * 1000.0,
                     "verify_gpu_ms": verify_gpu_ms,
                 }
-                if getattr(self.args, "enable_pipeline", True) and getattr(self.args, "pipeline_gamma_adapt", True):
-                    # Target: edge 在等待 verify 的完整往返窗口
-                    # （T_verify + RTT）内持续 proactive draft，所以
-                    # T_edge_draft(gamma) ~= T_verify + RTT。
-                    # Use online EMA to suggest per-session gamma for next round.
-                    # All request floats are sanitized first: JSON can carry
-                    # inf/NaN, and int(round(inf)) would crash the target
-                    # worker (remotely triggerable DoS).
-                    logical_gamma = max(1, _safe_int(req.get("logical_gamma", req_gamma), req_gamma))
-                    drafted_tokens = logical_gamma
-                    edge_per_tok = _safe_float(req.get("local_decode_per_token_s"), 0.0)
-                    if edge_per_tok <= 0:
-                        edge_per_tok = _safe_float(req.get("lag", 0.0)) / drafted_tokens
-                    avg_cloud_total_ms = max(
-                        0.0, _safe_float(req.get("avg_cloud_total_ms", 0.0))
-                    )
-                    # Use global average cloud_total_ms across all tasks when available.
-                    # Fallback to local verify elapsed for warmup.
-                    verify_budget = (
-                        avg_cloud_total_ms / 1000.0 if avg_cloud_total_ms > 0.0 else verify_elapsed
-                    )
-                    transport_rtt = max(
-                        0.0,
-                        _safe_float(req.get("transport_rtt", req.get("edge_rtt", 0.0))),
-                    )
-                    v_ema = update_ema(verify_time_ema, pid, max(1e-6, verify_budget))
-                    rtt_ema = update_ema(edge_rtt_ema, pid, max(0.0, transport_rtt))
-                    if edge_per_tok > 0:
-                        d_ema = update_ema(edge_draft_per_token_ema, pid, edge_per_tok)
-                    else:
-                        # Edge reported lag=0: keep the previous estimate instead
-                        # of seeding d_ema with 1e-6, which would pin gamma at max.
-                        d_ema = edge_draft_per_token_ema.get(pid)
-                    # 目标：让 edge 在等待 verify 的完整往返窗口（verify 时间 +
-                    # 传输 RTT）内恰好 draft 出 gamma 个 token。旧公式
-                    # (v_ema - rtt_ema) / d_ema 在 rtt_ema > v_ema 时恒为负、
-                    # 被 min_gamma 兜底成 1（r5 实验 TPOT 恶化 44% 的根因）。
-                    # 新公式恒为正，RTT 大时 gamma 随之增大以填满等待窗口。
-                    min_gamma = int(getattr(self.args, "pipeline_gamma_min", 1))
-                    max_gamma = int(getattr(self.args, "pipeline_gamma_max", 16))
-                    if d_ema is None or d_ema <= 0:
-                        suggested = int(getattr(self.args, "gamma", 4) or 4)
-                        draft_window = 0.0  # debug log below must stay defined
-                    else:
-                        draft_window = v_ema + rtt_ema
-                        # Clamp before int(): even sanitized inputs can push the
-                        # quotient past int range via extreme EMA values.
-                        quotient = min(1e9, max(0.0, draft_window / d_ema))
-                        suggested = int(round(quotient))
-                    suggested = max(min_gamma, min(max_gamma, suggested))
-                    gamma_step = max(1, int(getattr(self.args, "pipeline_gamma_step", 2)))
-                    suggested = max(logical_gamma - gamma_step, min(logical_gamma + gamma_step, suggested))
-                    suggested = max(min_gamma, min(max_gamma, suggested))
-                    response_payload["suggested_gamma"] = suggested
-                    if getattr(self.args, "debug_pipeline", False):
-                        self.color_print(
-                            f"[PIPELINE-CLOUD][pid={pid}] req_gamma={req_gamma} "
-                            f"accepted={accepted_cnt}/{req_gamma} verify={verify_elapsed*1000:.2f}ms "
-                            f"avg_cloud_total={avg_cloud_total_ms:.2f}ms "
-                            f"transport_rtt={transport_rtt*1000:.2f}ms v_ema={v_ema*1000:.2f}ms "
-                            f"d_ema={d_ema*1000:.4f}ms/tok rtt_ema={rtt_ema*1000:.2f}ms "
-                            f"draft_window={draft_window*1000:.2f}ms suggested_gamma={suggested}",
-                            3,
-                        )
-
                 deliver(pid, response_payload)
 
             finish_cache_phase(batch)
@@ -1625,7 +1592,7 @@ class Decoding(ABC):
         )
         prefetch_coordinator = PrefetchCoordinator(
             submit=prefetch_worker.submit,
-            resident_snapshot=lambda: residency.resident_snapshot() | set(residency.candidates),
+            resident_snapshot=residency.available_snapshot,
             protected_snapshot=residency.protected_snapshot,
             metrics=scheduler_metrics,
             pending_snapshot=prefetch_worker.has_pending,
@@ -1635,6 +1602,7 @@ class Decoding(ABC):
             req = dict(item.request)
             source = req["draft_output"]
             req["_forward_tokens"] = sl.forward_token_count
+            req["_cost_features"] = cost_features(item, sl)
             if item.task_type == "prefill":
                 end = sl.offset + sl.draft_token_count
                 req["draft_output"] = source[:, :end]
@@ -1695,52 +1663,63 @@ class Decoding(ABC):
             )
             return req
 
-        def candidate_value(item, selected):
-            same = [s for s in selected if s.task_type == item.task_type]
-            rows = [(work_items[s.work_id].base_prefix_len, s.forward_token_count)
-                    for s in same if s.work_id in work_items]
-            remaining_budget = max(1, int(self.args.token_budget) - sum(s.forward_token_count for s in selected))
-            tokens = min(item.remaining_tokens, remaining_budget)
-            if item.task_type == "prefill":
-                tokens = min(tokens, int(self.args.prefill_chunk_quantum))
-            context = item.base_prefix_len + item.accepted_so_far if item.task_type == "verify" else item.cursor
+        default_profile = AcceptanceProfile()
+
+        def candidate_value(item, sl, selected, items):
+            rows = [cost_features(items[s.work_id], s) for s in selected
+                    if s.task_type == item.task_type]
+            features = cost_features(item, sl)
             with batch_cost_lock:
-                marginal = max(1e-6, batch_cost.estimate(item.task_type, rows + [(context, tokens)])
+                marginal = max(1e-6, batch_cost.estimate(item.task_type, rows + [features])
                               - batch_cost.estimate(item.task_type, rows))
             with cache_lock:
                 cache = kv_cache_manager._past_key_values.get(item.proc_id)
-                legacy = cache.to_legacy_cache() if cache is not None else ()
-                if legacy and legacy[0][0].device != target_model.device:
-                    nbytes = sum(t.numel() * t.element_size() for layer in legacy for t in layer)
-                    marginal += nbytes / max(1.0, float(getattr(self.args, "kv_transfer_gbps", 10.0)) * 1e9)
+                ticket = residency.candidates.get(item.proc_id)
+                ready = (cache is not None and ticket is not None
+                         and ticket.matches(residency.snapshot_locked(item.proc_id, cache))
+                         and ticket.ready())
+            legacy = cache.to_legacy_cache() if cache is not None else ()
+            if legacy and legacy[0][0].device != target_model.device and not ready:
+                nbytes = sum(t.numel() * t.element_size() for layer in legacy for t in layer)
+                if ticket is not None:
+                    nbytes = max(0, nbytes - ticket.submitted_bytes)
+                marginal += nbytes / max(1.0, float(getattr(self.args, "kv_transfer_gbps", 10)) * 1e9)
             if item.task_type == "prefill":
-                # Prefill progresses toward a first token; it does not produce
-                # tokens immediately like Verify. Favor short remaining work
-                # while the planner enforces its wait/starvation bound.
                 wait = max(0.0, time.monotonic() - item.request.get("server_enqueue_monotonic", time.monotonic()))
-                return (1.0 + wait) / max(1e-6, marginal * item.remaining_tokens / max(1, tokens))
-            profile = progress_profiles.get(item.proc_id, AcceptanceProfile())
-            return profile.expected_progress(tokens) / marginal
+                return (1.0 + wait) / max(1e-6, marginal * item.remaining_tokens / max(1, sl.draft_token_count))
+            profile = progress_profiles.get(item.proc_id, default_profile)
+            final = sl.offset + sl.draft_token_count >= item.total_tokens
+            return profile.slice_progress(item.accepted_so_far, sl.draft_token_count, final) / marginal
+
+        def category_for(item):
+            return _length_category(item.remaining_tokens, len_r1, len_r2)
 
         def build_plan(reserved_work_ids=(), cycle=None, cursor=None, projected_plan=None):
+            started = time.perf_counter()
             _sort_queues_if_dirty()
-            return plan_iteration(
-                project_after_plan(task_queues.snapshot(), projected_plan) if projected_plan is not None else task_queues.snapshot(),
-                token_budget=int(self.args.token_budget),
-                current_cycle=(
-                    scheduler_state["current_cycle"] if cycle is None else cycle
-                ),
+            queues = task_queues.snapshot()
+            if projected_plan is not None:
+                queues = project_after_plan(queues, projected_plan, category_for=category_for)
+            items = {item.work_id: item for cats in queues.values() for rows in cats.values() for item in rows}
+            plan = plan_iteration(
+                queues, token_budget=int(self.args.token_budget),
+                current_cycle=scheduler_state["current_cycle"] if cycle is None else cycle,
                 wrr_cursor=scheduler_state["wrr_cursor"] if cursor is None else cursor,
                 max_num_seqs=int(self.args.batch_size),
                 min_prefill_chunk_tokens=int(self.args.min_prefill_chunk_tokens),
                 prefill_chunk_quantum=int(self.args.prefill_chunk_quantum),
-                accept_stats=accept_stats_snapshot(),
-                now=time.monotonic(),
+                accept_stats=accept_stats_snapshot(), now=time.monotonic(),
                 reserved_work_ids=reserved_work_ids,
                 selection_policy=getattr(self.args, "scheduler_policy", "legacy"),
-                candidate_value=candidate_value,
-                max_wait_s=float(getattr(self.args, "scheduler_max_wait_s", 1.0)),
-            )
+                candidate_value=lambda item, sl, selected: candidate_value(item, sl, selected, items),
+                max_wait_s=float(getattr(self.args, "scheduler_max_wait_s", 1.0)))
+            metric = "lookahead_ms" if projected_plan is not None else "plan_ms"
+            value = (time.perf_counter() - started) * 1000.0
+            scheduler_metrics[metric + "_total"] = scheduler_metrics.get(metric + "_total", 0) + value
+            scheduler_metrics[metric + "_count"] = scheduler_metrics.get(metric + "_count", 0) + 1
+            scheduler_metrics[metric + "_max"] = max(scheduler_metrics.get(metric + "_max", 0), value)
+            plan.ready_at = time.monotonic()
+            return plan
 
         def refresh_prefetch():
             """Recompute the lookahead residency intent from a stable snapshot.
@@ -1778,7 +1757,7 @@ class Decoding(ABC):
             reserved_pids = {sl.proc_id for sl in plan.verify_slices} | {
                 sl.proc_id for sl in plan.prefill_slices
             }
-            ready_at = time.monotonic()
+            ready_at = getattr(plan, "ready_at", time.monotonic())
             reserve_admission_plan(plan)
             transfers.admit()
             tickets = {}
@@ -1844,26 +1823,19 @@ class Decoding(ABC):
             task_queues.prune_finished()
 
         def finish_logical_verify(item, response):
-            profile = progress_profiles.setdefault(item.proc_id, AcceptanceProfile())
-            profile.observe(item.accepted_so_far, item.total_tokens)
-            response["expected_progress"] = profile.expected_progress(item.total_tokens)
+            service = (getattr(item, "forward_gpu_ms_total", 0.0) if compute_stream is not None
+                       else item.verify_ms_total) / 1000.0
+            elapsed = max(0.0, time.monotonic() - item.request.get("server_enqueue_monotonic", time.monotonic()))
+            response.update(gamma_control.finish(item.proc_id,
+                accepted=item.accepted_so_far, proposed=item.total_tokens,
+                request=item.request, verify_s=service, queue_s=max(0, elapsed - service)))
             response["verify_ms"] = item.verify_ms_total
             if getattr(item, "verify_gpu_ms_total", None) is not None:
                 response["verify_gpu_ms"] = item.verify_gpu_ms_total
-            if (getattr(self.args, "pipeline_gamma_adapt", True)
-                    and getattr(self.args, "enable_pipeline", True)
-                    and getattr(self.args, "gamma_policy", "progress") == "progress"):
-                service = item.verify_ms_total / 1000.0
-                elapsed = max(0.0, time.monotonic() - item.request.get("server_enqueue_monotonic", time.monotonic()))
-                response["suggested_gamma"] = choose_gamma(
-                    profile, current=item.total_tokens,
-                    draft_s=draft_seconds_per_token(item.request), verify_s=service,
-                    rtt_s=max(0.0, _safe_float(item.request.get("transport_rtt", 0.0))),
-                    queue_s=max(0.0, elapsed - service),
-                    minimum=int(getattr(self.args, "pipeline_gamma_min", 1)),
-                    maximum=int(getattr(self.args, "pipeline_gamma_max", 16)),
-                    step=int(getattr(self.args, "pipeline_gamma_step", 2)),
-                )
+            for metric in ("forward_gpu_ms", "exposed_h2d_stall_ms", "batch_start_delay_ms"):
+                response[metric] = getattr(item, metric + "_total", 0.0)
+            response["request_e2e_ms"] = elapsed * 1000.0
+            scheduler_metrics["gamma_rounds"] = gamma_control.rounds
             return response
 
         def _apply_verify_phase(job, verify_responses):
@@ -1884,6 +1856,8 @@ class Decoding(ABC):
                 item.verify_ms_total = getattr(item, "verify_ms_total", 0.0) + float(response.get("verify_ms", 0.0))
                 if response.get("verify_gpu_ms") is not None:
                     item.verify_gpu_ms_total = getattr(item, "verify_gpu_ms_total", 0.0) + float(response["verify_gpu_ms"])
+                for metric in ("forward_gpu_ms", "exposed_h2d_stall_ms", "batch_start_delay_ms"):
+                    setattr(item, metric + "_total", getattr(item, metric + "_total", 0.0) + float(response.get(metric, 0.0)))
                 physical_prefix = int(sliced_req["prefix_len"])
                 accepted = int(response["accepted"])
                 accepted_chunk = max(0, accepted - physical_prefix)
@@ -1923,6 +1897,9 @@ class Decoding(ABC):
             for sl in plan.prefill_slices:
                 item = job.item_by_id[sl.work_id]
                 item.cursor = sl.offset + sl.draft_token_count
+                phase_response = prefill_responses.get(item.proc_id, {})
+                for metric in ("forward_gpu_ms", "exposed_h2d_stall_ms", "batch_start_delay_ms"):
+                    setattr(item, metric + "_total", getattr(item, metric + "_total", 0.0) + float(phase_response.get(metric, 0.0)))
                 scheduler_metrics["timing_ready_prefill_forwards"] += 1
                 if getattr(item, "cancel_pending", False):
                     # The cancel arrived after admission; the forward is not
@@ -1937,6 +1914,8 @@ class Decoding(ABC):
                     response = prefill_responses.get(item.proc_id)
                     if response is None:
                         raise RuntimeError(f"missing prefill response for {item.work_id}")
+                    for metric in ("forward_gpu_ms", "exposed_h2d_stall_ms", "batch_start_delay_ms"):
+                        response[metric] = getattr(item, metric + "_total", 0.0)
                     response_queues[item.response_key or item.proc_id].put(response)
                 else:
                     scheduler_metrics["partial_prefill"] += 1
@@ -1971,22 +1950,13 @@ class Decoding(ABC):
                 commit_admission_progress(
                     plan,
                     task_queues,
-                    commit_admission_plan,
+                    lambda plan, **kwargs: commit_admission_plan(plan,
+                        all_items=work_items.values(), category_for=category_for, **kwargs),
                     completed_work_ids=job.completed,
                     progress=job.progress,
                 )
                 committed = True
 
-                cycle_delta = plan.next_cycle - scheduler_state["current_cycle"]
-                if cycle_delta > 0:
-                    selected_ids = set(plan.selected_work_ids)
-                    for queued_item in work_items.values():
-                        if (
-                            queued_item.task_type == "prefill"
-                            and queued_item.work_id not in selected_ids
-                            and not queued_item.finished
-                        ):
-                            queued_item.missed_cycles += cycle_delta
                 scheduler_state["wrr_cursor"] = plan.next_wrr_cursor
                 scheduler_state["current_cycle"] = plan.next_cycle
                 scheduler_metrics["plans"] += 1
@@ -2220,6 +2190,7 @@ class Decoding(ABC):
                         if energy_service is not None:
                             energy_service.enter_active()
                         try:
+                            req["_plan_ready_at"] = time.monotonic()
                             handle_request_batch([req])
                         finally:
                             if energy_service is not None:
@@ -2277,6 +2248,7 @@ class Decoding(ABC):
             flush_session_releases()
             transfers.close()
             scheduler_metrics["cache_transfers"] = dict(transfers.metrics)
+            scheduler_metrics["kv_prefetch_effective_mode"] = transfers.mode
             scheduler_metrics["batch_cost_profiles"] = {str(k): v for k, v in batch_cost.table.items()}
             if energy_service is not None:
                 energy_service.shutdown()

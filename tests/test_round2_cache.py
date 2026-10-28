@@ -99,6 +99,31 @@ class TransferIsolationTests(unittest.TestCase):
         finally:
             transfers.close()
 
+    def test_collector_cannot_drop_a_demand_before_its_first_submission(self):
+        transfers = CacheTransferManager('cuda:0')
+        try:
+            # Exercise the prepare/publish -> submit scheduling gap directly.
+            cache = self.host(64)
+            ticket = transfers._prepare(CacheSnapshot.capture(cache), torch.device('cuda:0'), 'demand')
+            transfers.poll_completed()
+            self.assertIn(ticket, transfers.pending)
+            self.assertTrue(ticket.chunks)
+            lease = transfers.bind_to_consumer(ticket, compute_stream=torch.cuda.current_stream())
+            torch.testing.assert_close(lease.cache.to_legacy_cache()[0][0].cpu(), cache.to_legacy_cache()[0][0])
+        finally:
+            transfers.close()
+
+    def test_measured_overlap_disturbance_falls_back_after_three_observations(self):
+        transfers = CacheTransferManager('cuda:0', mode='overlap', disturbance_budget=0.1)
+        try:
+            transfers.observe_forward(('verify', 128, 4), 10, speculative=False)
+            for _ in range(3):
+                transfers.observe_forward(('verify', 128, 4), 12, speculative=True)
+            self.assertEqual(transfers.mode, 'protect_forward')
+            self.assertEqual(transfers.metrics['overlap_fallbacks'], 1)
+        finally:
+            transfers.close()
+
     def test_prefetch_b_does_not_add_dependency_to_compute_a(self):
         transfers = CacheTransferManager('cuda:0', mode='overlap', chunk_bytes=1024)
         compute = torch.cuda.Stream()

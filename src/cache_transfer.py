@@ -72,7 +72,8 @@ class PinnedBufferPool:
 class CacheTransferManager:
     def __init__(self, device, *, enabled=True, pinned_pool_bytes=128 * 1024 ** 2,
                  mode="protect_forward", prefetch_bytes=64 * 1024 ** 2,
-                 chunk_bytes=4 * 1024 ** 2, headroom_bytes=512 * 1024 ** 2):
+                 chunk_bytes=4 * 1024 ** 2, headroom_bytes=512 * 1024 ** 2,
+                 disturbance_budget=0.1, record_timeline=False):
         if mode not in {"protect_forward", "overlap", "cpu_prepare"}:
             raise ValueError("unknown KV prefetch mode")
         if min(prefetch_bytes, headroom_bytes) < 0 or chunk_bytes <= 0:
@@ -90,6 +91,9 @@ class CacheTransferManager:
         self.pending = []
         self.speculative_bytes = 0
         self.metrics = defaultdict(float)
+        self.disturbance_budget = max(0.0, float(disturbance_budget))
+        self.forward_baselines, self.disturbance_counts = {}, {}
+        self.timeline = [] if record_timeline else None
         self.h2d_stream = torch.cuda.Stream(device=self.device) if self.enabled else None
         self.prefetch_stream = torch.cuda.Stream(device=self.device) if self.enabled else None
         self.d2h_stream = torch.cuda.Stream(device=self.device) if self.enabled else None
@@ -191,12 +195,14 @@ class CacheTransferManager:
             return True
 
     def submit_h2d(self, snapshot, *, purpose="demand"):
+        started = time.perf_counter()
         if not isinstance(snapshot, CacheSnapshot):
             snapshot = CacheSnapshot.capture(snapshot)
         if purpose == "prefetch":
             with self._speculation_slot(preparing=True) as allowed:
                 return self._prepare(snapshot, self.device, purpose) if allowed else None
         ticket = self._prepare(snapshot, self.device, purpose)
+        ticket.demand_started_at = started
         self._advance(ticket, all_chunks=True)
         return ticket
 
@@ -252,11 +258,19 @@ class CacheTransferManager:
                             target = torch.empty_like(source, device=device)
                         pair.append(target)
                         # Valid views only, never unused preallocated capacity.
-                        per_token = max(1, source.numel() // max(1, source.shape[-2]) * source.element_size())
-                        step = max(1, self.chunk_bytes // per_token)
-                        for offset in range(0, source.shape[-2], step):
-                            ticket.chunks.append((source[..., offset:offset + step, :],
-                                                  target[..., offset:offset + step, :]))
+                        views = [(source, target)]
+                        while views:
+                            src, dst = views.pop()
+                            if src.numel() * src.element_size() <= self.chunk_bytes:
+                                ticket.chunks.append((src, dst))
+                                continue
+                            dim = max(range(src.ndim), key=lambda d: src.shape[d])
+                            if src.shape[dim] <= 1:
+                                raise ValueError("chunk budget must fit at least one KV element")
+                            half = src.shape[dim] // 2
+                            views.append((src.narrow(dim, half, src.shape[dim] - half),
+                                          dst.narrow(dim, half, dst.shape[dim] - half)))
+                            views.append((src.narrow(dim, 0, half), dst.narrow(dim, 0, half)))
                     copied.append(tuple(pair))
                 ticket.destination_cache = dynamic_cache_from_views(copied)
             ticket.destination_cache._fastsd_valid_length = snapshot.valid_len
@@ -294,7 +308,12 @@ class CacheTransferManager:
                 dependency = ticket.last_copy or ticket.producer_ready
                 if dependency is not None:
                     stream.wait_event(dependency)
+                trace_start = None
+                if self.timeline is not None:
+                    trace_start = torch.cuda.Event(enable_timing=True)
+                    trace_start.record(stream)
                 limit = len(ticket.chunks) if all_chunks else ticket.next_chunk + 1
+                ticket.last_chunk_bytes = 0
                 for index in range(ticket.next_chunk, limit):
                     source, target = ticket.chunks[index]
                     target.copy_(source, non_blocking=True)
@@ -304,10 +323,16 @@ class CacheTransferManager:
                         target.record_stream(stream)
                     size = source.numel() * source.element_size()
                     ticket.submitted_bytes += size
+                    ticket.last_chunk_bytes += size
                     self.metrics[ticket.direction + "_bytes"] += size
+                    if ticket.purpose == "prefetch" and ticket.claimed_by is None:
+                        self.metrics["speculative_submitted_bytes"] += size
                 ticket.next_chunk = limit
-                event = torch.cuda.Event()
+                event = torch.cuda.Event(enable_timing=self.timeline is not None)
                 event.record(stream)
+                if self.timeline is not None:
+                    self.timeline.append((trace_start, event, ticket.direction,
+                        ticket.purpose if ticket.claimed_by is None else "demand"))
                 ticket.last_copy = event
                 ticket.copy_state = "copying"
                 if limit == len(ticket.chunks):
@@ -330,10 +355,13 @@ class CacheTransferManager:
                     self._advance(ticket)
 
     def bind_to_consumer(self, ticket, *, compute_stream):
+        started = ticket.demand_started_at or time.perf_counter()
         self._advance(ticket, all_chunks=True)
         if ticket.retired:
             raise RuntimeError("cannot consume a retired transfer")
         lease = CacheLease(ticket, ticket.destination_cache)
+        if ticket.bytes_reserved:
+            lease.host_setup_ms = (time.perf_counter() - started) * 1000.0
         if self.device.type == "cuda" and compute_stream is not None and ticket.direction == "h2d":
             if ticket.copy_done is not None:
                 lease.wait_start = torch.cuda.Event(enable_timing=True)
@@ -355,11 +383,38 @@ class CacheTransferManager:
             lease.ticket.consumer_done = event
         self.retire(lease.ticket)
 
+    def speculative_inflight(self):
+        with self.lock:
+            return any(t.purpose == "prefetch" and t.claimed_by is None
+                       and t.last_copy is not None and not t.last_copy.query()
+                       for t in self.pending)
+
+    def observe_forward(self, shape, milliseconds, *, speculative):
+        if milliseconds <= 0:
+            return
+        baseline = self.forward_baselines.get(shape)
+        if not speculative:
+            self.forward_baselines[shape] = milliseconds if baseline is None else 0.8 * baseline + 0.2 * milliseconds
+            self.disturbance_counts[shape] = 0
+        elif self.mode == "overlap" and baseline is not None:
+            ratio = milliseconds / baseline - 1
+            self.metrics["forward_disturbance_ratio_max"] = max(self.metrics["forward_disturbance_ratio_max"], ratio)
+            count = self.disturbance_counts.get(shape, 0) + 1 if ratio > self.disturbance_budget else 0
+            self.disturbance_counts[shape] = count
+            if count >= 3:
+                with self.gate:
+                    self.mode = "protect_forward"
+                self.metrics["overlap_fallbacks"] += 1
+
     def protect_source_write(self, cache, *, producer_stream):
-        # Must be called before overwriting a leased valid prefix.
+        # Future chunks must not read a prefix after it is overwritten.
         with self.lock:
             readers = [t for t in self.pending if t.source_identity == id(cache)]
         for ticket in readers:
+            if ticket.claimed_by is None:
+                self.retire(ticket)
+            else:
+                self._advance(ticket, all_chunks=True)
             if ticket.last_copy is not None:
                 if producer_stream is not None:
                     producer_stream.wait_event(ticket.last_copy)
@@ -388,7 +443,8 @@ class CacheTransferManager:
                         ticket.reported = True
                 drained = ticket.last_copy is None or ticket.last_copy.query()
                 used = ticket.consumer_done is None or ticket.consumer_done.query()
-                if drained and used and (ticket.retired or ticket.purpose != "prefetch"):
+                if drained and used and (ticket.retired or
+                        (ticket.purpose != "prefetch" and ticket.ready())):
                     remove.append(ticket)
                     if ticket.direction == "h2d" and getattr(ticket, "_pinned_lease", None) is not None:
                         self.pool.release(ticket._pinned_lease)
@@ -406,6 +462,9 @@ class CacheTransferManager:
                 t.bytes_reserved for t in self.pending
                 if t.purpose == "prefetch" and not t.ready())
             self.metrics["prefetch_reserved_bytes"] = self.speculative_bytes
+            self.metrics["prefetch_dma_inflight_bytes"] = sum(
+                t.last_chunk_bytes for t in self.pending if t.purpose == "prefetch"
+                and t.claimed_by is None and t.last_copy is not None and not t.last_copy.query())
         self.pool.collect()
         return completed
 

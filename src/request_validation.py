@@ -57,6 +57,13 @@ def _validate_timing_fields(out: dict, *, require_prefill: bool = False) -> None
             # m_i in the scheduler.
             raise ValueError("prefill_gamma must be positive and within max_tokens")
         out["prefill_gamma"] = gamma
+    if out.get("fresh_decode_tokens") is not None:
+        fresh = _integer(out["fresh_decode_tokens"], "fresh_decode_tokens")
+        if fresh < 0 or fresh > int(out.get("gamma", 0)):
+            raise ValueError("fresh_decode_tokens must lie between 0 and gamma")
+        out["fresh_decode_tokens"] = fresh
+    if out.get("draft_timing_valid") is not None and not isinstance(out["draft_timing_valid"], bool):
+        raise ValueError("draft_timing_valid must be boolean")
     if "edge_send_time_ns" in out:
         send_ns = _integer(out["edge_send_time_ns"], "edge_send_time_ns")
         if send_ns <= 0:
@@ -151,7 +158,7 @@ def canonicalize_request(
             raise ValueError(
                 f"draft_output has {token_count} tokens, requires at least {required_tokens}"
             )
-        if any(field in out for field in _TIMING_SECONDS_FIELDS + ("prefill_first_token_s",)):
+        if any(field in out for field in _TIMING_SECONDS_FIELDS + ("prefill_first_token_s", "fresh_decode_tokens", "draft_timing_valid")):
             _validate_timing_fields(out)
 
         # Requests created before sparse rejection sampling did not carry a

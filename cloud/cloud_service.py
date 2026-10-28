@@ -165,6 +165,8 @@ class VerifyRequest(BaseModel):
     tail_only: bool = False
     has_bridge_token: bool = False
     timing_priority: bool = False
+    fresh_decode_tokens: Optional[int] = Field(default=None, ge=0)
+    draft_timing_valid: Optional[bool] = None
     local_decode_per_token_s: Optional[float] = None
     local_decode_per_token_ms: Optional[float] = None
     T_i_d: Optional[float] = None
@@ -534,6 +536,9 @@ async def prefill(req: PrefillRequest) -> dict:
         out = {"session_id": req_id, "status": resp["status"]}
     else:
         out = {"session_id": req_id, "status": "prefill_ok"}
+    for metric in ("forward_gpu_ms", "exposed_h2d_stall_ms", "batch_start_delay_ms"):
+        if metric in resp:
+            out[metric] = float(resp[metric])
     timing = _prefill_timing_updates.pop(req_id, {})
     if arrival_recorded:
         with _pending_lock:
@@ -697,6 +702,8 @@ async def verify(req: VerifyRequest) -> dict:
         "task_type": "verify",
         "tail_only": req.tail_only,
         "has_bridge_token": req.has_bridge_token,
+        "fresh_decode_tokens": req.fresh_decode_tokens,
+        "draft_timing_valid": req.draft_timing_valid,
         "local_decode_per_token_s": req.local_decode_per_token_s,
         "local_decode_per_token_ms": req.local_decode_per_token_ms,
         "T_i_d": req.T_i_d,
@@ -755,6 +762,9 @@ async def verify(req: VerifyRequest) -> dict:
         out["verify_ms"] = float(resp["verify_ms"])
     if resp.get("verify_gpu_ms") is not None:
         out["verify_gpu_ms"] = float(resp["verify_gpu_ms"])
+    for metric in ("forward_gpu_ms", "exposed_h2d_stall_ms", "batch_start_delay_ms", "expected_progress"):
+        if metric in resp:
+            out[metric] = float(resp[metric])
     if "suggested_gamma" in resp:
         out["suggested_gamma"] = int(resp["suggested_gamma"])
     out["cloud_send_time_ns"] = time.time_ns()

@@ -833,6 +833,8 @@ class EdgeClient:
         tail_only: bool = False,
         has_bridge_token: bool = False,
         local_decode_per_token_s: float | None = None,
+        fresh_decode_tokens: int | None = None,
+        draft_timing_valid: bool | None = None,
         last_pull_s: float | None = None,
         edge_send_time_ns: int | None = None,
         verify_method: str = "rejection",
@@ -858,6 +860,8 @@ class EdgeClient:
             "local_decode_per_token_s": local_decode_per_token_s,
             "last_pull_s": last_pull_s,
             "T_i_d": local_decode_per_token_s,
+            "fresh_decode_tokens": fresh_decode_tokens,
+            "draft_timing_valid": draft_timing_valid,
             "T_i_pull": last_pull_s,
             "edge_send_time_ns": int(edge_send_time_ns),
             "clock_offset_ns": int(self.clock_offset_ns),
@@ -1767,19 +1771,24 @@ class EdgeRunner(Decoding):
                 sum_http_total_ms = 0.0
                 sum_cloud_total_ms = 0.0
                 sum_verify_ms = 0.0
+                target_components = {key: 0.0 for key in (
+                    "forward_gpu_ms", "batch_start_delay_ms", "exposed_h2d_stall_ms")}
                 sum_transport_rtt_ms = 0.0
                 sum_push_ms = 0.0
                 sum_pull_ms = 0.0
                 accepted_total = 0
                 drafted_total = 0
                 rounds = 0
+                pending_ahead_observation = None
                 first_round_pending = first_round_x is not None
                 while prefix.shape[1] < max_len:
                     prefix_len = prefix.shape[1]
                     approx_model_cache.retain_probabilities(prefix_len - 1)
                     round_start = time.monotonic()
-                    req_gamma = min(current_gamma if pipeline_enabled else int(self.args.gamma), max_len - prefix_len)
+                    req_gamma = min(current_gamma, max_len - prefix_len)
                     local_decode_per_token_s = None
+                    fresh_decode_tokens = 0
+                    reuse_count = 0
 
                     # 若上一轮复用 token 不足 gamma，这里补齐到 gamma 后再发起验证。
                     if first_round_pending:
@@ -1795,6 +1804,9 @@ class EdgeRunner(Decoding):
                                 draft_elapsed / max(1, req_gamma),
                             )
                         )
+                        fresh_decode_tokens = max(0, req_gamma - 1)
+                        if not fresh_decode_tokens:
+                            local_decode_per_token_s = None
                         if verify_method == "rejection":
                             start = max(0, prefix_len - 1)
                             draft_rows = approx_model_cache.probability_rows(start, start + req_gamma)[0].detach().float()
@@ -1814,6 +1826,9 @@ class EdgeRunner(Decoding):
                             approx_model_cache._past_key_values.get_seq_length(), x.shape[1] - 1
                         ))
                         if reuse_count < req_gamma:
+                            fresh_decode_tokens = req_gamma - reuse_count
+                            synchronize(getattr(draft_model, "device", "cpu"))
+                            fresh_started = time.monotonic()
                             if verify_method == "rejection":
                                 x, generated_rows = approx_model_cache.generate_with_probs(
                                     x, req_gamma - reuse_count
@@ -1829,6 +1844,8 @@ class EdgeRunner(Decoding):
                             else:
                                 x = approx_model_cache.generate(x, req_gamma - reuse_count)
                                 draft_rows = None
+                            synchronize(getattr(draft_model, "device", "cpu"))
+                            local_decode_per_token_s = (time.monotonic() - fresh_started) / fresh_decode_tokens
                         elif verify_method == "rejection":
                             draft_rows = torch.cat(
                                 [
@@ -1840,19 +1857,34 @@ class EdgeRunner(Decoding):
                         else:
                             draft_rows = None
                         draft_elapsed = max(0.0, time.monotonic() - draft_started)
-                        local_decode_per_token_s = draft_elapsed / max(1, req_gamma - reuse_count)
+                        # Full reuse carries no fresh decode-speed observation.
                     else:
                         draft_started = time.monotonic()
-                        if verify_method == "rejection":
-                            x, draft_rows = approx_model_cache.generate_with_probs(
-                                prefix, req_gamma
-                            )
+                        cached = approx_model_cache._past_key_values
+                        if cached is None or cached.get_seq_length() == 0:
+                            x, timing = _timed_local_draft_generate(approx_model_cache, prefix, req_gamma)
+                            fresh_decode_tokens = max(0, req_gamma - 1)
+                            local_decode_per_token_s = timing["local_decode_per_token_s"] if fresh_decode_tokens else None
+                            draft_rows = (approx_model_cache.probability_rows(
+                                prefix_len - 1, prefix_len - 1 + req_gamma)[0].detach().float()
+                                if verify_method == "rejection" else None)
                         else:
-                            x = approx_model_cache.generate(prefix, req_gamma)
-                            draft_rows = None
-                        synchronize(getattr(draft_model, "device", "cpu"))
+                            synchronize(getattr(draft_model, "device", "cpu"))
+                            fresh_started = time.monotonic()
+                            if verify_method == "rejection":
+                                x, draft_rows = approx_model_cache.generate_with_probs(prefix, req_gamma)
+                            else:
+                                x, draft_rows = approx_model_cache.generate(prefix, req_gamma), None
+                            synchronize(getattr(draft_model, "device", "cpu"))
+                            fresh_decode_tokens = req_gamma
+                            local_decode_per_token_s = (time.monotonic() - fresh_started) / req_gamma
                         draft_elapsed = max(0.0, time.monotonic() - draft_started)
-                        local_decode_per_token_s = draft_elapsed / max(1, req_gamma)
+
+                    # Credit only candidates actually consumed by this round.
+                    if pending_ahead_observation is not None:
+                        generated, cost, stall = pending_ahead_observation
+                        ahead_control.observe(generated, reuse_count, cost, stall)
+                        pending_ahead_observation = None
 
                     draft_prob_block = None
                     if verify_method == "rejection":
@@ -1905,6 +1937,8 @@ class EdgeRunner(Decoding):
                         tail_only=pipeline_enabled,
                         has_bridge_token=has_bridge_token,
                         local_decode_per_token_s=local_decode_per_token_s,
+                        fresh_decode_tokens=fresh_decode_tokens,
+                        draft_timing_valid=fresh_decode_tokens > 0 and bool(local_decode_per_token_s),
                         last_pull_s=last_pull_s,
                         verify_method=verify_method,
                         sampling_seed=sampling_seed,
@@ -1936,6 +1970,8 @@ class EdgeRunner(Decoding):
                             3,
                         )
                     if proactive_enabled:
+                        ahead_control.begin_round(cap=max_overlap_tokens,
+                            expected_wait_s=previous_verify_wait_s, draft_s=ahead_forward_per_token_s)
                         while not verify_future.done() and ahead_control.allow(
                             steps=len(overlap_tokens), cap=max_overlap_tokens,
                             elapsed_s=time.monotonic() - ahead_started,
@@ -2005,6 +2041,8 @@ class EdgeRunner(Decoding):
                     sum_http_total_ms += measured_http_total * 1000.0
                     sum_cloud_total_ms += cloud_total_ms
                     sum_verify_ms += verify_ms
+                    for key in target_components:
+                        target_components[key] += float(verify_resp.get(key, 0.0))
                     sum_transport_rtt_ms += last_transport_rtt * 1000.0
                     sum_push_ms += push_s * 1000.0
                     sum_pull_ms += pull_s * 1000.0
@@ -2015,7 +2053,7 @@ class EdgeRunner(Decoding):
                     accepted_total += max(0, accepted_cnt)
                     drafted_total += max(1, req_gamma)
                     final_token = int(verify_resp["final_token"])
-                    if pipeline_enabled and "suggested_gamma" in verify_resp:
+                    if "suggested_gamma" in verify_resp:
                         current_gamma = int(verify_resp["suggested_gamma"])
                     if getattr(self.args, "debug_pipeline", False):
                         self.color_print(
@@ -2097,8 +2135,8 @@ class EdgeRunner(Decoding):
                         reused_pending_tokens = []
                         reused_pending_prob_rows = []
 
-                    ahead_control.observe(len(overlap_tokens), len(reused_pending_tokens),
-                                          ahead_forward_per_token_s, response_delay)
+                    if overlap_tokens:
+                        pending_ahead_observation = (len(overlap_tokens), ahead_forward_per_token_s, response_delay)
 
                     if hit_eos:
                         if getattr(self.args, "debug_verify_tokens", False):
@@ -2146,6 +2184,9 @@ class EdgeRunner(Decoding):
                             )
                             break
 
+                if pending_ahead_observation is not None:
+                    generated, cost, stall = pending_ahead_observation
+                    ahead_control.observe(generated, 0, cost, stall)
                 _shutdown_executor(verify_executor, wait=True)
                 if executor_holder is not None:
                     executor_holder["executor"] = None
@@ -2237,6 +2278,7 @@ class EdgeRunner(Decoding):
                     "prefill_first_draft_overlap_ms": prefill_first_draft_overlap_ms,
                     "prefill_wait_after_first_draft_ms": prefill_wait_after_first_draft_ms,
                     "request_e2e_ms": request_e2e_ms,
+                    **target_components,
                     "ttft_ms": ttft_value,
                     "decode_ttft_ms": decode_ttft_value,
                     "tpot_ms": tpot_value,

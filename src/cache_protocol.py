@@ -39,6 +39,8 @@ class KVTransferTicket:
     retired: bool = False
     reported: bool = False
     budget_released: bool = False
+    demand_started_at: float = None
+    last_chunk_bytes: int = 0
 
     @property
     def session_epoch(self):
@@ -76,9 +78,10 @@ class CacheLease:
     cache: object
     wait_start: object = None
     wait_end: object = None
+    host_setup_ms: float = 0.0
 
     def exposed_stall_ms(self):
         if self.wait_end is None:
-            return 0.0
+            return self.host_setup_ms
         self.wait_end.synchronize()
-        return self.wait_start.elapsed_time(self.wait_end)
+        return self.host_setup_ms + self.wait_start.elapsed_time(self.wait_end)

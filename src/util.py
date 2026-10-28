@@ -355,6 +355,8 @@ def parse_arguments():
     parser.add_argument("--kv_prefetch", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--kv_prefetch_mode", choices=("protect_forward", "overlap", "cpu_prepare"),
                         default="protect_forward")
+    parser.add_argument("--kv_overlap_max_slowdown", type=float, default=0.1,
+                        help="fall back after three overlap forwards exceed a measured same-shape baseline")
     parser.add_argument("--kv_prefetch_mb", type=int, default=64)
     parser.add_argument("--kv_prefetch_chunk_kb", type=int, default=4096)
     parser.add_argument("--gamma_policy", choices=("legacy", "progress"), default="progress")
@@ -379,7 +381,7 @@ def parse_arguments():
         parser.error("--min_prefill_chunk_tokens must not exceed --token_budget")
     if args.session_idle_timeout < 0 or args.ahead_max_tokens < 0:
         parser.error("session timeout and ahead limit must be non-negative")
-    for name in ("session_idle_timeout", "kv_headroom_mb", "scheduler_max_wait_s", "kv_transfer_gbps"):
+    for name in ("session_idle_timeout", "kv_headroom_mb", "scheduler_max_wait_s", "kv_transfer_gbps", "kv_overlap_max_slowdown"):
         value = getattr(args, name)
         if not math.isfinite(value) or value < 0:
             parser.error(f"--{name} must be finite and non-negative")

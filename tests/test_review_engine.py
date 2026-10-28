@@ -16,7 +16,7 @@ except ImportError:
 
 @unittest.skipUnless(DEPS, "requires model runtime dependencies")
 class ReviewEngineTests(unittest.TestCase):
-    def run_worker_case(self, backend, mode="fastsd", device="cpu", cycles=16):
+    def run_worker_case(self, backend, mode="fastsd", device="cpu", cycles=16, adaptive=False):
         class Runner(Decoding):
             def load_data(self): pass
             def preprocess(self, x): return x
@@ -32,7 +32,8 @@ class ReviewEngineTests(unittest.TestCase):
         engine.args = types.SimpleNamespace(target_model="tiny-test", vocab_size=31,
             temp=0.0, top_k=0, top_p=0.0, kv_batch_mode=backend, max_tokens=32,
             gamma=8, token_budget=4, batch_size=2, min_prefill_chunk_tokens=1,
-            prefill_chunk_quantum=2, server_sched_mode=mode, pipeline_gamma_adapt=False,
+            prefill_chunk_quantum=2, server_sched_mode=mode, pipeline_gamma_adapt=adaptive,
+            enable_pipeline=False,
             session_idle_timeout=30, async_kv_transfer=device != "cpu")
         engine.seed = 1
         engine.last_generation_metrics = {}
@@ -75,6 +76,10 @@ class ReviewEngineTests(unittest.TestCase):
                         seq = torch.cat((seq, token), 1)
                 result = request({"task_type": "verify", "draft_output": seq[0, 7:15].tolist(),
                     "prefix_len": 7, "gamma": 8, "tail_only": True, "verify_method": "greedy"})
+                self.assertEqual("suggested_gamma" in result, adaptive)
+                for metric in ("forward_gpu_ms", "batch_start_delay_ms", "exposed_h2d_stall_ms"):
+                    self.assertIn(metric, result)
+                    self.assertGreaterEqual(result[metric], 0)
                 self.assertEqual(result["accepted"], 15)
                 self.assertEqual(result["final_token"], seq[0, 15].item())
                 self.assertEqual(request({"control_type": "session_release"})["status"], "released")
@@ -89,12 +94,18 @@ class ReviewEngineTests(unittest.TestCase):
         self.assertEqual(metrics["probability_sessions"], 0)
         self.assertGreaterEqual(metrics["released_sessions"], cycles)
         self.assertLessEqual(metrics["peak_cache_sessions"], 1)
+        self.assertEqual(metrics["gamma_rounds"], cycles)
 
     def test_varlen_chunked_rounds_and_repeated_sessions(self):
         self.run_worker_case("varlen")
 
     def test_padded_chunked_rounds_and_repeated_sessions(self):
         self.run_worker_case("padded")
+
+    def test_all_service_modes_share_round_controller_without_pipeline(self):
+        for mode in ("fastsd", "vanilla", "pipeline"):
+            with self.subTest(mode=mode):
+                self.run_worker_case("varlen", mode, cycles=2, adaptive=True)
 
     def test_baseline_release(self):
         self.run_worker_case("varlen", "vanilla")

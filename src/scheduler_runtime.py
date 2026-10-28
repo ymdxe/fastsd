@@ -9,9 +9,10 @@ Ownership model
 * Exactly one **model executor** thread runs target forward batches.  It never
   touches scheduler queues or ``WorkItem`` fields; batches are handed over
   fully sliced and raw responses come back through a result queue.
-* Exactly one **KV prefetch** thread performs CPU<->GPU copies.  It only
-  touches cache residency and cache objects, always under the cache lock, and
-  never holds that lock across a tensor copy.
+* Exactly one **KV prefetch** thread prepares speculative H2D candidates.
+  It publishes tickets under a short registry lock and never replaces formal
+  caches. Allocation, copies and waits run outside that lock. Admission claims
+  matching tickets; only their executor consumers install and mutate caches.
 
 The control owner keeps draining ingress while the executor is blocked in a
 forward.  That is what makes a request B, which arrives during forward A,
@@ -508,6 +509,10 @@ class CacheResidency:
         with self.lock:
             return set(self.resident)
 
+    def available_snapshot(self):
+        with self.lock:
+            return set(self.resident) | set(self.candidates)
+
     def version(self, pid: Any) -> int:
         with self.lock:
             return self.versions.get(pid, 0)
@@ -616,12 +621,10 @@ class PrefetchCoordinator:
 # KV prefetch worker
 # ---------------------------------------------------------------------------
 class KVPrefetchWorker:
-    """Background CPU<->GPU cache mover driven by the latest desired pid set.
+    """Publish candidates for the latest desired set; never evict formal KV.
 
-    The task queue has capacity one and new predictions replace older ones, so
-    only the freshest intent is ever executed.  At execution time the worker
-    re-derives stale/load sets from current residency instead of trusting the
-    snapshot that was taken when the intent was submitted.
+    The legacy set_cache callback is accepted for old integrations but unused.
+    Production copy submission and progression go through the ticket manager.
     """
 
     def __init__(

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
 import math
+import time
 import random
 from typing import Any, Iterable, Mapping, MutableMapping, Sequence
 
@@ -333,6 +334,9 @@ class AdmissionPlan:
     slots_consumed: int
     selected_work_ids: list[str] = field(default_factory=list)
     _selected_items: list[WorkItem] = field(default_factory=list, repr=False)
+    _all_items: list[WorkItem] = field(default_factory=list, repr=False)
+    start_cycle: int = 0
+    plan_ms: float = 0.0
 
     @property
     def verify_proc_ids(self):
@@ -345,6 +349,45 @@ class AdmissionPlan:
     @property
     def remaining_tokens(self) -> int:
         return self.token_budget - self.used_tokens
+
+
+
+def cost_features(item, sl=None):
+    """(cached context, actual forward tokens), shared by ranking/execution."""
+    if isinstance(item, Mapping):
+        if "_cost_features" in item:
+            return tuple(item["_cost_features"])
+        context = int(item.get("_cached_context", 0))
+        if item["task_type"] == "prefill":
+            return context, int(item["draft_output"].shape[1]) - context
+        bridge = max(0, int(item["prefix_len"]) - context)
+        return context, int(item["gamma"]) + bridge
+    if sl is None:
+        raise ValueError("WorkItem cost features require its actual slice")
+    context = sl.offset if item.task_type == "prefill" else item.base_prefix_len + sl.offset - int(sl.includes_bridge)
+    return max(0, context), sl.forward_token_count
+
+
+def transition_work_item(item, sl, *, start_cycle, next_cycle,
+                         progress=None, completed=False, category_for=None):
+    """Pure, idempotent state transition used by projection and commit."""
+    result = replace(item, request=dict(item.request))
+    if sl is not None:
+        advance = sl.draft_token_count if progress is None else int(progress)
+        target = sl.offset + max(0, min(sl.draft_token_count, advance))
+        result.cursor = max(item.cursor, target)
+        result.last_served_cycle, result.missed_cycles = next_cycle, 0
+        if item.task_type == "verify":
+            result.accepted_so_far = max(item.accepted_so_far, target)
+            result.bridge_pending = 0
+        result.finished = (item.finished or completed or result.remaining_tokens <= 0
+                           or (item.task_type == "verify" and advance < sl.draft_token_count))
+        result.state = "finished" if result.finished else "ready"
+    elif item.task_type == "prefill" and not item.finished:
+        result.missed_cycles += max(0, next_cycle - max(start_cycle, item.enqueue_cycle))
+    if category_for is not None and item.task_type == "prefill":
+        result.category = category_for(result)
+    return result
 
 
 def _normalise_queues(queues: Mapping[str, Any]) -> dict[str, dict[str, list[WorkItem]]]:
@@ -472,6 +515,7 @@ def plan_iteration(
     intentionally ignored.  Call :func:`commit_admission_plan` only after the
     corresponding forward succeeds.
     """
+    plan_started = time.perf_counter()
     if token_budget <= 0:
         raise ValueError("token_budget must be positive")
     if max_num_seqs <= 0:
@@ -515,7 +559,8 @@ def plan_iteration(
                 def progress_key(candidate):
                     wait = _wait_seconds(candidate.request, now)
                     urgent = candidate.is_overdue_prefill or wait >= max_wait_s
-                    value = (candidate_value(candidate, verify + prefill) if candidate_value is not None
+                    candidate_slice = _make_slice(candidate, token_budget - used, prefill_chunk_quantum, min_prefill_chunk_tokens)
+                    value = (candidate_value(candidate, candidate_slice, verify + prefill) if candidate_value is not None
                              else _priority(candidate, accept_stats, now))
                     return urgent, wait if urgent else 0.0, value
                 item = max(candidates, key=progress_key, default=None)
@@ -563,33 +608,25 @@ def plan_iteration(
         slots_consumed=slots,
         selected_work_ids=[s.work_id for s in verify + prefill],
         _selected_items=[item for item in _all_candidates(state, set(), reserved) if item.work_id in selected],
+        _all_items=[item for cats in state.values() for items in cats.values() for item in items],
+        start_cycle=int(current_cycle),
+        plan_ms=(time.perf_counter() - plan_started) * 1000,
     )
 
 
-def project_after_plan(queues, plan):
-    """Optimistic all-accept projection; never mutate live scheduler state.
-
-    Rejection can only retire a projected Verify earlier. It cannot invalidate
-    cache contents because prefetch still enforces active/version protection.
-    """
+def project_after_plan(queues, plan, *, category_for=None):
+    """Optimistic all-accept projection using the real commit transition."""
     state = _normalise_queues(queues)
     slices = {s.work_id: s for s in plan.verify_slices + plan.prefill_slices}
     result = {t: {c: [] for c in cats} for t, cats in state.items()}
     for task_type, categories in state.items():
-        for category, items in categories.items():
+        for items in categories.values():
             for item in items:
-                projected = replace(item, request=dict(item.request))
-                sl = slices.get(item.work_id)
-                if sl is not None:
-                    projected.cursor = max(item.cursor, sl.offset + sl.draft_token_count)
-                    projected.state = "ready"
-                    projected.last_served_cycle = plan.next_cycle
-                    projected.missed_cycles = 0
-                    if item.task_type == "verify":
-                        projected.accepted_so_far = max(item.accepted_so_far, projected.cursor)
-                        projected.bridge_pending = 0
+                projected = transition_work_item(item, slices.get(item.work_id),
+                    start_cycle=plan.start_cycle, next_cycle=plan.next_cycle,
+                    category_for=category_for)
                 if not projected.finished and projected.remaining_tokens > 0:
-                    result[task_type][category].append(projected)
+                    result[task_type][projected.category].append(projected)
     return result
 
 
@@ -600,22 +637,20 @@ def reserve_admission_plan(plan: AdmissionPlan) -> None:
         item.state = "reserved"
 
 
-def commit_admission_plan(
-    plan: AdmissionPlan,
-    completed_work_ids: Iterable[str] = (),
-    progress: Mapping[str, int] | None = None,
-) -> None:
+def commit_admission_plan(plan, completed_work_ids=(), progress=None, *,
+                          all_items=None, category_for=None):
     completed = set(completed_work_ids)
-    by_id = {item.work_id: item for item in plan._selected_items}
     slices = {s.work_id: s for s in plan.verify_slices + plan.prefill_slices}
-    for work_id, item in by_id.items():
-        sl = slices[work_id]
-        actual_progress = sl.draft_token_count if progress is None else int(progress.get(work_id, sl.draft_token_count))
-        item.cursor = max(item.cursor, sl.offset + max(0, actual_progress))
-        item.last_served_cycle = plan.next_cycle
-        item.missed_cycles = 0
-        item.state = "finished" if work_id in completed or item.remaining_tokens <= 0 else "ready"
-        item.finished = item.state == "finished"
+    items = list(all_items) if all_items is not None else plan._all_items or plan._selected_items
+    for item in items:
+        sl = slices.get(item.work_id)
+        actual = progress.get(item.work_id, sl.draft_token_count) if progress is not None and sl is not None else None
+        updated = transition_work_item(item, sl, start_cycle=plan.start_cycle,
+            next_cycle=plan.next_cycle, progress=actual,
+            completed=item.work_id in completed, category_for=category_for)
+        for name in ("cursor", "last_served_cycle", "missed_cycles", "state", "finished",
+                     "accepted_so_far", "bridge_pending", "category"):
+            setattr(item, name, getattr(updated, name))
 
 
 def abort_admission_plan(plan: AdmissionPlan) -> None:
