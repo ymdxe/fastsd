@@ -1,0 +1,78 @@
+{
+  "source_sha": "23e10fa3207e3a64b4156e8e80a525250b5f7741",
+  "source_dirty": false,
+  "tests": {
+    "total": 256,
+    "passed": 253,
+    "skipped": 3,
+    "failed": 0,
+    "seconds": 33.279,
+    "skip_reason": "FASTSD_LLAMA_MODEL_PATH not configured"
+  },
+  "planner": {
+    "32": {
+      "plan": {
+        "median_ms": 2.0802414510399103,
+        "p95_ms": 2.112249843776226
+      },
+      "lookahead": {
+        "median_ms": 2.0031039603054523,
+        "p95_ms": 2.0328788086771965
+      },
+      "iterations": 100
+    },
+    "64": {
+      "plan": {
+        "median_ms": 4.16720169596374,
+        "p95_ms": 4.257297143340111
+      },
+      "lookahead": {
+        "median_ms": 4.305680049583316,
+        "p95_ms": 4.370431881397963
+      },
+      "iterations": 100
+    }
+  },
+  "gpu": {
+    "off": {
+      "forward": {
+        "median_ms": 4.2393598556518555,
+        "p95_ms": 4.347904205322266
+      },
+      "speculative_dma_forward_overlap_ms": 0,
+      "output_parity": true
+    },
+    "protect_forward": {
+      "forward": {
+        "median_ms": 4.2485761642456055,
+        "p95_ms": 4.320256233215332
+      },
+      "speculative_dma_forward_overlap_ms": 0,
+      "output_parity": true
+    },
+    "overlap": {
+      "forward": {
+        "median_ms": 4.968448162078857,
+        "p95_ms": 5.185632228851318
+      },
+      "speculative_dma_forward_overlap_ms": 9.353758811950684,
+      "output_parity": true
+    }
+  },
+  "gpu_shape": {
+    "model": "random tiny Llama",
+    "batch": 1,
+    "context": 512,
+    "gamma": 4,
+    "dtype": "float32",
+    "gpu": "NVIDIA RTX A6000"
+  },
+  "gpu_visible_device": "3",
+  "scope": "tiny random model correctness / dependency probe, not production-model performance",
+  "evidence_sha256": {
+    "final-tests.log": "10c1f6125c24db8576b0673237a3f9ec8902c0dc6f0195a3275e105ccbff1112",
+    "microbench.json": "464c7917092e7f9d3d67aae4ac3a6313227826412cf3c1e7735baddcb9f35709",
+    "runtime-manifest.json": "f91283e13b09777bc868ff24f7dca395ba52528dada48ebd751c0c5d7affc969"
+  },
+  "frozen_package": "round2-validation/runtime-package"
+}
