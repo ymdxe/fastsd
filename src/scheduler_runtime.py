@@ -439,28 +439,41 @@ def terminate_pending_work_items(
 # ---------------------------------------------------------------------------
 # Cache residency / generation tracking
 # ---------------------------------------------------------------------------
+from .cache_protocol import CacheSnapshot, KVTransferTicket
+
+
 class CacheResidency:
-    """GPU-resident KV cache bookkeeping shared by all three threads.
+    """Content generations are independent of reserve/activate ownership."""
 
-    ``resident`` is the set of pids whose cache is known to be on the GPU.
-    ``active`` is the batch currently inside a forward (including its rollback
-    window); ``reserved`` covers WorkItems already admitted into a plan but
-    not yet forwarded.  Both sets are protected from prefetch eviction and
-    from installing a copy produced by the prefetch thread.
-
-    ``versions[pid]`` is bumped whenever the control/executor side may mutate
-    or replace that cache.  A prefetch copy is installed only if the version,
-    object identity and sequence length all still match the snapshot, so a
-    copy that raced with a forward cannot overwrite newer contents just
-    because the pid is unchanged.
-    """
-
-    def __init__(self, lock: Optional[threading.RLock] = None) -> None:
+    def __init__(self, lock=None):
         self.lock = lock or threading.RLock()
-        self.resident: set[Any] = set()
-        self.active: set[Any] = set()
-        self.reserved: set[Any] = set()
-        self.versions: dict[Any, int] = {}
+        self.resident, self.active, self.reserved = set(), set(), set()
+        self.versions, self.epochs, self.owners = {}, {}, {}
+        self.candidates = {}
+        self._next_epoch = 0
+
+    def snapshot_locked(self, pid, cache):
+        if pid not in self.epochs:
+            self._next_epoch += 1
+            self.epochs[pid] = self._next_epoch
+        return CacheSnapshot.capture(cache, session_epoch=self.epochs[pid],
+                                     content_version=self.versions.get(pid, 0))
+
+    def claim_locked(self, pid, cache, job_id):
+        snapshot = self.snapshot_locked(pid, cache)
+        ticket = self.candidates.get(pid)
+        if ticket is None or not ticket.matches(snapshot):
+            return None
+        self.candidates.pop(pid)
+        ticket.claimed_by = job_id
+        return ticket
+
+    def retire_session_locked(self, pid):
+        self.epochs.pop(pid, None)
+        self.versions.pop(pid, None)
+        self.owners.pop(pid, None)
+        self.resident.discard(pid)
+        return self.candidates.pop(pid, None)
 
     def bump(self, pids: Iterable[Any]) -> None:
         with self.lock:
@@ -471,7 +484,7 @@ class CacheResidency:
         with self.lock:
             for pid in pids:
                 self.active.add(pid)
-                self.versions[pid] = self.versions.get(pid, 0) + 1
+                self.owners[pid] = self.owners.get(pid, 0) + 1
 
     def deactivate(self, pids: Iterable[Any]) -> None:
         with self.lock:
@@ -481,7 +494,7 @@ class CacheResidency:
         with self.lock:
             for pid in pids:
                 self.reserved.add(pid)
-                self.versions[pid] = self.versions.get(pid, 0) + 1
+                self.owners[pid] = self.owners.get(pid, 0) + 1
 
     def release(self, pids: Iterable[Any]) -> None:
         with self.lock:
@@ -558,11 +571,13 @@ class PrefetchCoordinator:
             self.metrics["prefetch_empty_desired"] += 1
             if self._last_desired == frozenset():
                 self.metrics["prefetch_desired_unchanged"] += 1
+            if self._last_desired:
+                self._submit(frozenset())
             self._last_desired = frozenset()
             return False
 
         current = set(self._resident_snapshot())
-        stale = (current - desired) - protected
+        stale = set()  # prediction never evicts an official cache
         to_gpu = (desired - current) - protected
 
         if self._last_desired == desired:
@@ -621,7 +636,9 @@ class KVPrefetchWorker:
         on_error: Optional[Callable[[str], None]] = None,
         queue_maxsize: int = 1,
         thread_setup: Optional[Callable[[], None]] = None,
+        transfers=None,
     ) -> None:
+        self.transfers = transfers
         self.residency = residency
         self._get_cache = get_cache
         self._set_cache = set_cache
@@ -720,8 +737,18 @@ class KVPrefetchWorker:
     def _run(self) -> None:
         while not self._stop.is_set():
             try:
-                desired = self._tasks.get(timeout=0.1)
+                desired = self._tasks.get(timeout=0.005)
             except queue.Empty:
+                with self._state_lock:
+                    desired = self._latest_intent
+                if desired:
+                    try:
+                        self._execute(desired)
+                    except Exception as exc:
+                        self.metrics["prefetch_async_failed"] += 1
+                        self.metrics["prefetch_async_last_error"] = str(exc)
+                else:
+                    self._advance_candidates()
                 continue
             try:
                 if self._thread_setup is not None:
@@ -743,81 +770,76 @@ class KVPrefetchWorker:
             finally:
                 self._decrement_pending()
 
-    def _execute(self, desired: frozenset) -> int:
-        residency = self.residency
-        with residency.lock:
-            protected = set(residency.active) | set(residency.reserved)
-            resident = set(residency.resident)
-            stale = sorted(resident - desired - protected)
-            to_gpu = sorted(desired - resident - protected)
-            transfers = [(pid, False) for pid in stale] + [(pid, True) for pid in to_gpu]
+    def _retire(self, ticket):
+        if self.transfers is not None:
+            self.transfers.retire(ticket)
+        else:
+            ticket.retired = True
+            ticket.copy_state = "invalid-draining"
 
-        moved_count = 0
-        skipped = 0
-        for pid, load_to_gpu in transfers:
-            # Clear the preceding transfer's references before allocating a
-            # new GPU cache. Snapshot only this transfer, never all caches.
-            cache = moved_cache = current = None
-            with residency.lock:
-                if pid in residency.active or pid in residency.reserved:
-                    continue
+    def _execute(self, desired: frozenset) -> int:
+        # Background publishes candidates only. Formal cache ownership is
+        # transferred atomically by admission and installed by the executor.
+        residency = self.residency
+        stale = []
+        with residency.lock:
+            for pid, ticket in list(residency.candidates.items()):
                 cache = self._get_cache(pid)
-                version = residency.versions.get(pid, 0)
-                seq_len = cache.get_seq_length() if cache is not None else 0
+                matches = cache is not None and ticket.matches(residency.snapshot_locked(pid, cache))
+                if pid not in desired or not matches:
+                    stale.append(residency.candidates.pop(pid))
+            to_gpu = sorted(desired - residency.resident - residency.active - residency.reserved)
+        for ticket in stale:
+            self._retire(ticket)
+        moved = 0
+        for pid in to_gpu:
             if self._is_superseded(desired):
-                # A newer intent replaced this one while it was executing.
-                # Its transfers must not evict/install anything; the newer
-                # intent will be executed with a fresh residency snapshot.
                 self.metrics["prefetch_async_superseded"] += 1
                 break
-            if cache is None:
-                # Nothing to copy.  Drop stale residency bookkeeping for an
-                # evicted/retired pid without inventing a cache.
-                if not load_to_gpu:
-                    with residency.lock:
-                        if (
-                            not self._is_superseded(desired)
-                            and residency.versions.get(pid, 0) == version
-                        ):
-                            residency.resident.discard(pid)
-                else:
-                    self.metrics["prefetch_async_missing_cache"] += 1
-                continue
-            target_device = self._gpu_device if load_to_gpu else "cpu"
-            moved_cache = self._move_cache(cache, target_device)
-            if not load_to_gpu:
-                # Reclaim the evicted GPU allocation before starting a load.
-                # The source must remain alive until its D2H DMA completes.
-                ready = getattr(moved_cache, "_fastsd_ready_event", None)
-                if ready is not None:
-                    ready.synchronize()
             with residency.lock:
+                if pid in residency.active or pid in residency.reserved or pid in residency.candidates:
+                    continue
+                cache = self._get_cache(pid)
+                if cache is None:
+                    self.metrics["prefetch_async_missing_cache"] += 1
+                    continue
+                snapshot = residency.snapshot_locked(pid, cache)
+            # Buffer preparation and submission never hold the registry lock.
+            # Production submit_h2d(prefetch) only prepares; no DMA until the
+            # ticket is published, so a concurrent demand cannot double-copy.
+            if self.transfers is not None:
+                ticket = self.transfers.submit_h2d(snapshot, purpose="prefetch")
+                if ticket is None:
+                    continue
+            else:
+                ticket = KVTransferTicket(snapshot, "prefetch",
+                    destination_cache=self._move_cache(cache, self._gpu_device),
+                    source_lease=cache, copy_state="ready")
+            with residency.lock:
+                current = self._get_cache(pid)
+                valid = (not self._is_superseded(desired)
+                         and pid not in residency.active and pid not in residency.reserved
+                         and current is cache
+                         and ticket.matches(residency.snapshot_locked(pid, current)))
+                if valid:
+                    residency.candidates[pid] = ticket
+                    moved += 1
+            if not valid:
+                self._retire(ticket)
+                self.metrics["prefetch_async_skipped_stale"] += 1
                 if self._is_superseded(desired):
                     self.metrics["prefetch_async_superseded"] += 1
-                    break
-                current = self._get_cache(pid)
-                installable = (
-                    pid not in residency.active
-                    and pid not in residency.reserved
-                    and current is cache
-                    and residency.versions.get(pid, 0) == version
-                    and current.get_seq_length() == seq_len
-                )
-                if not installable:
-                    skipped += 1
-                    continue
-                self._set_cache(pid, moved_cache)
-                if load_to_gpu:
-                    residency.resident.add(pid)
-                else:
-                    residency.resident.discard(pid)
-                # Any copy taken from this generation is now outdated.
-                residency.bump_locked(pid)
-                moved_count += 1
+        self._advance_candidates()
+        return moved
 
-        if skipped:
-            self.metrics["prefetch_async_skipped_stale"] += skipped
-        return moved_count
+    def _advance_candidates(self):
+        if self.transfers is None:
+            return
+        self.transfers.poll_completed()
+        with self.residency.lock:
+            candidates = list(self.residency.candidates.values())
+        for ticket in candidates:
+            self.transfers.advance_prefetch(ticket)
 
 
 # ---------------------------------------------------------------------------

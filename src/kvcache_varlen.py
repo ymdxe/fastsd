@@ -35,6 +35,38 @@ from .util import norm_logits, sample
 from .cache_views import dynamic_cache_from_views
 
 
+
+def sliding_attention_layers(model):
+    """Inspect effective layer types, not a dormant sliding_window setting."""
+    config = getattr(model, "config", None)
+    types = getattr(config, "layer_types", None)
+    enabled = getattr(config, "use_sliding_window", None)
+    found = []
+    for index, layer in enumerate(getattr(getattr(model, "model", None), "layers", ())):
+        attention = getattr(layer, "self_attn", None)
+        layer_type = getattr(attention, "attention_type", getattr(layer, "attention_type", None))
+        declared = types[index] if types is not None and index < len(types) else None
+        actual_window = getattr(attention, "sliding_window", None)
+        # Effective per-layer settings take precedence over a disabled global
+        # default: mixed checkpoints may explicitly instantiate sliding layers.
+        active = (layer_type == "sliding_attention" or declared == "sliding_attention"
+                  or (actual_window is not None and actual_window > 0))
+        if not active and declared != "full_attention" and layer_type != "full_attention" and enabled:
+            window = getattr(config, "sliding_window", None)
+            max_layers = getattr(config, "max_window_layers", None)
+            active = bool(window and (max_layers is None or index < max_layers))
+        if active:
+            found.append(index)
+    return found
+
+
+def require_full_attention(model):
+    if sliding_attention_layers(model):
+        raise ValueError("FastSD KV backends currently support full causal attention only; "
+                         "this checkpoint enables sliding_attention layers. Sliding mask, "
+                         "cache logical lengths and rollback are not supported.")
+
+
 def supports_varlen_model(model) -> bool:
     """Recognize the decoder layout used by Llama and the existing Qwen3 path.
 
@@ -42,6 +74,8 @@ def supports_varlen_model(model) -> bool:
     and custom remote-code models need not expose the same decoder layout.
     Dynamic RoPE changes cached-key semantics and is not supported here.
     """
+    if sliding_attention_layers(model):
+        return False
     config = getattr(model, "config", None)
     model_type = getattr(config, "model_type", None)
     decoder = getattr(model, "model", None)

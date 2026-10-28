@@ -1,6 +1,7 @@
 import os
 import json
 from dataclasses import dataclass, field
+from contextlib import nullcontext
 import torch
 import transformers
 import warnings
@@ -15,7 +16,7 @@ from abc import ABC, abstractmethod
 from accelerate import Accelerator
 from .kvcache import KVCacheModel
 from .kvcache_batching import KVCacheModel_batching
-from .kvcache_varlen import varlen_generate, supports_varlen_model
+from .kvcache_varlen import varlen_generate, supports_varlen_model, require_full_attention
 from .kvcache4RC import KVCacheModel as KVCache2Model
 from .cache_offload_policy import should_offload_target_cache
 from .session_lifecycle import SessionLifecycle
@@ -94,6 +95,8 @@ class _ExecutionJob:
     completed: set = field(default_factory=set)
     progress: dict = field(default_factory=dict)
     verify_applied: bool = False
+    cache_tickets: dict = field(default_factory=dict)
+    ready_at: float = field(default_factory=time.monotonic)
 
 
 class Decoding(ABC):
@@ -776,6 +779,11 @@ class Decoding(ABC):
         target_model = self._load_target_model_for_service(
             self.args.target_model, self._service_target_device()
         )
+        require_full_attention(target_model)
+        compute_stream = None
+        if target_model.device.type == "cuda":
+            compute_stream = torch.cuda.Stream(device=target_model.device)
+            compute_stream.wait_stream(torch.cuda.current_stream(target_model.device))
         self.vocab_size = self.args.vocab_size
         energy_service = self._maybe_start_energy_service()
 
@@ -883,12 +891,10 @@ class Decoding(ABC):
 
         def cleanup_session(pid):
             with cache_lock:
-                residency.bump_locked(pid)
+                ticket = residency.retire_session_locked(pid)
                 kv_cache_manager.reset(pid)
-                residency.resident.discard(pid)
-                # In-flight prefetch installation also checks cache identity.
-                # Removing this entry does not let a stale copy resurrect it.
-                residency.versions.pop(pid, None)
+            if ticket is not None:
+                transfers.retire(ticket)
             with accept_stats_lock:
                 accept_stats.pop(pid, None)
             for store in (committed_prefix_tokens, sampling_generators, verify_time_ema,
@@ -1060,8 +1066,54 @@ class Decoding(ABC):
             target_model.device,
             enabled=bool(getattr(self.args, "async_kv_transfer", True)),
             pinned_pool_bytes=int(getattr(self.args, "pinned_pool_mb", 128)) * 1024 ** 2,
+            mode=getattr(self.args, "kv_prefetch_mode", "protect_forward"),
+            prefetch_bytes=int(getattr(self.args, "kv_prefetch_mb", 64)) * 1024 ** 2,
+            chunk_bytes=int(getattr(self.args, "kv_prefetch_chunk_kb", 4096)) * 1024,
+            headroom_bytes=int(getattr(self.args, "kv_headroom_mb", 512)) * 1024 ** 2,
         )
-        move_dynamic_cache_to = transfers.move
+        phase_leases = []
+
+        def acquire_cache(req):
+            pid = req["proc_id"]
+            with cache_lock:
+                cache = kv_cache_manager._past_key_values[pid]
+                snapshot = residency.snapshot_locked(pid, cache)
+                ticket = req.pop("_cache_ticket", None)
+            if ticket is not None and not ticket.matches(snapshot):
+                transfers.retire(ticket)
+                ticket = None
+            if ticket is None:
+                ticket = transfers.submit_h2d(snapshot, purpose="demand")
+                if cache.to_legacy_cache() and cache.to_legacy_cache()[0][0].device != target_model.device:
+                    scheduler_metrics["prefetch_demand_miss"] = scheduler_metrics.get("prefetch_demand_miss", 0) + 1
+            lease = transfers.bind_to_consumer(ticket, compute_stream=compute_stream)
+            # Establish only this PID's dependency before any cache mutation.
+            transfers.protect_source_write(lease.cache, producer_stream=compute_stream)
+            phase_leases.append(lease)
+            with cache_lock:
+                kv_cache_manager._past_key_values[pid] = lease.cache
+            return lease.cache
+
+        forward_measurements = []
+        current_batch = []
+
+        def timed_forward(callback, *args, **kwargs):
+            start = end = None
+            if compute_stream is not None:
+                # Host alignment gives plan-ready -> actual forward launch,
+                # including this batch's data wait. No unrelated copy waited.
+                compute_stream.synchronize()
+                start, end = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)
+                start.record(compute_stream)
+            launched = time.monotonic()
+            for req in current_batch:
+                req["_batch_start_delay_ms"] = (launched - req.get("_plan_ready_at", launched)) * 1000.0
+            result = callback(*args, **kwargs)
+            if end is not None:
+                end.record(compute_stream)
+                end.synchronize()
+                forward_measurements.append(start.elapsed_time(end))
+            return result
 
         def cache_memory_pressure():
             if target_model.device.type != "cuda":
@@ -1071,49 +1123,62 @@ class Decoding(ABC):
             return free < reserve
 
         def finish_cache_phase(batch):
-            # Retain unfinished work across slices. Under pressure fall back
-            # to offload; the lookahead worker may evict it when other work is
-            # predicted to run first.
-            with cache_lock:
-                for req in batch:
-                    pid = req["proc_id"]
-                    transfers.mark_computed(kv_cache_manager._past_key_values[pid])
-                    continuing = (not req.get("_prefill_final", True)
-                                  if req["task_type"] == "prefill"
-                                  else bool(req.get("_internal_chunk_nonfinal", False)))
+            pressure = cache_memory_pressure()
+            for req in batch:
+                pid = req["proc_id"]
+                with cache_lock:
                     cache = kv_cache_manager._past_key_values[pid]
-                    offload = should_offload_target_cache(
-                        req["task_type"], pid=pid, pinned_gpu_pids=preloaded_gpu_pids,
-                        continuing=continuing, memory_pressure=cache_memory_pressure(),
-                    )
+                transfers.mark_computed(cache, producer_stream=compute_stream)
+                continuing = (not req.get("_prefill_final", True)
+                              if req["task_type"] == "prefill"
+                              else bool(req.get("_internal_chunk_nonfinal", False)))
+                offload = should_offload_target_cache(
+                    req["task_type"], pid=pid, pinned_gpu_pids=preloaded_gpu_pids,
+                    continuing=continuing, memory_pressure=pressure)
+                # Allocation and DMA submission are outside the registry lock.
+                moved = transfers.submit_d2h(cache).destination_cache if offload else cache
+                with cache_lock:
+                    kv_cache_manager._past_key_values[pid] = moved
+                    residency.bump_locked(pid)
                     if offload:
-                        kv_cache_manager._past_key_values[pid] = move_dynamic_cache_to(cache, "cpu")
                         preloaded_gpu_pids.discard(pid)
                     elif target_model.device.type == "cuda":
                         preloaded_gpu_pids.add(pid)
 
         # --------------------- 批量处理（Prefill / Verify） ----------------
         def handle_request_batch(batch: list[dict], return_responses: bool = False):
-            """
-            batch : 同一种 task_type (全部 prefill or 全部 verify)
-            """
-            kv_batch_mode = requested_kv_batch_mode
             proc_ids = [req["proc_id"] for req in batch]
-            # Mark this batch's caches as active for the whole forward +
-            # rollback window so the async prefetch worker never evicts or
-            # moves a cache the main thread is currently using.  Activation
-            # also bumps each pid's cache generation, invalidating any prefetch
-            # copy that was snapshotted before this forward.
             residency.activate(proc_ids)
+            transfers.begin_execution()
+            phase_leases.clear()
+            forward_measurements.clear()
+            current_batch[:] = batch
             try:
                 started = time.perf_counter()
-                result = _handle_request_batch_inner(batch, return_responses, kv_batch_mode, proc_ids)
-                rows = [(int(req["prefix_len"]), int(req.get("_forward_tokens", req.get("gamma") or req["draft_output"].shape[1])))
-                        for req in batch]
-                with batch_cost_lock:
-                    batch_cost.observe(batch[0]["task_type"], rows, time.perf_counter() - started)
-                return result
+                with torch.cuda.stream(compute_stream) if compute_stream is not None else nullcontext():
+                    result = _handle_request_batch_inner(batch, True, requested_kv_batch_mode, proc_ids)
+                    stall = sum(lease.exposed_stall_ms() for lease in phase_leases)
+                    gpu_ms = sum(forward_measurements)
+                    for req in batch:
+                        payload = result.get(req["proc_id"])
+                        if payload is not None:
+                            payload.update(forward_gpu_ms=gpu_ms,
+                                exposed_h2d_stall_ms=stall,
+                                batch_start_delay_ms=req.get("_batch_start_delay_ms", 0.0))
+                    rows = [(int(req["prefix_len"]), int(req.get("_forward_tokens", req.get("gamma") or req["draft_output"].shape[1])))
+                            for req in batch]
+                    with batch_cost_lock:
+                        batch_cost.observe(batch[0]["task_type"], rows, time.perf_counter() - started)
+                if not return_responses:
+                    for req in batch:
+                        payload = result.get(req["proc_id"])
+                        if payload is not None:
+                            response_queues[req.get("response_key", req["proc_id"])].put(payload)
+                return result if return_responses else None
             finally:
+                for lease in phase_leases:
+                    transfers.release_consumer(lease, compute_stream=compute_stream)
+                transfers.end_execution(compute_stream=compute_stream)
                 residency.deactivate(proc_ids)
 
         def _handle_request_batch_inner(
@@ -1144,18 +1209,10 @@ class Decoding(ABC):
                         if pid not in [req["proc_id"] for req, cont in zip(batch, continuation) if cont]:
                             kv_cache_manager.reset(pid)
 
+                for req, cont in zip(batch, continuation):
+                    if cont:
+                        acquire_cache(req)
                 if kv_batch_mode == "varlen":
-                    # Padding-free path: linear layers run on the concatenation
-                    # of real tokens and attention runs per sequence. Fresh rows
-                    # pass the full prompt as residual (cache was reset above);
-                    # continuation rows pass only the new chunk.
-                    with cache_lock:
-                        for pid, cont in zip(proc_ids, continuation):
-                            if cont:
-                                cache = kv_cache_manager._past_key_values[pid]
-                                kv_cache_manager._past_key_values[pid] = move_dynamic_cache_to(
-                                    cache, target_model.device
-                                )
                     residuals = []
                     for pid, cont, x in zip(proc_ids, continuation, seqs):
                         if cont:
@@ -1163,7 +1220,7 @@ class Decoding(ABC):
                             residuals.append(x[:, cached_len:])
                         else:
                             residuals.append(x)
-                    varlen_generate(
+                    timed_forward(varlen_generate,
                         kv_cache_manager,
                         target_model,
                         residuals,
@@ -1190,14 +1247,7 @@ class Decoding(ABC):
                         # A continuation batch may contain fresh and existing
                         # rows; forward_new_tokens routes them to the correct
                         # primitive while preserving per-row lengths.
-                        with cache_lock:
-                            for pid, cont in zip(proc_ids, continuation):
-                                if cont:
-                                    cache = kv_cache_manager._past_key_values[pid]
-                                    kv_cache_manager._past_key_values[pid] = move_dynamic_cache_to(
-                                        cache, target_model.device
-                                    )
-                        kv_cache_manager.forward_new_tokens(
+                        timed_forward(kv_cache_manager.forward_new_tokens,
                             x_batch,
                             proc_ids=proc_ids,
                             pad_token_id=tokenizer.pad_token_id,
@@ -1206,7 +1256,7 @@ class Decoding(ABC):
                             sample_next=False,
                         )
                     else:
-                        kv_cache_manager.generate(
+                        timed_forward(kv_cache_manager.generate,
                             x_batch,
                             1,
                             proc_ids=proc_ids,
@@ -1222,26 +1272,10 @@ class Decoding(ABC):
                 debug_enabled = getattr(self.args, "debug_verify_tokens", False)
                 debug_tail = 16
 
-                # verify前，将KV cache移回GPU以供推理使用
                 with cache_lock:
                     preloaded_gpu_pids.difference_update(proc_ids)
-                    for req, pid in zip(batch, proc_ids):
-                        if debug_enabled:
-                            cached_len = kv_cache_manager._past_key_values[pid].get_seq_length()
-                            req_prefix_len = req["prefix_len"]
-                            recv_tokens = req["draft_output"][0].tolist()
-                            self.color_print(
-                                f"[VERIFY-CHECK][pid={pid}] cached_len={cached_len} "
-                                f"prefix_len={req_prefix_len} same={cached_len == req_prefix_len}",
-                                3,
-                            )
-                            self.color_print(
-                                f"[VERIFY-CLOUD-RECV][pid={pid}] tail_ids={recv_tokens[-debug_tail:]} "
-                                f"prefix_tail_ids={recv_tokens[max(0, req_prefix_len - debug_tail):req_prefix_len]}",
-                                3,
-                            )
-                        cache = kv_cache_manager._past_key_values[pid]
-                        kv_cache_manager._past_key_values[pid] = move_dynamic_cache_to(cache, target_model.device)
+                for req in batch:
+                    acquire_cache(req)
 
                 verify_compute_start = time.perf_counter()
                 gpu_start = gpu_end = None
@@ -1259,7 +1293,7 @@ class Decoding(ABC):
                             residuals.append(x)
                         else:
                             residuals.append(x[:, cached_len:])
-                    _ = varlen_generate(
+                    _ = timed_forward(varlen_generate,
                         kv_cache_manager,
                         target_model,
                         residuals,
@@ -1307,7 +1341,7 @@ class Decoding(ABC):
                         else:
                             padded_verify.append(x)
                     x_batch = torch.cat(padded_verify, dim=0)
-                    _ = kv_cache_manager.generate(
+                    _ = timed_forward(kv_cache_manager.generate,
                         x_batch,
                         1,
                         proc_ids=proc_ids,
@@ -1580,7 +1614,8 @@ class Decoding(ABC):
             residency=residency,
             get_cache=_cache_get,
             set_cache=_cache_set,
-            move_cache=move_dynamic_cache_to,
+            move_cache=transfers.move,
+            transfers=transfers,
             gpu_device=target_model.device,
             metrics=scheduler_metrics,
             on_error=lambda message: self.color_print(
@@ -1590,7 +1625,7 @@ class Decoding(ABC):
         )
         prefetch_coordinator = PrefetchCoordinator(
             submit=prefetch_worker.submit,
-            resident_snapshot=residency.resident_snapshot,
+            resident_snapshot=lambda: residency.resident_snapshot() | set(residency.candidates),
             protected_snapshot=residency.protected_snapshot,
             metrics=scheduler_metrics,
             pending_snapshot=prefetch_worker.has_pending,
@@ -1718,11 +1753,6 @@ class Decoding(ABC):
             if not prefetch_enabled or not getattr(self.args, "kv_prefetch", True):
                 return
             plan = in_flight["plan"]
-            if plan is None and (executor is None or not executor.busy()):
-                # A forward is not running: the next plan will be admitted
-                # momentarily.  Prefetching it here would race the reservation
-                # and be invalidated, so wait until a forward is in flight.
-                return
             if plan is not None:
                 lookahead = build_plan(
                     projected_plan=plan,
@@ -1748,17 +1778,26 @@ class Decoding(ABC):
             reserved_pids = {sl.proc_id for sl in plan.verify_slices} | {
                 sl.proc_id for sl in plan.prefill_slices
             }
+            ready_at = time.monotonic()
             reserve_admission_plan(plan)
-            # Protect pids for the entire admitted-but-not-yet-forwarded
-            # window, not just while handle_request_batch marks them active.
-            residency.reserve(reserved_pids)
+            transfers.admit()
+            tickets = {}
+            with cache_lock:
+                residency.reserve(reserved_pids)
+                for req in verify_batch + prefill_batch:
+                    pid = req["proc_id"]
+                    req["_plan_ready_at"] = ready_at
+                    cache = kv_cache_manager._past_key_values.get(pid)
+                    if cache is not None:
+                        ticket = residency.claim_locked(pid, cache, id(plan))
+                        if ticket is not None:
+                            key = "prefetch_ready_hit" if ticket.ready() else "prefetch_pending_hit"
+                            scheduler_metrics[key] = scheduler_metrics.get(key, 0) + 1
+                            tickets[pid] = req["_cache_ticket"] = ticket
             job = _ExecutionJob(
-                plan=plan,
-                item_by_id=item_by_id,
-                verify_batch=verify_batch,
-                prefill_batch=prefill_batch,
-                reserved_pids=reserved_pids,
-            )
+                plan=plan, item_by_id=item_by_id, verify_batch=verify_batch,
+                prefill_batch=prefill_batch, reserved_pids=reserved_pids,
+                cache_tickets=tickets, ready_at=ready_at)
             in_flight["plan"] = plan
             scheduler_metrics["iterations"] += 1
             try:
@@ -1766,6 +1805,9 @@ class Decoding(ABC):
             except BaseException:
                 in_flight["plan"] = None
                 residency.release(reserved_pids)
+                transfers.release_admission()
+                for ticket in tickets.values():
+                    transfers.retire(ticket)
                 abort_admission_plan(plan)
                 raise
 
@@ -1960,9 +2002,12 @@ class Decoding(ABC):
                 residency.release(job.reserved_pids)
                 raise
             finally:
-                if outcome.final:
+                if outcome.final or outcome.error is not None:
                     in_flight["plan"] = None
                     residency.release(job.reserved_pids)
+                    transfers.release_admission()
+                    for ticket in job.cache_tickets.values():
+                        transfers.retire(ticket)
 
         # ---------------------- 主循环 -------------------------------
         sched_mode = getattr(self.args, "server_sched_mode", "fastsd")

@@ -48,7 +48,7 @@ class CacheTransferTests(unittest.TestCase):
         with torch.cuda.stream(stream):
             data = torch.arange(128, device="cuda", dtype=torch.float32).reshape(1, 2, 16, 4)
             cache = DynamicCache.from_legacy_cache([(data * 2, data + 3)])
-            transfers.mark_computed(cache)
+            transfers.mark_computed(cache, producer_stream=stream)
             host = transfers.move(cache, "cpu")
         del cache
         gc.collect()

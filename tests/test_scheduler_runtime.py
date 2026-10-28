@@ -271,7 +271,7 @@ class KVPrefetchWorkerTests(unittest.TestCase):
             metrics=metrics,
         ), residency
 
-    def test_loads_desired_and_evicts_stale_caches(self):
+    def test_publishes_candidate_without_evicting_formal_caches(self):
         metrics = runtime_metrics()
         a = FakeCache("a", 8, "cuda")
         b = FakeCache("b", 8, "cpu")
@@ -288,10 +288,11 @@ class KVPrefetchWorkerTests(unittest.TestCase):
             worker.stop()
             worker.join(2.0)
 
-        self.assertEqual(store["a"].device, "cpu")
-        self.assertEqual(store["b"].device, "cuda")
-        self.assertEqual(residency.resident, {"b"})
-        self.assertEqual(metrics["prefetch_async_moved"], 2)
+        self.assertIs(store["a"], a)
+        self.assertIs(store["b"], b)
+        self.assertEqual(residency.candidates["b"].destination_cache.device, "cuda")
+        self.assertEqual(residency.resident, {"a"})
+        self.assertEqual(metrics["prefetch_async_moved"], 1)
 
     def test_copy_racing_a_generation_bump_is_not_installed(self):
         metrics = runtime_metrics()
@@ -469,7 +470,7 @@ class KVPrefetchWorkerTests(unittest.TestCase):
             worker.submit({"b"})  # supersedes the in-flight intent
             release.set()
             self.assertTrue(
-                wait_until(lambda: store["b"].device == "cuda")
+                wait_until(lambda: "b" in residency.candidates)
             )
         finally:
             worker.stop()
@@ -477,7 +478,7 @@ class KVPrefetchWorkerTests(unittest.TestCase):
 
         self.assertEqual(store["a"].device, "cpu")
         self.assertNotIn("a", residency.resident)
-        self.assertIn("b", residency.resident)
+        self.assertIn("b", residency.candidates)
         self.assertGreaterEqual(metrics["prefetch_async_superseded"], 1)
 
     def test_move_failure_is_recorded_and_worker_survives(self):
@@ -507,7 +508,8 @@ class KVPrefetchWorkerTests(unittest.TestCase):
             worker.join(2.0)
 
         self.assertIn("copy failed", metrics["prefetch_async_last_error"])
-        self.assertEqual(store["p"].device, "cuda")
+        self.assertEqual(store["p"].device, "cpu")
+        self.assertEqual(residency.candidates["p"].destination_cache.device, "cuda")
 
 
 class ShutdownTerminationTests(unittest.TestCase):
@@ -1427,8 +1429,8 @@ class RuntimeIntegrationTests(unittest.TestCase):
             )
             self.assertTrue(
                 wait_until(
-                    lambda: "B" in harness.residency.resident
-                    and harness.cache_store["B"].device == "cuda"
+                    lambda: "B" in harness.residency.candidates
+                    and harness.residency.candidates["B"].destination_cache.device == "cuda"
                 ),
                 "B was not prefetched while A was in flight",
             )
