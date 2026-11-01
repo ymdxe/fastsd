@@ -2,7 +2,6 @@
 import hashlib
 import threading
 import time
-from collections import defaultdict
 
 
 def run_probe(model_path):
@@ -20,7 +19,16 @@ def run_probe(model_path):
     compute = torch.cuda.Stream()
     transfers = CacheTransferManager('cuda:0', mode='overlap', record_timeline=True)
     registry = CacheResidency()
-    metrics = defaultdict(int)
+    # Use the engine's plain-dict contract, so missing metric initialization
+    # cannot be hidden by a defaultdict during validation.
+    metrics = {name: 0 for name in (
+        'prefetch_async_submitted', 'prefetch_async_dropped',
+        'prefetch_async_completed', 'prefetch_async_moved',
+        'prefetch_async_failed', 'prefetch_async_skipped_stale',
+        'prefetch_async_superseded', 'prefetch_async_missing_cache',
+        'prefetch_pending_underflow')}
+    metrics['prefetch_async_last_error'] = None
+    worker_errors = []
     def manager():
         result = KVCacheModel_batching(model, temperature=0, attention_backend='sdpa_per_sequence')
         result.vocab_size = model.config.vocab_size
@@ -48,7 +56,7 @@ def run_probe(model_path):
     store = {'future': host}
     worker = KVPrefetchWorker(residency=registry, get_cache=store.get, set_cache=None,
         move_cache=transfers.move, transfers=transfers, gpu_device='cuda:0', metrics=metrics,
-        thread_setup=lambda: torch.cuda.set_device(0))
+        thread_setup=lambda: torch.cuda.set_device(0), on_error=worker_errors.append)
     worker.start()
     registry.reserve(pids)
     registry.activate(pids)
@@ -73,11 +81,19 @@ def run_probe(model_path):
         while time.monotonic() < deadline:
             with registry.lock:
                 ticket = registry.candidates.get('future')
-            if ticket is not None and ticket.ready():
+            if worker_errors:
+                raise AssertionError('Production prefetch worker failed: ' + repr(worker_errors))
+            if ticket is not None and ticket.ready() and metrics.get('prefetch_preparation_retries', 0) > 0:
                 break
             time.sleep(.001)
         if ticket is None or not ticket.ready():
             raise AssertionError('Production worker did not complete the predicted KV')
+        worker.stop()
+        worker.join(timeout=5)
+        if worker.is_alive() or worker_errors or metrics['prefetch_async_failed']:
+            raise AssertionError('Prefetch worker did not finish cleanly: ' + repr(metrics))
+        if metrics['prefetch_preparation_retries'] <= 0:
+            raise AssertionError('Plain-dict background retry path was not exercised')
         ticket_id = id(ticket)
         with registry.lock:
             registry.reserve(['future'])

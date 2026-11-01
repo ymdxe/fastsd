@@ -663,6 +663,9 @@ class KVPrefetchWorker:
         self._move_cache = move_cache
         self._gpu_device = gpu_device
         self.metrics = metrics
+        # Production callers supply a plain dict, including older metric
+        # schemas. Initialize the counter owned by this worker before it runs.
+        self.metrics.setdefault("prefetch_preparation_retries", 0)
         self._on_error = on_error
         self._thread_setup = thread_setup
         self._tasks: queue.Queue = queue.Queue(maxsize=queue_maxsize)

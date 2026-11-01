@@ -83,9 +83,34 @@ class PaperSchedulingTests(unittest.TestCase):
 class PrefetchPollingTests(unittest.TestCase):
     def worker(self, transfers, clock):
         cache = SimpleNamespace(get_seq_length=lambda: 4)
+        # The engine supplies an ordinary dict. Deliberately omit the new
+        # retry counter: the worker owns its initialization, including callers
+        # created before that counter was added.
+        metrics = {name: 0 for name in (
+            'prefetch_async_submitted', 'prefetch_async_dropped',
+            'prefetch_async_completed', 'prefetch_async_moved',
+            'prefetch_async_failed', 'prefetch_async_skipped_stale',
+            'prefetch_async_superseded', 'prefetch_async_missing_cache',
+            'prefetch_pending_underflow')}
+        metrics['prefetch_async_last_error'] = None
         return KVPrefetchWorker(residency=CacheResidency(), get_cache=lambda _: cache,
-            set_cache=None, move_cache=None, gpu_device='cuda', metrics=defaultdict(int),
+            set_cache=None, move_cache=None, gpu_device='cuda', metrics=metrics,
             transfers=transfers, clock=clock)
+
+    def test_plain_metrics_background_retry_has_no_worker_error(self):
+        worker = self.worker(None, lambda: 10.0)
+        worker._latest_intent = ('a',)
+        worker._execute = lambda desired: 0
+        worker._background_progress()
+        self.assertIs(type(worker.metrics), dict)
+        self.assertEqual(worker.metrics['prefetch_preparation_retries'], 1)
+        self.assertEqual(worker.metrics['prefetch_async_failed'], 0)
+
+    def test_existing_retry_metric_is_preserved(self):
+        metrics = {'prefetch_preparation_retries': 17}
+        KVPrefetchWorker(residency=CacheResidency(), get_cache=lambda _: None,
+            set_cache=None, move_cache=None, gpu_device='cuda', metrics=metrics)
+        self.assertEqual(metrics['prefetch_preparation_retries'], 17)
 
     def test_unchanged_budget_rejection_is_bounded_and_recovers(self):
         now = [10.0]
