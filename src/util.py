@@ -266,6 +266,12 @@ def parse_arguments():
         help="cloud scheduling mode: fastsd uses custom optimizations; pipeline uses baseline pipeline scheduling only",
     )
     parser.add_argument(
+        "--target_attention_backend",
+        default="sdpa_per_sequence",
+        choices=["sdpa_per_sequence", "flash_attn_varlen"],
+        help="target attention kernel; FlashAttention requires varlen batching and pinned flash-attn 2.8.3",
+    )
+    parser.add_argument(
         "--kv_batch_mode",
         type=str,
         default="varlen",

@@ -69,12 +69,17 @@ def configure_torch_threads(num_threads: int | None) -> int | None:
         os.environ[name] = thread_value
     os.environ["TORCH_NUM_THREADS"] = thread_value
     torch.set_num_threads(value)
+    interop_override = os.environ.get("TORCH_NUM_INTEROP_THREADS")
+    interop_value = value if interop_override is None else int(interop_override)
+    if interop_value <= 0:
+        raise ValueError("interop thread count must be positive")
     try:
-        torch.set_num_interop_threads(value)
+        torch.set_num_interop_threads(interop_value)
     except RuntimeError:
         # PyTorch raises when another component initialized the inter-op pool.
-        # The intra-op pool above is still deterministic for this process.
-        pass
+        # An explicit experiment setting must still hold when it is initialized.
+        if interop_override is not None and torch.get_num_interop_threads() != interop_value:
+            raise RuntimeError("Initialized interop thread pool differs from the requested value")
     return value
 
 

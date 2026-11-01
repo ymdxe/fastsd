@@ -11,6 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field, replace
 import math
 import time
+from diagnostic_trace import trace as DIAG, request_meta as diag_req, item_meta as diag_item, queue_rows as diag_queues, backlog as diag_backlog
 import random
 from typing import Any, Iterable, Mapping, MutableMapping, Sequence
 
@@ -550,6 +551,8 @@ def plan_iteration(
                 key=lambda x: (x.is_overdue_prefill, x.task_type == "verify", _priority(x, accept_stats, now)),
                 default=None,
             )
+        diag_wrr_item = item
+        diag_values = []
         if selection_policy != "legacy":
             candidates = [x for x in _all_candidates(state, selected, reserved)
                           if _make_slice(x, token_budget - used, prefill_chunk_quantum, min_prefill_chunk_tokens) is not None]
@@ -562,8 +565,12 @@ def plan_iteration(
                     candidate_slice = _make_slice(candidate, token_budget - used, prefill_chunk_quantum, min_prefill_chunk_tokens)
                     value = (candidate_value(candidate, candidate_slice, verify + prefill) if candidate_value is not None
                              else _priority(candidate, accept_stats, now))
+                    if DIAG.enabled and getattr(DIAG.context, "plan_kind", "") == "admission":
+                        diag_values.append([candidate.work_id, urgent, wait if urgent else 0.0, value])
                     return urgent, wait if urgent else 0.0, value
                 item = max(candidates, key=progress_key, default=None)
+        if DIAG.enabled and getattr(DIAG.context, "plan_kind", "") == "admission":
+            DIAG.emit("scheduler_choice", plan_id=getattr(DIAG.context,"plan_id",None), policy=selection_policy, slot=slots, wrr_category=category, wrr_proposed=diag_wrr_item.work_id if diag_wrr_item else None, chosen=item.work_id if item else None, chosen_category=item.category if item else None, candidate_values=diag_values, used_tokens=used, token_budget=token_budget)
         if item is not None:
             sl = _make_slice(item, token_budget - used, prefill_chunk_quantum, min_prefill_chunk_tokens)
             if sl is not None:

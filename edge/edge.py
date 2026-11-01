@@ -9,6 +9,7 @@ import statistics
 import sys
 import threading
 import time
+from diagnostic_trace import trace as DIAG, request_meta as diag_req, item_meta as diag_item, queue_rows as diag_queues, backlog as diag_backlog
 from typing import Any, Callable, Dict, List
 
 import requests
@@ -52,6 +53,7 @@ def _verify_with_ready_time(verify_call, **kwargs):
     response, elapsed = verify_call(**kwargs)
     response = dict(response)
     response["_response_ready_monotonic"] = time.monotonic()
+    DIAG.emit("verify_ready", task_id=kwargs.get("task_id"), session_id=kwargs.get("session_id"), prefix_len=kwargs.get("prefix_len"), ready_s=response["_response_ready_monotonic"])
     return response, elapsed
 
 
@@ -462,6 +464,7 @@ class EdgeClient:
     def _post(self, path: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         url = f"{self.server_url}{path}"
         body = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        DIAG.emit("wire_send", route=path, task_id=payload.get("task_id"), session_id=payload.get("session_id"), fields=list(payload), bytes=len(body), token_count=len(payload.get("draft_output") or []), probability_block_bytes=len(payload.get("draft_prob_block") or ""), kv_field_present=any("cache" in k.lower() or "past_key" in k.lower() for k in payload), prefix_len=payload.get("prefix_len"))
         response = self.session.post(
             url,
             data=body,
@@ -472,6 +475,7 @@ class EdgeClient:
             self._request_bytes += len(body)
             self._response_bytes += len(response.content)
             self._rpc_count += 1
+        DIAG.emit("http_body_received", route=path, task_id=payload.get("task_id"), session_id=payload.get("session_id"), prefix_len=payload.get("prefix_len"), status=response.status_code, response_bytes=len(response.content))
         try:
             response.raise_for_status()
         except requests.HTTPError as exc:
@@ -971,7 +975,7 @@ class EdgeRunner(Decoding):
     def preprocess(self, input_text):
         return input_text.strip()
 
-    def _encode_input_ids(self, tokenizer, input_text: str):
+    def _encode_input_ids(self, tokenizer, input_text: str, sample: dict | None = None):
         if self.args.dataset != "mt_bench":
             return tokenizer.encode(input_text, return_tensors="pt")
 
@@ -1162,7 +1166,7 @@ class EdgeRunner(Decoding):
             return
         warmup_sample = samples[0]
         input_text, task_id = self._sample_prompt(warmup_sample, proc_id, 0)
-        input_ids = self._encode_input_ids(tokenizer, input_text).to(draft_model.device)
+        input_ids = self._encode_input_ids(tokenizer, input_text, sample=warmup_sample).to(draft_model.device)
         for warmup_idx in range(count):
             seed_everything(100000 + proc_id * count + warmup_idx)
             session_id = client.init_session()
@@ -1216,6 +1220,18 @@ class EdgeRunner(Decoding):
                 )
                 if "final_token" not in response or "accepted" not in response:
                     raise RuntimeError(f"warmup verify failed: {response}")
+                if getattr(self.args, "warmup_max_new_tokens", None) is not None:
+                    # A verify round may return an accepted proposal plus a bonus.
+                    # Apply the same output cap as formal generation before release.
+                    accepted = int(response["accepted"])
+                    final = torch.tensor([[int(response["final_token"])]], device=draft.device, dtype=draft.dtype)
+                    warmup_output = torch.cat((draft[:, :accepted], final), dim=1)
+                    warmup_output = warmup_output[:, :input_ids.shape[1] + int(self.args.warmup_max_new_tokens)]
+                    warmup_output, _ = self._truncate_at_eos(
+                        warmup_output, getattr(self.args, "eos_token_ids", tokenizer.eos_token_id), input_ids.shape[1]
+                    )
+                    if not 0 < warmup_output.shape[1] - input_ids.shape[1] <= int(self.args.warmup_max_new_tokens):
+                        raise RuntimeError("Warmup output violated its token cap")
             finally:
                 client.release_session(session_id)
 
@@ -1235,16 +1251,17 @@ class EdgeRunner(Decoding):
         return os.path.join(self.args.exp_name, f"edge_metrics_proc{proc_id}.jsonl")
 
     @staticmethod
-    def _truncate_at_eos(prefix: torch.Tensor, eos_token_id: int, start_idx: int) -> tuple[torch.Tensor, bool]:
+    def _truncate_at_eos(prefix: torch.Tensor, eos_token_id: int | List[int] | None, start_idx: int) -> tuple[torch.Tensor, bool]:
         """Truncate newly generated suffix at the first EOS token if present."""
         if eos_token_id is None:
             return prefix, False
         if start_idx >= prefix.shape[1]:
             return prefix, False
         suffix = prefix[0, start_idx:].tolist()
-        if eos_token_id not in suffix:
+        eos_ids = {eos_token_id} if isinstance(eos_token_id, int) else set(eos_token_id)
+        eos_offset = next((idx for idx, token in enumerate(suffix) if token in eos_ids), None)
+        if eos_offset is None:
             return prefix, False
-        eos_offset = suffix.index(eos_token_id)
         keep_len = start_idx + eos_offset + 1
         return prefix[:, :keep_len], True
 
@@ -1638,6 +1655,7 @@ class EdgeRunner(Decoding):
                 actual_arrival_s = 0.0
             arrival_lag_ms = max(0.0, (actual_arrival_s - scheduled_arrival_s) * 1000.0)
             request_start = time.monotonic()
+            DIAG.emit("request_start", task_id=sample.get("sample_id"), index=idx, scheduled_arrival_s=scheduled_arrival_s, actual_arrival_s=actual_arrival_s, arrival_lag_ms=arrival_lag_ms, pending_arrived=diag_backlog(arrival_offsets or [], actual_arrival_s, global_idx), local_t0=arrival_origin)
             transport_before = client.snapshot_transport_stats()
             session_id = client.init_session()
             try:
@@ -1661,7 +1679,7 @@ class EdgeRunner(Decoding):
                 input_text, task_id = self._sample_prompt(sample, proc_id, idx)
 
                 # input_text = 'def fib(n'  # for debug
-                input_ids = self._encode_input_ids(tokenizer, input_text).to(draft_model.device)
+                input_ids = self._encode_input_ids(tokenizer, input_text, sample=sample).to(draft_model.device)
                 prefix = input_ids.clone()
                 max_len = input_ids.shape[1] + self.args.max_tokens
                 first_token_time = None
@@ -1979,6 +1997,7 @@ class EdgeRunner(Decoding):
                             draft_s=ahead_forward_per_token_s,
                         ):
                             step_started = time.monotonic()
+                            DIAG.emit("ahead_step_start", task_id=task_id, prefix_len=prefix_len, step=len(overlap_tokens), round=rounds, controller_state=ahead_control.state)
                             if verify_method == "rejection":
                                 overlap_prefix, overlap_rows = approx_model_cache.generate_with_probs(
                                     overlap_prefix, 1
@@ -1989,6 +2008,7 @@ class EdgeRunner(Decoding):
                             overlap_tokens.append(int(overlap_prefix[0, -1].item()))
                             wait_draft_steps += 1
                             step_s = time.monotonic() - step_started
+                            DIAG.emit("ahead_step_end", task_id=task_id, prefix_len=prefix_len, step=len(overlap_tokens)-1, round=rounds, step_start_s=step_started, step_s=step_s, verify_done=verify_future.done())
                             ahead_forward_s += step_s
                             ahead_forward_per_token_s = (0.8 * ahead_forward_per_token_s + 0.2 * step_s
                                                          if ahead_forward_per_token_s else step_s)
@@ -2021,6 +2041,7 @@ class EdgeRunner(Decoding):
                     response_consumed_at = time.monotonic()
                     response_delay = max(0.0, response_consumed_at - verify_resp.get("_response_ready_monotonic", response_consumed_at))
                     response_consumption_delay_s += response_delay
+                    DIAG.emit("verify_consumed", task_id=task_id, prefix_len=prefix_len, round=rounds, ready_s=verify_resp.get("_response_ready_monotonic"), consumed_s=response_consumed_at, delay_s=response_delay, ahead_steps=len(overlap_tokens))
                     previous_verify_wait_s = measured_http_total
                     ahead_generated_tokens += len(overlap_tokens)
                     if timing_protocol and "cloud_send_time_ns" not in verify_resp:
@@ -2075,8 +2096,10 @@ class EdgeRunner(Decoding):
                     final_token_tensor = torch.tensor([[final_token]], device=x.device, dtype=x.dtype)
 
                     prefix = torch.cat((x[:, :accepted], final_token_tensor), dim=1)
-                    prefix, hit_eos = self._truncate_at_eos(prefix, tokenizer.eos_token_id, prefix_len)
                     prefix = prefix[:, :max_len]
+                    prefix, hit_eos = self._truncate_at_eos(
+                        prefix, getattr(self.args, "eos_token_ids", tokenizer.eos_token_id), prefix_len
+                    )
                     if first_token_time is None and prefix.shape[1] > input_ids.shape[1]:
                         first_token_time = time.monotonic()
                     reused_pending_tokens = []
@@ -2191,6 +2214,7 @@ class EdgeRunner(Decoding):
                 if executor_holder is not None:
                     executor_holder["executor"] = None
                 completion_time = time.monotonic()
+                DIAG.emit("request_complete", task_id=task_id, index=idx, start_s=request_start, completion_s=completion_time, local_t0=arrival_origin, pending_arrived=diag_backlog(arrival_offsets or [], completion_time-arrival_origin if arrival_origin else 0, global_idx))
                 transport_after = client.snapshot_transport_stats()
                 transport_delta = {
                     key: int(transport_after[key] - transport_before[key])
@@ -2254,6 +2278,13 @@ class EdgeRunner(Decoding):
                     "enable_proactive_draft": proactive_enabled,
                     "enable_latency_priority": timing_protocol,
                     "generated_tokens": generated_tokens,
+                    "input_token_count": int(input_ids.shape[1]),
+                    "prompt_sha256": sample.get("prompt_sha256"),
+                    "input_ids_sha256": sample.get("input_ids_sha256"),
+                    "canonical_inputs": bool(getattr(self.args, "canonical_inputs", False)),
+                    "tokenizer_model": getattr(self.args, "canonical_tokenizer_model", self.args.draft_model),
+                    "eos_token_ids": getattr(self.args, "eos_token_ids", [tokenizer.eos_token_id]),
+                    "stop_reason": "eos" if hit_eos else "max_tokens" if prefix.shape[1] >= max_len else "other",
                     "global_sample_index": int(global_idx),
                     "sampling_seed": int(sampling_seed),
                     "scheduled_arrival_s": scheduled_arrival_s,

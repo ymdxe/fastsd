@@ -16,7 +16,8 @@ except ImportError:
 
 @unittest.skipUnless(DEPS, "requires model runtime dependencies")
 class ReviewEngineTests(unittest.TestCase):
-    def run_worker_case(self, backend, mode="fastsd", device="cpu", cycles=16, adaptive=False):
+    def run_worker_case(self, backend, mode="fastsd", device="cpu", cycles=16, adaptive=False,
+                        attention="sdpa_per_sequence"):
         class Runner(Decoding):
             def load_data(self): pass
             def preprocess(self, x): return x
@@ -28,9 +29,12 @@ class ReviewEngineTests(unittest.TestCase):
             max_position_embeddings=128, attention_dropout=0.0)
         config._attn_implementation = "sdpa"
         model = LlamaForCausalLM(config).to(device).eval()
+        if attention == "flash_attn_varlen":
+            model = model.to(dtype=torch.bfloat16)
         engine = object.__new__(Runner)
         engine.args = types.SimpleNamespace(target_model="tiny-test", vocab_size=31,
             temp=0.0, top_k=0, top_p=0.0, kv_batch_mode=backend, max_tokens=32,
+            target_attention_backend=attention,
             gamma=8, token_budget=4, batch_size=2, min_prefill_chunk_tokens=1,
             prefill_chunk_quantum=2, server_sched_mode=mode, pipeline_gamma_adapt=adaptive,
             enable_pipeline=False,
@@ -113,6 +117,13 @@ class ReviewEngineTests(unittest.TestCase):
     @unittest.skipUnless(DEPS and torch.cuda.is_available(), "requires CUDA")
     def test_cuda_worker_with_async_offload_and_reload(self):
         self.run_worker_case("varlen", device="cuda:0", cycles=2)
+
+    @unittest.skipUnless(DEPS and torch.cuda.is_available(), "requires CUDA")
+    def test_flash_attention_sd_and_fastsd_preserve_worker_lifecycle(self):
+        for mode in ("vanilla", "fastsd"):
+            with self.subTest(mode=mode):
+                self.run_worker_case("varlen", mode=mode, device="cuda:0", cycles=2,
+                                     attention="flash_attn_varlen")
 
 
 if __name__ == "__main__":

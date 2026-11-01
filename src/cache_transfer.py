@@ -3,6 +3,7 @@ from collections import defaultdict
 from contextlib import contextmanager
 import threading
 import time
+from diagnostic_trace import trace as DIAG, request_meta as diag_req, item_meta as diag_item, queue_rows as diag_queues, backlog as diag_backlog
 import weakref
 import torch
 from .cache_views import dynamic_cache_from_views
@@ -93,10 +94,11 @@ class CacheTransferManager:
         self.metrics = defaultdict(float)
         self.disturbance_budget = max(0.0, float(disturbance_budget))
         self.forward_baselines, self.disturbance_counts = {}, {}
-        self.timeline = [] if record_timeline else None
+        self.timeline = [] if record_timeline or DIAG.enabled else None
         self.h2d_stream = torch.cuda.Stream(device=self.device) if self.enabled else None
         self.prefetch_stream = torch.cuda.Stream(device=self.device) if self.enabled else None
         self.d2h_stream = torch.cuda.Stream(device=self.device) if self.enabled else None
+        if DIAG.enabled and self.enabled: DIAG.gpu_init(torch, self.device)
 
     @staticmethod
     def mark_computed(cache, *, producer_stream):
@@ -147,6 +149,7 @@ class CacheTransferManager:
             if allowed:
                 self.submitting += 1
         try:
+            DIAG.emit("prefetch_gate", preparing=preparing, allowed=bool(allowed), mode=self.mode, admitted=self.admitted, executing=self.executing)
             yield allowed
         finally:
             if allowed:
@@ -283,6 +286,7 @@ class CacheTransferManager:
             with self.lock:
                 self.pending.append(ticket)
                 self.metrics["copies"] += 1
+            DIAG.emit("kv_ticket_prepared", ticket_id=id(ticket), purpose=purpose, direction=ticket.direction, source_identity=snapshot.source_identity, session_epoch=snapshot.session_epoch, content_version=snapshot.content_version, valid_len=snapshot.valid_len, bytes=size)
             return ticket
         except BaseException:
             if speculative:
@@ -331,8 +335,11 @@ class CacheTransferManager:
                 event = torch.cuda.Event(enable_timing=self.timeline is not None)
                 event.record(stream)
                 if self.timeline is not None:
-                    self.timeline.append((trace_start, event, ticket.direction,
-                        ticket.purpose if ticket.claimed_by is None else "demand"))
+                    if DIAG.enabled:
+                        DIAG.gpu_span("kv_copy", trace_start, event, direction=ticket.direction, purpose=ticket.purpose if ticket.claimed_by is None else "demand", ticket_id=id(ticket), bytes=ticket.last_chunk_bytes, source_identity=ticket.source_identity, session_epoch=ticket.session_epoch, valid_len=ticket.valid_len)
+                    else:
+                        self.timeline.append((trace_start, event, ticket.direction,
+                            ticket.purpose if ticket.claimed_by is None else "demand"))
                 ticket.last_copy = event
                 ticket.copy_state = "copying"
                 if limit == len(ticket.chunks):
@@ -431,6 +438,7 @@ class CacheTransferManager:
                 self.metrics["prefetch_wasted_bytes"] += ticket.submitted_bytes
 
     def poll_completed(self):
+        DIAG.gpu_collect()
         with self.lock:
             tickets = list(self.pending)
         completed, remove = [], []

@@ -28,6 +28,7 @@ from dataclasses import dataclass, field
 import queue
 import threading
 import time
+from diagnostic_trace import trace as DIAG, request_meta as diag_req, item_meta as diag_item, queue_rows as diag_queues, backlog as diag_backlog
 from typing import Any, Callable, Iterable, Mapping, Optional
 
 CATEGORIES = ("short", "mid", "long")
@@ -319,6 +320,13 @@ class SchedulerQueues:
 
         if not self.dirty:
             return
+        diag_before = diag_queues(self) if DIAG.enabled else None
+        diag_scores = {}
+        diag_started = time.monotonic_ns()
+        def diag_priority(item):
+            value = priority(item.request, accept_stats, now)
+            if DIAG.enabled: diag_scores[item.work_id] = value
+            return value
         self.prune_finished()
         drained = []
         for task_type in TASK_TYPES:
@@ -334,10 +342,12 @@ class SchedulerQueues:
         for task_type in TASK_TYPES:
             for category in CATEGORIES:
                 self._queues[task_type][category].sort(
-                    key=lambda item: priority(item.request, accept_stats, now),
+                    key=diag_priority,
                     reverse=True,
                 )
         self.dirty = False
+        if DIAG.enabled:
+            DIAG.emit("priority_sort", start_ns=diag_started, end_ns=time.monotonic_ns(), before=diag_before, after=diag_queues(self), scores=diag_scores)
 
 
 def cancel_prefill_work_items(

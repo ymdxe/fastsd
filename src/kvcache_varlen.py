@@ -32,7 +32,8 @@ from transformers.cache_utils import DynamicCache
 from transformers.models.llama.modeling_llama import apply_rotary_pos_emb
 
 from .util import norm_logits, sample
-from .cache_views import dynamic_cache_from_views
+from .cache_views import dynamic_cache_from_views, reusable_cache_buffers
+from .attention_backend import PackedAttentionWorkspace, PhaseTimer, require_attention_backend
 
 
 
@@ -102,8 +103,7 @@ def supports_varlen_model(model) -> bool:
     return True
 
 
-@torch.no_grad()
-def varlen_generate(
+def _varlen_generate(
     kv_manager,
     model,
     residuals,      # list[Tensor]: each (1, r_i) on the model device
@@ -137,6 +137,11 @@ def varlen_generate(
     top_k = kv_manager._top_k
     top_p = kv_manager._top_p
     device = model.device
+    backend = getattr(kv_manager, 'attention_backend', 'sdpa_per_sequence')
+    if not getattr(kv_manager, '_attention_backend_checked', False):
+        require_attention_backend(backend, device=device, dtype=model.dtype)
+        kv_manager._attention_backend_checked = True
+    timer = getattr(kv_manager, 'diagnostic_timer', None) or PhaseTimer(False)
 
     # ---- 1. per-seq cached lengths & flattened input ----------------------
     cached_lens = []
@@ -149,7 +154,7 @@ def varlen_generate(
         # entry before admission, exactly like the padded path.
         cached_lens.append(0 if cache is None else int(cache.get_seq_length()))
         old_caches.append(cache.to_legacy_cache() if cache is not None else None)
-        old_buffers.append(getattr(cache, "_fastsd_buffers", None))
+        old_buffers.append(reusable_cache_buffers(cache))
         flat_parts.append(res.to(device).reshape(-1))
     flat_ids = torch.cat(flat_parts, dim=0)  # (total,)
 
@@ -164,6 +169,13 @@ def varlen_generate(
     n_heads = model.config.num_attention_heads
     n_kv_heads = model.config.num_key_value_heads
     head_dim = getattr(model.model.layers[0].self_attn, "head_dim", model.config.hidden_size // n_heads)
+    workspace = None
+    if backend == 'flash_attn_varlen':
+        if kv_manager._attention_workspace is None:
+            kv_manager._attention_workspace = PackedAttentionWorkspace()
+        workspace = kv_manager._attention_workspace
+        workspace.prepare(seq_ranges, device=device, dtype=model.dtype,
+                          query_heads=n_heads, kv_heads=n_kv_heads, head_dim=head_dim)
 
     hidden_states = model.model.embed_tokens(flat_ids)
 
@@ -179,7 +191,7 @@ def varlen_generate(
         masks.append(
             (torch.arange(length, device=device)[:, None] + cached_len
              >= torch.arange(cached_len + length, device=device)[None, :])
-            if cached_len and length > 1 else None
+             if workspace is None and cached_len and length > 1 else None
         )
 
     # Retain the very same full K/V used by attention for cache writeback.
@@ -205,7 +217,7 @@ def varlen_generate(
             k.unsqueeze(0).transpose(1, 2), cos, sin,
         )
 
-        attn_out = normed.new_empty((flat_ids.numel(), n_heads * head_dim))
+        attn_out = normed.new_empty((flat_ids.numel(), n_heads * head_dim)) if workspace is None else None
         new_kv_layer = []
         buffer_layer = []
         for i, (s, e, cached_len) in enumerate(seq_ranges):
@@ -233,23 +245,30 @@ def varlen_generate(
             # Use the native GQA path where supported; older PyTorch keeps
             # the explicit expansion fallback. Stored KV always uses KV heads.
             n_groups = n_heads // n_kv_heads
-            k_exp = k_full.repeat_interleave(n_groups, dim=1) if n_groups > 1 and not native_gqa else k_full
-            v_exp = v_full.repeat_interleave(n_groups, dim=1) if n_groups > 1 and not native_gqa else v_full
 
             # Causal masking by *global* position: query global position
             # (cached_len + i) may attend key global positions <= itself.
             # ``is_causal`` uses local indices and is only correct for a
             # fresh prefill; multi-query cached continuations need a mask.
             # A single last-position query may attend the entire KV history.
-            o = F.scaled_dot_product_attention(
-                qi, k_exp, v_exp, attn_mask=masks[i],
-                is_causal=cached_len == 0,
-                scale=getattr(attn, "scaling", head_dim ** -0.5),
-                **({"enable_gqa": True} if native_gqa and n_groups > 1 else {}),
-            )
-            o = o.transpose(1, 2).reshape(seq_len, -1)
-            attn_out[s:e] = o
+            if workspace is None:
+                k_exp = k_full.repeat_interleave(n_groups, dim=1) if n_groups > 1 and not native_gqa else k_full
+                v_exp = v_full.repeat_interleave(n_groups, dim=1) if n_groups > 1 and not native_gqa else v_full
+                with timer.measure('attention'):
+                    o = F.scaled_dot_product_attention(
+                        qi, k_exp, v_exp, attn_mask=masks[i],
+                        is_causal=cached_len == 0,
+                        scale=getattr(attn, "scaling", head_dim ** -0.5),
+                        **({"enable_gqa": True} if native_gqa and n_groups > 1 else {}),
+                    )
+                kv_manager.attention_calls = getattr(kv_manager, 'attention_calls', 0) + 1
+                attn_out[s:e] = o.transpose(1, 2).reshape(seq_len, -1)
             new_kv_layer.append((k_full, v_full))
+
+        if workspace is not None:
+            attn_out = workspace.attend(q, new_kv_layer,
+                                       scale=getattr(attn, 'scaling', head_dim ** -0.5), timer=timer)
+            kv_manager.attention_calls = getattr(kv_manager, 'attention_calls', 0) + 1
 
         hidden_states = hidden_states + attn.o_proj(attn_out)
         hidden_states = hidden_states + layer.mlp(layer.post_attention_layernorm(hidden_states))
@@ -279,8 +298,8 @@ def varlen_generate(
         kv_manager.store_probabilities(pid, logits_i, row_start, prefill=is_prefill)
 
         new_legacy = [layer[i] for layer in new_kv_per_layer]
-        kv_manager._past_key_values[pid] = dynamic_cache_from_views(new_legacy)
-        kv_manager._past_key_values[pid]._fastsd_buffers = [layer[i] for layer in buffers_per_layer]
+        kv_manager._past_key_values[pid] = dynamic_cache_from_views(
+            new_legacy, buffers=[layer[i] for layer in buffers_per_layer])
 
         sampled = (
             sample(logits_i[0, -1:, :])
@@ -291,3 +310,17 @@ def varlen_generate(
         new_x.append(torch.cat([flat_parts[i], next_tokens_1d], dim=0))
 
     return new_x
+
+
+@torch.no_grad()
+def varlen_generate(kv_manager, model, residuals, proc_ids, pad_token_id,
+                    is_prefill=False, input_lens=None, sample_next=True):
+    # The executor owns a manager exclusively. Fence even a partially failed
+    # forward before scratch can be reused or released on another stream.
+    try:
+        return _varlen_generate(kv_manager, model, residuals, proc_ids, pad_token_id,
+                                is_prefill, input_lens, sample_next)
+    finally:
+        workspace = getattr(kv_manager, '_attention_workspace', None)
+        if workspace is not None and workspace.q is not None:
+            workspace.record_consumed()

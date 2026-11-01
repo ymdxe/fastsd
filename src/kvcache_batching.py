@@ -2,9 +2,11 @@ import torch
 from .util import norm_logits, sample
 from transformers.cache_utils import DynamicCache
 from .probability_window import append_rows, select_rows, crop_rows
+from .attention_backend import validate_attention_backend
 
 class KVCacheModel_batching():
-    def __init__(self, model: torch.nn.Module, temperature: float = 1, top_k: int = 0, top_p: float = 0) -> None:
+    def __init__(self, model: torch.nn.Module, temperature: float = 1, top_k: int = 0, top_p: float = 0,
+                 *, attention_backend: str = 'sdpa_per_sequence') -> None:
         self._model = model
         self._temperature = temperature
         self._top_k = top_k
@@ -18,6 +20,10 @@ class KVCacheModel_batching():
         # explicitly enables bounded windows for both execution backends.
         self.bounded_probabilities = False
         self._prob_start = {}
+        self.attention_backend = validate_attention_backend(attention_backend)
+        self._attention_workspace = None
+        self.diagnostic_timer = None
+        self.attention_calls = 0
 
     def store_probabilities(self, pid, rows, start, *, prefill=False):
         keep = max(0, start - 1) if self.bounded_probabilities else 0

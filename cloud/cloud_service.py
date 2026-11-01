@@ -18,6 +18,7 @@ from src.util import parse_arguments
 from src.request_validation import canonicalize_request
 import uvicorn
 import time
+from diagnostic_trace import trace as DIAG, request_meta as diag_req, item_meta as diag_item, queue_rows as diag_queues, backlog as diag_backlog
 
 
 app = FastAPI(title="FastSD Cloud Target Service")
@@ -393,6 +394,8 @@ async def _enqueue_and_wait(request_dict: dict, req_id: str) -> dict:
         _pending_meta[response_key] = req_id
         _pending_task_ids[req_id] = str(request_dict.get("task_id", ""))
         try:
+            request_dict["_diag_http_queue_mono_ns"] = time.monotonic_ns()
+            DIAG.emit("http_enqueue", **diag_req(request_dict))
             request_queue.put(request_dict)
         except BaseException as exc:
             _drop_pending_locked(response_key, req_id)
@@ -403,7 +406,9 @@ async def _enqueue_and_wait(request_dict: dict, req_id: str) -> dict:
 
     try:
         timeout = float(os.environ.get("FASTSD_REQUEST_TIMEOUT_S", "300"))
-        return await asyncio.wait_for(fut, timeout=timeout if timeout > 0 else None)
+        response = await asyncio.wait_for(fut, timeout=timeout if timeout > 0 else None)
+        DIAG.emit("http_result_ready", **diag_req(request_dict))
+        return response
     except asyncio.TimeoutError as exc:
         with _pending_lock:
             _drop_pending_locked(response_key, req_id)
@@ -544,6 +549,7 @@ async def prefill(req: PrefillRequest) -> dict:
         with _pending_lock:
             _prefill_arrivals.pop(req_id, None)
     out["cloud_send_time_ns"] = time.time_ns()
+    DIAG.emit("http_response_send", task_id=req.task_id, session_id=req.session_id, cloud_send_time_ns=out["cloud_send_time_ns"])
     if arrival_recorded:
         out["cloud_arrival_time_ns"] = int(arrival["cloud_arrival_time_ns"])
     if "push_s" in timing:
@@ -768,6 +774,7 @@ async def verify(req: VerifyRequest) -> dict:
     if "suggested_gamma" in resp:
         out["suggested_gamma"] = int(resp["suggested_gamma"])
     out["cloud_send_time_ns"] = time.time_ns()
+    DIAG.emit("http_response_send", task_id=req.task_id, session_id=req.session_id, cloud_send_time_ns=out["cloud_send_time_ns"])
     if "push_s" in request_dict:
         out["push_s"] = float(request_dict["push_s"])
         out["push_timing"] = request_dict["push_timing"]

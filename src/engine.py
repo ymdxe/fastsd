@@ -39,6 +39,7 @@ from collections import defaultdict, deque
 import math
 import random
 import time
+from diagnostic_trace import trace as DIAG, request_meta as diag_req, item_meta as diag_item, queue_rows as diag_queues, backlog as diag_backlog
 import threading
 import requests
 
@@ -800,6 +801,11 @@ class Decoding(ABC):
         )
         require_full_attention(target_model)
         compute_stream = None
+        from .attention_backend import require_attention_backend
+        attention_backend = getattr(self.args, "target_attention_backend", "sdpa_per_sequence")
+        if attention_backend == "flash_attn_varlen" and getattr(self.args, "kv_batch_mode", "varlen") != "varlen":
+            raise ValueError("flash_attn_varlen requires --kv_batch_mode varlen")
+        require_attention_backend(attention_backend, device=target_model.device, dtype=target_model.dtype)
         if target_model.device.type == "cuda":
             compute_stream = torch.cuda.Stream(device=target_model.device)
             compute_stream.wait_stream(torch.cuda.current_stream(target_model.device))
@@ -810,7 +816,8 @@ class Decoding(ABC):
         kv_cache_manager = KVCacheModel_batching(target_model,
                                         temperature=self.args.temp,
                                         top_k=self.args.top_k,
-                                        top_p=self.args.top_p)
+                                        top_p=self.args.top_p,
+                                        attention_backend=attention_backend)
         kv_cache_manager.vocab_size = self.vocab_size
         kv_cache_manager.bounded_probabilities = True
         requested_kv_batch_mode = getattr(self.args, "kv_batch_mode", "varlen")
@@ -1118,6 +1125,8 @@ class Decoding(ABC):
                 start, end = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)
                 start.record(compute_stream)
             launched = time.monotonic()
+            diag_forward_id = time.monotonic_ns()
+            DIAG.emit("forward_host_start", forward_id=diag_forward_id, requests=[diag_req(r) for r in current_batch])
             for req in current_batch:
                 req["_batch_start_delay_ms"] = (launched - req.get("_plan_ready_at", launched)) * 1000.0
             spec_before = transfers.metrics["speculative_submitted_bytes"]
@@ -1127,10 +1136,12 @@ class Decoding(ABC):
                 end.record(compute_stream)
                 end.synchronize()
                 elapsed_gpu = start.elapsed_time(end)
+                DIAG.gpu_span("target_forward", start, end, forward_id=diag_forward_id, requests=[diag_req(r) for r in current_batch])
                 forward_measurements.append(elapsed_gpu)
                 shape = (current_batch[0]["task_type"], tuple(cost_features(req) for req in current_batch))
                 transfers.observe_forward(shape, elapsed_gpu, speculative=spec_active or
                     transfers.metrics["speculative_submitted_bytes"] > spec_before)
+            DIAG.emit("forward_host_end", forward_id=diag_forward_id)
             return result
 
         def cache_memory_pressure():
@@ -1166,6 +1177,7 @@ class Decoding(ABC):
         # --------------------- 批量处理（Prefill / Verify） ----------------
         def handle_request_batch(batch: list[dict], return_responses: bool = False):
             proc_ids = [req["proc_id"] for req in batch]
+            DIAG.emit("batch_start", batch_id=time.monotonic_ns(), requests=[diag_req(r) for r in batch])
             residency.activate(proc_ids)
             transfers.begin_execution()
             phase_leases.clear()
@@ -1670,8 +1682,10 @@ class Decoding(ABC):
                     if s.task_type == item.task_type]
             features = cost_features(item, sl)
             with batch_cost_lock:
-                marginal = max(1e-6, batch_cost.estimate(item.task_type, rows + [features])
-                              - batch_cost.estimate(item.task_type, rows))
+                diag_raw_marginal = batch_cost.estimate(item.task_type, rows + [features]) - batch_cost.estimate(item.task_type, rows)
+                marginal = max(1e-6, diag_raw_marginal)
+            if diag_raw_marginal <= 0 and DIAG.enabled and getattr(DIAG.context,"plan_kind","") == "admission":
+                DIAG.emit("nonpositive_cost_increment", plan_id=getattr(DIAG.context,"plan_id",None), work_id=item.work_id, raw_seconds=diag_raw_marginal)
             with cache_lock:
                 cache = kv_cache_manager._past_key_values.get(item.proc_id)
                 ticket = residency.candidates.get(item.proc_id)
@@ -1694,13 +1708,15 @@ class Decoding(ABC):
         def category_for(item):
             return _length_category(item.remaining_tokens, len_r1, len_r2)
 
-        def build_plan(reserved_work_ids=(), cycle=None, cursor=None, projected_plan=None):
+        def build_plan(reserved_work_ids=(), cycle=None, cursor=None, projected_plan=None, diagnostic_kind=None):
             started = time.perf_counter()
             _sort_queues_if_dirty()
             queues = task_queues.snapshot()
             if projected_plan is not None:
                 queues = project_after_plan(queues, projected_plan, category_for=category_for)
             items = {item.work_id: item for cats in queues.values() for rows in cats.values() for item in rows}
+            DIAG.context.plan_kind = diagnostic_kind or ("lookahead" if projected_plan is not None else "admission")
+            DIAG.context.plan_id = time.monotonic_ns()
             plan = plan_iteration(
                 queues, token_budget=int(self.args.token_budget),
                 current_cycle=scheduler_state["current_cycle"] if cycle is None else cycle,
@@ -1719,6 +1735,8 @@ class Decoding(ABC):
             scheduler_metrics[metric + "_count"] = scheduler_metrics.get(metric + "_count", 0) + 1
             scheduler_metrics[metric + "_max"] = max(scheduler_metrics.get(metric + "_max", 0), value)
             plan.ready_at = time.monotonic()
+            plan._diag_id = DIAG.context.plan_id
+            DIAG.emit("plan_built", plan_id=plan._diag_id, plan_kind=DIAG.context.plan_kind, duration_ms=value, queue_count=len(items), selected=plan.selected_work_ids, used_tokens=plan.used_tokens)
             return plan
 
         def refresh_prefetch():
@@ -1739,7 +1757,7 @@ class Decoding(ABC):
                     cursor=plan.next_wrr_cursor,
                 )
             else:
-                lookahead = build_plan()
+                lookahead = build_plan(diagnostic_kind="lookahead_idle")
             if not lookahead.verify_proc_ids and not task_queues.has_live_task("verify"):
                 scheduler_metrics["prefetch_no_verify_candidates"] += 1
             prefetch_coordinator.refresh(lookahead.verify_proc_ids)
@@ -1758,6 +1776,7 @@ class Decoding(ABC):
                 sl.proc_id for sl in plan.prefill_slices
             }
             ready_at = getattr(plan, "ready_at", time.monotonic())
+            DIAG.emit("plan_submitted", plan_id=getattr(plan,"_diag_id",None), ready_at=ready_at, selected=[diag_req(r) for r in verify_batch+prefill_batch])
             reserve_admission_plan(plan)
             transfers.admit()
             tickets = {}
@@ -2115,6 +2134,7 @@ class Decoding(ABC):
                 item.request = req
             work_items[work_id] = item
             task_queues.enqueue(item)
+            DIAG.emit("scheduler_enqueue", **diag_item(item), queue_depth=len(work_items))
 
         def poll_ingress(timeout):
             """Drain bounded ingress; ``timeout=None`` is an event wait.
