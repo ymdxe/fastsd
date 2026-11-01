@@ -9,6 +9,7 @@ admission path and by the KV prefetch predictor.
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
+from collections import deque
 import math
 import time
 from diagnostic_trace import trace as DIAG, request_meta as diag_req, item_meta as diag_item, queue_rows as diag_queues, backlog as diag_backlog
@@ -159,6 +160,25 @@ def length_category(prefix_len: int, r1: int, r2: int) -> str:
     if prefix_len <= r2:
         return "mid"
     return "long"
+
+
+class TaskLengthClassifier:
+    """Paper Sec. 3.2: independent 100-arrival prefill/verify distributions."""
+
+    def __init__(self):
+        self.defaults = {"prefill": (128, 512), "verify": (20, 100)}
+        self.history = {kind: deque(maxlen=FASTSD_DYNAMIC_WINDOW) for kind in self.defaults}
+        self.thresholds = dict(self.defaults)
+
+    def observe(self, item):
+        kind = item.task_type
+        self.history[kind].append(item.total_tokens)
+        self.thresholds[kind] = update_length_thresholds(
+            self.history[kind], *self.defaults[kind])
+        return self.category(item)
+
+    def category(self, item):
+        return length_category(item.remaining_tokens, *self.thresholds[item.task_type])
 
 
 def compute_priority_score(req, accept_stats, now=None, lamda=0.01):
@@ -506,6 +526,7 @@ def plan_iteration(
     accept_stats: Mapping[Any, Sequence[float]] | None = None,
     now: float = 0.0,
     reserved_work_ids: Iterable[str] = (),
+    excluded_proc_ids: Iterable[Any] = (),
     selection_policy: str = "legacy",
     candidate_value=None,
     max_wait_s: float = 1.0,
@@ -529,6 +550,9 @@ def plan_iteration(
         raise ValueError("unknown scheduler selection policy")
     state_raw = _normalise_queues(queues)
     state = {t: {c: [_as_work_item(x, t, c, current_cycle) for x in state_raw[t][c]] for c in state_raw[t]} for t in state_raw}
+    excluded = set(excluded_proc_ids)
+    state = {t: {c: [item for item in items if item.proc_id not in excluded]
+                 for c, items in categories.items()} for t, categories in state.items()}
     accept_stats = accept_stats or {}
     selected: set[str] = set()
     reserved = set(reserved_work_ids)
@@ -547,7 +571,9 @@ def plan_iteration(
         )
         if item is None:
             item = max(
-                _all_candidates(state, selected, reserved),
+                (candidate for candidate in _all_candidates(state, selected, reserved)
+                 if _make_slice(candidate, token_budget - used, prefill_chunk_quantum,
+                                min_prefill_chunk_tokens) is not None),
                 key=lambda x: (x.is_overdue_prefill, x.task_type == "verify", _priority(x, accept_stats, now)),
                 default=None,
             )
@@ -575,6 +601,11 @@ def plan_iteration(
             sl = _make_slice(item, token_budget - used, prefill_chunk_quantum, min_prefill_chunk_tokens)
             if sl is not None:
                 selected.add(item.work_id)
+                # One device owns one mutable target KV. Exclude all its
+                # other work from this plan, before spending further budget.
+                reserved.update(candidate.work_id for candidate in
+                                _all_candidates(state, selected, reserved)
+                                if candidate.proc_id == item.proc_id)
                 if sl.task_type == "verify":
                     verify.append(sl)
                 else:

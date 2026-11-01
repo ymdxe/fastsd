@@ -314,6 +314,9 @@ class KVPrefetchWorkerTests(unittest.TestCase):
             # The main/executor side mutates or replaces this cache while the
             # copy is in flight.
             residency.bump(["p"])
+            # Finish this attempt only; a subsequent valid generation retry
+            # is a separate operation and may legitimately publish a ticket.
+            worker.stop()
             release.set()
             self.assertTrue(
                 wait_until(lambda: metrics["prefetch_async_completed"] == 1)

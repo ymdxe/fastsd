@@ -114,7 +114,8 @@ class TransferIsolationTests(unittest.TestCase):
             transfers.close()
 
     def test_measured_overlap_disturbance_falls_back_after_three_observations(self):
-        transfers = CacheTransferManager('cuda:0', mode='overlap', disturbance_budget=0.1)
+        transfers = CacheTransferManager('cuda:0', mode='overlap', disturbance_budget=0.1,
+                                         adaptive_fallback=True)
         try:
             transfers.observe_forward(('verify', 128, 4), 10, speculative=False)
             for _ in range(3):
@@ -152,7 +153,7 @@ class TransferIsolationTests(unittest.TestCase):
             transfers.close()
 
     def test_protect_forward_drains_only_submitted_chunk_and_blocks_more_dma(self):
-        transfers = CacheTransferManager('cuda:0', chunk_bytes=1024)
+        transfers = CacheTransferManager('cuda:0', mode='protect_forward', chunk_bytes=1024)
         compute = torch.cuda.Stream()
         try:
             ticket = transfers.submit_h2d(self.host(), purpose='prefetch')

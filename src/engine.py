@@ -56,6 +56,7 @@ from .fastsd_scheduler import (
     length_category as _length_category,
     predict_next_verify_proc_ids as _predict_next_verify_proc_ids,
     WorkItem,
+    TaskLengthClassifier,
     abort_admission_plan,
     commit_admission_plan,
     plan_iteration,
@@ -893,9 +894,7 @@ class Decoding(ABC):
         progress_profiles = gamma_control.profiles
         batch_cost = BatchCostModel()
         batch_cost_lock = threading.RLock()
-        recent_prefix_lens = deque(maxlen=FASTSD_DYNAMIC_WINDOW)
-        len_r1 = FASTSD_DEFAULT_R1
-        len_r2 = FASTSD_DEFAULT_R2
+        length_classifier = TaskLengthClassifier()
         residency = CacheResidency()
         cache_lock = residency.lock
         preloaded_gpu_pids = residency.resident
@@ -1084,11 +1083,12 @@ class Decoding(ABC):
             target_model.device,
             enabled=bool(getattr(self.args, "async_kv_transfer", True)),
             pinned_pool_bytes=int(getattr(self.args, "pinned_pool_mb", 128)) * 1024 ** 2,
-            mode=getattr(self.args, "kv_prefetch_mode", "protect_forward"),
+            mode=getattr(self.args, "kv_prefetch_mode", "overlap"),
             prefetch_bytes=int(getattr(self.args, "kv_prefetch_mb", 64)) * 1024 ** 2,
             chunk_bytes=int(getattr(self.args, "kv_prefetch_chunk_kb", 4096)) * 1024,
             headroom_bytes=int(getattr(self.args, "kv_headroom_mb", 512)) * 1024 ** 2,
             disturbance_budget=float(getattr(self.args, "kv_overlap_max_slowdown", 0.1)),
+            adaptive_fallback=bool(getattr(self.args, "kv_overlap_auto_fallback", False)),
         )
         phase_leases = []
 
@@ -1562,9 +1562,7 @@ class Decoding(ABC):
             task_queues.sort(
                 accept_stats_snapshot(),
                 now=time.monotonic(),
-                category_for=lambda item: _length_category(
-                    item.remaining_tokens, len_r1, len_r2
-                ),
+                category_for=length_classifier.category,
                 priority=lambda request, stats, now: _compute_priority_score(
                     request, stats, now=now
                 ),
@@ -1706,9 +1704,10 @@ class Decoding(ABC):
             return profile.slice_progress(item.accepted_so_far, sl.draft_token_count, final) / marginal
 
         def category_for(item):
-            return _length_category(item.remaining_tokens, len_r1, len_r2)
+            return length_classifier.category(item)
 
-        def build_plan(reserved_work_ids=(), cycle=None, cursor=None, projected_plan=None, diagnostic_kind=None):
+        def build_plan(reserved_work_ids=(), cycle=None, cursor=None, projected_plan=None,
+                       diagnostic_kind=None, excluded_proc_ids=()):
             started = time.perf_counter()
             _sort_queues_if_dirty()
             queues = task_queues.snapshot()
@@ -1726,10 +1725,11 @@ class Decoding(ABC):
                 prefill_chunk_quantum=int(self.args.prefill_chunk_quantum),
                 accept_stats=accept_stats_snapshot(), now=time.monotonic(),
                 reserved_work_ids=reserved_work_ids,
+                excluded_proc_ids=excluded_proc_ids,
                 selection_policy=getattr(self.args, "scheduler_policy", "legacy"),
                 candidate_value=lambda item, sl, selected: candidate_value(item, sl, selected, items),
                 max_wait_s=float(getattr(self.args, "scheduler_max_wait_s", 1.0)))
-            metric = "lookahead_ms" if projected_plan is not None else "plan_ms"
+            metric = "lookahead_ms" if DIAG.context.plan_kind.startswith("lookahead") else "plan_ms"
             value = (time.perf_counter() - started) * 1000.0
             scheduler_metrics[metric + "_total"] = scheduler_metrics.get(metric + "_total", 0) + value
             scheduler_metrics[metric + "_count"] = scheduler_metrics.get(metric + "_count", 0) + 1
@@ -1740,24 +1740,19 @@ class Decoding(ABC):
             return plan
 
         def refresh_prefetch():
-            """Recompute the lookahead residency intent from a stable snapshot.
+            """Paper Algorithm 1: Plan(Q_t, h_t, B_t) on a read-only snapshot.
 
-            Prediction starts from the post-plan cursor/cycle and a copy of
-            the projected residual work. Partially completed requests remain
-            candidates; the residency layer still protects active caches.
+            Exclude current devices BEFORE allocating tokens or device slots.
+            Prediction never commits task progress or the live WRR cursor.
             """
 
             if not prefetch_enabled or not getattr(self.args, "kv_prefetch", True):
                 return
-            plan = in_flight["plan"]
-            if plan is not None:
-                lookahead = build_plan(
-                    projected_plan=plan,
-                    cycle=plan.next_cycle,
-                    cursor=plan.next_wrr_cursor,
-                )
-            else:
-                lookahead = build_plan(diagnostic_kind="lookahead_idle")
+            excluded = residency.protected_snapshot()
+            lookahead = build_plan(excluded_proc_ids=excluded, diagnostic_kind="lookahead")
+            DIAG.emit("prefetch_prediction", plan_id=getattr(lookahead, "_diag_id", None),
+                      excluded_proc_ids=sorted(excluded), ordered_verify_pids=lookahead.verify_proc_ids,
+                      policy=getattr(self.args, "scheduler_policy", "legacy"))
             if not lookahead.verify_proc_ids and not task_queues.has_live_task("verify"):
                 scheduler_metrics["prefetch_no_verify_candidates"] += 1
             prefetch_coordinator.refresh(lookahead.verify_proc_ids)
@@ -1799,6 +1794,7 @@ class Decoding(ABC):
             in_flight["plan"] = plan
             scheduler_metrics["iterations"] += 1
             try:
+                refresh_prefetch()
                 executor.submit(job)
             except BaseException:
                 in_flight["plan"] = None
@@ -2058,7 +2054,6 @@ class Decoding(ABC):
         def process_ingress_message(req) -> None:
             """Apply one inbound request/control on the control-owner thread."""
 
-            nonlocal len_r1, len_r2
             if isinstance(req, dict) and req.get("control_type") == "session_release":
                 lifecycle.release(req.get("proc_id"), req.get("response_key"))
                 flush_session_releases()
@@ -2093,9 +2088,6 @@ class Decoding(ABC):
             if req["task_type"] == "verify" and req["proc_id"] not in kv_cache_manager._past_key_values:
                 response_queues[req.get("response_key", req["proc_id"])].put({"error": "session has no target cache; prefill required"})
                 return
-            recent_prefix_lens.append(req["prefix_len"])
-            len_r1, len_r2 = _update_length_thresholds(recent_prefix_lens)
-            cat = _length_category(req["prefix_len"], len_r1, len_r2)
             work_id = str(req.get("work_id", f"{req['proc_id']}:{time.monotonic_ns()}"))
             req["work_id"] = work_id
             req["response_key"] = req.get("response_key", req["proc_id"])
@@ -2123,10 +2115,14 @@ class Decoding(ABC):
                 )
             item = WorkItem.from_request(
                 req,
-                category=cat,
+                category="short",
                 cycle=scheduler_state["current_cycle"],
                 work_id=work_id,
             )
+            item.category = length_classifier.observe(item)
+            DIAG.emit("length_classification", work_id=work_id, task_type=item.task_type,
+                      task_tokens=item.total_tokens, category=item.category,
+                      thresholds=length_classifier.thresholds[item.task_type])
             update = pending_prefill_timing.pop(req["proc_id"], None)
             if update is not None:
                 req = dict(req)

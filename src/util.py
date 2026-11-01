@@ -360,7 +360,9 @@ def parse_arguments():
                         help="initial exposed-transfer cost estimate; calibrate for the host")
     parser.add_argument("--kv_prefetch", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--kv_prefetch_mode", choices=("protect_forward", "overlap", "cpu_prepare"),
-                        default="protect_forward")
+                        default="overlap", help="paper FastSD overlaps predicted KV copies with Target computation")
+    parser.add_argument("--kv_overlap_auto_fallback", action=argparse.BooleanOptionalAction, default=False,
+                        help="explicitly allow measured disturbance to disable overlap; off for paper FastSD")
     parser.add_argument("--kv_overlap_max_slowdown", type=float, default=0.1,
                         help="fall back after three overlap forwards exceed a measured same-shape baseline")
     parser.add_argument("--kv_prefetch_mb", type=int, default=64)

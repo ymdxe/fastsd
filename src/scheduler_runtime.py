@@ -334,10 +334,9 @@ class SchedulerQueues:
                 drained.extend(self._queues[task_type][category])
                 self._queues[task_type][category] = []
         for item in drained:
-            if item.task_type == "prefill":
-                # A chunked Prefill keeps its WorkItem, so its remaining
-                # length can move it between buckets.
-                item.category = category_for(item)
+            # Both distributions and remaining work can change. Reclassify
+            # verify too, using its draft length rather than prefix length.
+            item.category = category_for(item)
             self._queues[item.task_type][item.category].append(item)
         for task_type in TASK_TYPES:
             for category in CATEGORIES:
@@ -475,8 +474,9 @@ class CacheResidency:
         ticket = self.candidates.get(pid)
         if ticket is None or not ticket.matches(snapshot):
             return None
-        self.candidates.pop(pid)
-        ticket.claimed_by = job_id
+        with ticket.lock:
+            self.candidates.pop(pid)
+            ticket.claimed_by = job_id
         return ticket
 
     def retire_session_locked(self, pid):
@@ -570,30 +570,30 @@ class PrefetchCoordinator:
         self._pending_snapshot = pending_snapshot or (lambda: False)
         self._retry_interval = float(retry_interval)
         self._clock = clock
-        self._last_desired: Optional[frozenset] = None
+        self._last_desired: Optional[tuple] = None
         self._last_submit_at = 0.0
 
     def refresh(self, desired_pids: Iterable[Any]) -> bool:
-        requested = set(desired_pids)
+        requested = tuple(dict.fromkeys(desired_pids))
         protected = self._protected_snapshot()
-        excluded = requested & protected
+        excluded = set(requested) & protected
         if excluded:
             self.metrics["prefetch_reserved_excluded"] += len(excluded)
-        desired = frozenset(requested - protected)
+        desired = tuple(pid for pid in requested if pid not in protected)
 
         self.metrics["prefetch_plans"] += 1
         if not desired:
             self.metrics["prefetch_empty_desired"] += 1
-            if self._last_desired == frozenset():
+            if self._last_desired == ():
                 self.metrics["prefetch_desired_unchanged"] += 1
             if self._last_desired:
-                self._submit(frozenset())
-            self._last_desired = frozenset()
+                self._submit(())
+            self._last_desired = ()
             return False
 
         current = set(self._resident_snapshot())
         stale = set()  # prediction never evicts an official cache
-        to_gpu = (desired - current) - protected
+        to_gpu = set(desired) - current
 
         if self._last_desired == desired:
             self.metrics["prefetch_desired_unchanged"] += 1
@@ -614,11 +614,12 @@ class PrefetchCoordinator:
             return False
 
         self.metrics["prefetch_evictions"] += len(stale)
-        self.metrics["prefetch_hits"] += len(current & desired)
+        self.metrics["prefetch_hits"] += len(current & set(desired))
         self.metrics["prefetch_misses"] += len(to_gpu)
 
+        previous = self._last_desired
         self._last_desired = desired
-        if not stale and not to_gpu:
+        if not stale and not to_gpu and not previous:
             self.metrics["prefetch_noop"] += 1
             return False
         if self._submit(desired):
@@ -665,7 +666,7 @@ class KVPrefetchWorker:
         self._thread: Optional[threading.Thread] = None
         self._state_lock = threading.Lock()
         self._pending = 0
-        self._latest_intent: Optional[frozenset] = None
+        self._latest_intent: Optional[tuple] = None
 
     # -- lifecycle ---------------------------------------------------------
     def start(self) -> None:
@@ -703,7 +704,7 @@ class KVPrefetchWorker:
 
         if self._stop.is_set():
             return False
-        intent = frozenset(desired)
+        intent = tuple(dict.fromkeys(desired))
         with self._state_lock:
             self._latest_intent = intent
             self._pending += 1
@@ -733,9 +734,9 @@ class KVPrefetchWorker:
             self.metrics["prefetch_async_dropped"] += 1
             return False
 
-    def _is_superseded(self, desired: frozenset) -> bool:
+    def _is_superseded(self, desired) -> bool:
         with self._state_lock:
-            return self._latest_intent != desired
+            return tuple(self._latest_intent or ()) != tuple(desired)
 
     def _decrement_pending(self) -> None:
         """Release one pending slot; an underflow is a bookkeeping bug."""
@@ -750,13 +751,14 @@ class KVPrefetchWorker:
     def _run(self) -> None:
         while not self._stop.is_set():
             try:
-                desired = self._tasks.get(timeout=0.005)
+                desired = self._tasks.get(timeout=0.001)
             except queue.Empty:
                 with self._state_lock:
                     desired = self._latest_intent
                 if desired:
                     try:
-                        self._execute(desired)
+                        moved = self._execute(desired)
+                        self.metrics["prefetch_async_moved"] += moved
                     except Exception as exc:
                         self.metrics["prefetch_async_failed"] += 1
                         self.metrics["prefetch_async_last_error"] = str(exc)
@@ -790,7 +792,7 @@ class KVPrefetchWorker:
             ticket.retired = True
             ticket.copy_state = "invalid-draining"
 
-    def _execute(self, desired: frozenset) -> int:
+    def _execute(self, desired) -> int:
         # Background publishes candidates only. Formal cache ownership is
         # transferred atomically by admission and installed by the executor.
         residency = self.residency
@@ -801,7 +803,10 @@ class KVPrefetchWorker:
                 matches = cache is not None and ticket.matches(residency.snapshot_locked(pid, cache))
                 if pid not in desired or not matches:
                     stale.append(residency.candidates.pop(pid))
-            to_gpu = sorted(desired - residency.resident - residency.active - residency.reserved)
+            # The planner's order is significant under a bounded GPU budget.
+            # Never sort by process ID or turn this sequence into a set.
+            to_gpu = [pid for pid in desired if pid not in
+                      residency.resident | residency.active | residency.reserved]
         for ticket in stale:
             self._retire(ticket)
         moved = 0
@@ -837,11 +842,16 @@ class KVPrefetchWorker:
                 if valid:
                     residency.candidates[pid] = ticket
                     moved += 1
+                    DIAG.emit("prefetch_candidate", proc_id=pid, ticket_id=id(ticket),
+                              planned_order=list(desired), bytes=ticket.bytes_reserved)
             if not valid:
                 self._retire(ticket)
                 self.metrics["prefetch_async_skipped_stale"] += 1
                 if self._is_superseded(desired):
                     self.metrics["prefetch_async_superseded"] += 1
+            else:
+                # Start the first predicted cache before allocating later ones.
+                self._advance_candidates()
         self._advance_candidates()
         return moved
 
@@ -849,10 +859,18 @@ class KVPrefetchWorker:
         if self.transfers is None:
             return
         self.transfers.poll_completed()
+        with self._state_lock:
+            desired = tuple(self._latest_intent or ())
         with self.residency.lock:
-            candidates = list(self.residency.candidates.values())
+            candidates = [self.residency.candidates[pid] for pid in desired
+                          if pid in self.residency.candidates]
         for ticket in candidates:
+            if ticket.copy_done is not None or ticket.ready() or ticket.retired:
+                continue
             self.transfers.advance_prefetch(ticket)
+            # Complete the highest-priority pending cache first. The manager
+            # bounds both the submitted bytes and the number of in-flight DMAs.
+            break
 
 
 # ---------------------------------------------------------------------------

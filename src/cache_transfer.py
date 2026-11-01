@@ -72,9 +72,9 @@ class PinnedBufferPool:
 
 class CacheTransferManager:
     def __init__(self, device, *, enabled=True, pinned_pool_bytes=128 * 1024 ** 2,
-                 mode="protect_forward", prefetch_bytes=64 * 1024 ** 2,
+                 mode="overlap", prefetch_bytes=64 * 1024 ** 2,
                  chunk_bytes=4 * 1024 ** 2, headroom_bytes=512 * 1024 ** 2,
-                 disturbance_budget=0.1, record_timeline=False):
+                 disturbance_budget=0.1, adaptive_fallback=False, record_timeline=False):
         if mode not in {"protect_forward", "overlap", "cpu_prepare"}:
             raise ValueError("unknown KV prefetch mode")
         if min(prefetch_bytes, headroom_bytes) < 0 or chunk_bytes <= 0:
@@ -86,6 +86,7 @@ class CacheTransferManager:
         self.headroom_bytes = int(headroom_bytes)
         self.pool = PinnedBufferPool(pinned_pool_bytes)
         self.lock = threading.RLock()  # metadata only, never allocation/copy/wait
+        self.collect_lock = threading.RLock()
         self.gate = threading.Condition(threading.RLock())
         self.admitted = self.executing = self.submitting = 0
         self.last_compute = None
@@ -93,6 +94,7 @@ class CacheTransferManager:
         self.speculative_bytes = 0
         self.metrics = defaultdict(float)
         self.disturbance_budget = max(0.0, float(disturbance_budget))
+        self.adaptive_fallback = bool(adaptive_fallback)
         self.forward_baselines, self.disturbance_counts = {}, {}
         self.timeline = [] if record_timeline or DIAG.enabled else None
         self.h2d_stream = torch.cuda.Stream(device=self.device) if self.enabled else None
@@ -142,9 +144,12 @@ class CacheTransferManager:
     @contextmanager
     def _speculation_slot(self, *, preparing=False):
         with self.gate:
+            # In overlap mode a new arrival must be able to PREPARE as well
+            # as copy while A executes. PID protection lives in the registry;
+            # a global idle-only preparation gate starves every future B.
             allowed = (self.enabled and self.mode != "cpu_prepare"
-                       and not self.submitting and not (self.admitted and not self.executing)
-                       and ((self.mode == "overlap" and not preparing)
+                       and not self.submitting
+                       and ((self.mode == "overlap")
                             or (not self.admitted and not self.executing and self._gpu_idle())))
             if allowed:
                 self.submitting += 1
@@ -161,7 +166,7 @@ class CacheTransferManager:
         start = time.perf_counter()
         with self.gate:
             self.executing += 1
-            while self.submitting:
+            while self.submitting and self.mode != "overlap":
                 self.gate.wait()
         if self.mode == "protect_forward":
             with self.lock:
@@ -182,9 +187,10 @@ class CacheTransferManager:
             self.last_compute = event
             self.executing -= 1
             self.gate.notify_all()
+        self.poll_completed()
 
     def _reserve_speculation(self, size):
-        # No reliable headroom => skip; allocations admitted only while idle.
+        # No reliable headroom => skip. Reservation is atomic across tickets.
         try:
             free, _ = torch.cuda.mem_get_info(self.device)
         except (RuntimeError, ValueError):
@@ -258,7 +264,9 @@ class CacheTransferManager:
                                 staged.copy_(source)
                                 pinned.append(staged)
                                 source = staged
-                            target = torch.empty_like(source, device=device)
+                            allocation_stream = (self.prefetch_stream if speculative else self.h2d_stream)
+                            with torch.cuda.stream(allocation_stream):
+                                target = torch.empty_like(source, device=device)
                         pair.append(target)
                         # Valid views only, never unused preallocated capacity.
                         views = [(source, target)]
@@ -316,7 +324,18 @@ class CacheTransferManager:
                 if self.timeline is not None:
                     trace_start = torch.cuda.Event(enable_timing=True)
                     trace_start.record(stream)
-                limit = len(ticket.chunks) if all_chunks else ticket.next_chunk + 1
+                limit = len(ticket.chunks)
+                if not all_chunks:
+                    # A chunk is a BYTE budget, not one tensor per polling
+                    # interval. Small per-layer K/V tensors share a submission.
+                    limit, total = ticket.next_chunk, 0
+                    while limit < len(ticket.chunks):
+                        source = ticket.chunks[limit][0]
+                        size = source.numel() * source.element_size()
+                        if total + size > self.chunk_bytes:
+                            break
+                        total += size
+                        limit += 1
                 ticket.last_chunk_bytes = 0
                 for index in range(ticket.next_chunk, limit):
                     source, target = ticket.chunks[index]
@@ -408,7 +427,7 @@ class CacheTransferManager:
             self.metrics["forward_disturbance_ratio_max"] = max(self.metrics["forward_disturbance_ratio_max"], ratio)
             count = self.disturbance_counts.get(shape, 0) + 1 if ratio > self.disturbance_budget else 0
             self.disturbance_counts[shape] = count
-            if count >= 3:
+            if count >= 3 and self.adaptive_fallback:
                 with self.gate:
                     self.mode = "protect_forward"
                 self.metrics["overlap_fallbacks"] += 1
@@ -438,6 +457,12 @@ class CacheTransferManager:
                 self.metrics["prefetch_wasted_bytes"] += ticket.submitted_bytes
 
     def poll_completed(self):
+        # Executor maintenance and prefetch progress can collect concurrently.
+        # Serialize the whole scan/release, not just the pending-list removal.
+        with self.collect_lock:
+            return self._poll_completed()
+
+    def _poll_completed(self):
         DIAG.gpu_collect()
         with self.lock:
             tickets = list(self.pending)
