@@ -80,6 +80,78 @@ class PaperSchedulingTests(unittest.TestCase):
         self.assertIs(prepared[0], store['z'])
 
 
+class PrefetchPollingTests(unittest.TestCase):
+    def worker(self, transfers, clock):
+        cache = SimpleNamespace(get_seq_length=lambda: 4)
+        return KVPrefetchWorker(residency=CacheResidency(), get_cache=lambda _: cache,
+            set_cache=None, move_cache=None, gpu_device='cuda', metrics=defaultdict(int),
+            transfers=transfers, clock=clock)
+
+    def test_unchanged_budget_rejection_is_bounded_and_recovers(self):
+        now = [10.0]
+        class Transfers:
+            attempts = 0
+            available = False
+            def poll_completed(self):
+                return []
+            def submit_h2d(self, snapshot, purpose):
+                self.attempts += 1
+                if not self.available:
+                    return None
+                return KVTransferTicket(snapshot, purpose, destination_cache=snapshot.cache,
+                                        copy_state='ready')
+        transfers = Transfers()
+        worker = self.worker(transfers, lambda: now[0])
+        worker._latest_intent = ('a',)
+        worker._background_progress()
+        now[0] += .01
+        for _ in range(100):
+            worker._background_progress()
+        self.assertEqual(transfers.attempts, 1)
+        self.assertGreater(worker._poll_timeout(), .03)
+        transfers.available = True
+        now[0] += .05
+        worker._background_progress()
+        self.assertEqual(transfers.attempts, 2)
+        self.assertIn('a', worker.residency.candidates)
+
+    def test_copy_progress_does_not_wait_for_preparation_retry(self):
+        now = [10.0]
+        class Transfers:
+            advances = 0
+            def poll_completed(self):
+                return []
+            def advance_prefetch(self, ticket):
+                self.advances += 1
+        transfers = Transfers()
+        worker = self.worker(transfers, lambda: now[0])
+        worker._latest_intent = ('a',)
+        ticket = KVTransferTicket(CacheSnapshot.capture(worker._get_cache('a')), 'prefetch')
+        worker.residency.candidates['a'] = ticket
+        worker._next_preparation_retry_at = 20.0
+        for _ in range(5):
+            worker._background_progress()
+        self.assertEqual(transfers.advances, 5)
+        self.assertEqual(worker._poll_timeout(), .001)
+        ticket.copy_state = 'ready'
+        self.assertEqual(worker._poll_timeout(), .05)
+
+    def test_new_intent_is_executed_despite_old_retry_deadline(self):
+        worker = self.worker(None, lambda: 10.0)
+        worker._next_preparation_retry_at = 100.0
+        seen = []
+        def execute(desired):
+            seen.append(desired)
+            worker.stop()
+            return 0
+        worker._execute = execute
+        worker.submit(['new'])
+        worker._run()
+        self.assertEqual(seen, [('new',)])
+        self.assertFalse(worker.has_pending())
+        self.assertEqual(worker.metrics['prefetch_pending_underflow'], 0)
+
+
 try:
     import torch
     from src.cache_views import dynamic_cache_from_views

@@ -651,7 +651,11 @@ class KVPrefetchWorker:
         queue_maxsize: int = 1,
         thread_setup: Optional[Callable[[], None]] = None,
         transfers=None,
+        preparation_retry_interval: float = 0.05,
+        clock: Callable[[], float] = time.monotonic,
     ) -> None:
+        if preparation_retry_interval <= 0:
+            raise ValueError("preparation retry interval must be positive")
         self.transfers = transfers
         self.residency = residency
         self._get_cache = get_cache
@@ -667,6 +671,9 @@ class KVPrefetchWorker:
         self._state_lock = threading.Lock()
         self._pending = 0
         self._latest_intent: Optional[tuple] = None
+        self._clock = clock
+        self._preparation_retry_interval = float(preparation_retry_interval)
+        self._next_preparation_retry_at = 0.0
 
     # -- lifecycle ---------------------------------------------------------
     def start(self) -> None:
@@ -748,22 +755,48 @@ class KVPrefetchWorker:
             self._pending -= 1
 
     # -- worker ------------------------------------------------------------
+    def _poll_timeout(self):
+        # Only an unfinished copy needs the short progress tick. Repeating
+        # allocation attempts when the byte budget is full competes with the
+        # model executor for host time, without making the cache any earlier.
+        with self.residency.lock:
+            copying = any(not t.retired and t.copy_done is None
+                          and t.copy_state != "ready"
+                          for t in self.residency.candidates.values())
+        if copying:
+            return 0.001
+        return max(0.001, min(self._preparation_retry_interval,
+                             self._next_preparation_retry_at - self._clock()))
+
+    def _background_progress(self):
+        # Advance already prepared copies independently of allocation retry.
+        # New intents still wake Queue.get immediately; this bound applies
+        # only to unchanged predictions that could not be prepared yet.
+        self._advance_candidates()
+        if self._clock() < self._next_preparation_retry_at:
+            return
+        with self._state_lock:
+            desired = self._latest_intent
+        try:
+            if desired:
+                moved = self._execute(desired)
+                self.metrics["prefetch_async_moved"] += moved
+                self.metrics["prefetch_preparation_retries"] += 1
+        finally:
+            self._next_preparation_retry_at = self._clock() + self._preparation_retry_interval
+
     def _run(self) -> None:
         while not self._stop.is_set():
             try:
-                desired = self._tasks.get(timeout=0.001)
+                desired = self._tasks.get(timeout=self._poll_timeout())
             except queue.Empty:
-                with self._state_lock:
-                    desired = self._latest_intent
-                if desired:
-                    try:
-                        moved = self._execute(desired)
-                        self.metrics["prefetch_async_moved"] += moved
-                    except Exception as exc:
-                        self.metrics["prefetch_async_failed"] += 1
-                        self.metrics["prefetch_async_last_error"] = str(exc)
-                else:
-                    self._advance_candidates()
+                try:
+                    self._background_progress()
+                except Exception as exc:
+                    self.metrics["prefetch_async_failed"] += 1
+                    self.metrics["prefetch_async_last_error"] = str(exc)
+                    if self._on_error is not None:
+                        self._on_error(f"{type(exc).__name__}: {exc}")
                 continue
             try:
                 if self._thread_setup is not None:
@@ -783,6 +816,7 @@ class KVPrefetchWorker:
                 self.metrics["prefetch_async_completed"] += 1
                 self.metrics["prefetch_async_moved"] += moved
             finally:
+                self._next_preparation_retry_at = self._clock() + self._preparation_retry_interval
                 self._decrement_pending()
 
     def _retire(self, ticket):
