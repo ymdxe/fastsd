@@ -190,6 +190,14 @@ class CacheTransferManager:
         self.poll_completed()
 
     def _reserve_speculation(self, size):
+        # Reject an impossible reservation without entering the CUDA driver.
+        # During a forward, the worker may retry several predicted devices;
+        # a full local budget cannot be relieved by querying device memory.
+        with self.lock:
+            if size + self.speculative_bytes > self.prefetch_limit:
+                self.metrics["prefetch_budget_skips"] += 1
+                self.metrics["prefetch_local_budget_skips"] += 1
+                return False
         # No reliable headroom => skip. Reservation is atomic across tickets.
         try:
             free, _ = torch.cuda.mem_get_info(self.device)

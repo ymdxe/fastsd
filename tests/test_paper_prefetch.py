@@ -3,6 +3,7 @@ from collections import defaultdict
 from dataclasses import asdict
 import unittest
 from types import SimpleNamespace
+from unittest.mock import patch
 
 from src.cache_protocol import CacheSnapshot, KVTransferTicket
 from src.fastsd_scheduler import WorkItem, TaskLengthClassifier, plan_iteration
@@ -86,6 +87,27 @@ try:
     CUDA = torch.cuda.is_available()
 except ImportError:
     CUDA = False
+
+
+@unittest.skipUnless('CacheTransferManager' in globals(), 'requires PyTorch and transformers')
+class PrefetchBudgetTests(unittest.TestCase):
+    def test_full_local_budget_does_not_query_cuda(self):
+        manager = CacheTransferManager('cpu', prefetch_bytes=64)
+        manager.speculative_bytes = 48
+        with patch('torch.cuda.mem_get_info', side_effect=AssertionError('unneeded driver query')):
+            self.assertFalse(manager._reserve_speculation(32))
+        self.assertEqual(manager.speculative_bytes, 48)
+        self.assertEqual(manager.metrics['prefetch_local_budget_skips'], 1)
+
+    def test_budget_is_rechecked_after_driver_query(self):
+        manager = CacheTransferManager('cpu', prefetch_bytes=64, headroom_bytes=0)
+        def query(_device):
+            # Another reservation can win while this caller queries the driver.
+            manager.speculative_bytes = 48
+            return 1024, 2048
+        with patch('torch.cuda.mem_get_info', side_effect=query):
+            self.assertFalse(manager._reserve_speculation(32))
+        self.assertEqual(manager.speculative_bytes, 48)
 
 
 @unittest.skipUnless(CUDA, 'requires CUDA')
