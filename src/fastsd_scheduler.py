@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
 from collections import deque
+import copy
 import math
 import time
 from diagnostic_trace import trace as DIAG, request_meta as diag_req, item_meta as diag_item, queue_rows as diag_queues, backlog as diag_backlog
@@ -26,6 +27,16 @@ FASTSD_VERIFY_WRR_ORDER = (
     "mid", "mid", "mid", "long",
 )
 FASTSD_QUEUE_ORDER = ("SV", "SP", "MV", "MP", "LV", "LP")
+FASTSD_VISIT_QUEUE_ORDER = {
+    "short": ("SV", "SP", "MV", "MP", "LV", "LP"),
+    "mid": ("MV", "SV", "SP", "MP", "LV", "LP"),
+    "long": ("LV", "SV", "SP", "MV", "MP", "LP"),
+}
+_QUEUE_COORDINATES = {
+    category[0].upper() + kind[0].upper(): (kind, category)
+    for category in ("short", "mid", "long")
+    for kind in ("verify", "prefill")
+}
 
 
 def _finite_nonnegative(value: Any, field: str) -> float:
@@ -181,7 +192,7 @@ class TaskLengthClassifier:
         return length_category(item.remaining_tokens, *self.thresholds[item.task_type])
 
 
-def compute_priority_score(req, accept_stats, now=None, lamda=0.01):
+def prefill_priority_score(req, now=None, lamda=0.01):
     if now is None:
         now = 0.0
     elapsed = _wait_seconds(req, float(now))
@@ -189,28 +200,34 @@ def compute_priority_score(req, accept_stats, now=None, lamda=0.01):
     # A timing-required Prefill remains queued, but cannot be selected before
     # the Edge timing update atomically marks it ready.  The planner also
     # filters this state; -inf makes direct score callers obey the same rule.
-    if req.get("task_type") == "prefill" and req.get("timing_required", False) and not req.get("timing_ready", False):
+    if req.get("timing_required", False) and not req.get("timing_ready", False):
         return -math.inf
-    if req["task_type"] == "prefill":
-        if _has_explicit_latency_timing(req):
-            m_i = max(
-                1,
-                int(req.get("m_i", req.get("prefill_gamma", req.get("gamma", 1))) or 1),
-            )
-            local_prefill = _timing_value(
-                req, "local_prefill_s", "prefill_first_token_s", "local_prefill_ms",
-                "T_i_p", "Tp",
-            )
-            decode_per_token = _timing_value(
-                req, "local_decode_per_token_s", "local_decode_per_token_ms",
-                "T_i_d", "Td",
-            )
-            push = _timing_value(req, "push_s", "push_ms", "T_i_push", default=0.0)
-            # Prefill has no acceptance probability yet; per the protocol its
-            # P_n is fixed at one and cannot be overridden by request data.
-            return -(local_prefill + decode_per_token * (m_i - 1) + push) + wait_term
-        # Legacy vanilla/pipeline requests had no local timing update.
-        return wait_term
+    if _has_explicit_latency_timing(req):
+        m_i = max(
+            1,
+            int(req.get("m_i", req.get("prefill_gamma", req.get("gamma", 1))) or 1),
+        )
+        local_prefill = _timing_value(
+            req, "local_prefill_s", "prefill_first_token_s", "local_prefill_ms",
+            "T_i_p", "Tp",
+        )
+        decode_per_token = _timing_value(
+            req, "local_decode_per_token_s", "local_decode_per_token_ms",
+            "T_i_d", "Td",
+        )
+        push = _timing_value(req, "push_s", "push_ms", "T_i_push", default=0.0)
+        # Prefill has no acceptance probability yet; per the protocol its
+        # P_n is fixed at one and cannot be overridden by request data.
+        return -(local_prefill + decode_per_token * (m_i - 1) + push) + wait_term
+    # Legacy vanilla/pipeline requests had no local timing update.
+    return wait_term
+
+
+def verify_priority_score(req, accept_stats, now=None, lamda=0.01):
+    if now is None:
+        now = 0.0
+    elapsed = _wait_seconds(req, float(now))
+    wait_term = math.exp(float(lamda) * elapsed)
 
     pid = req["proc_id"]
     accepted_sum, total_sum = accept_stats.get(pid, (0, 0))
@@ -240,6 +257,13 @@ def compute_priority_score(req, accept_stats, now=None, lamda=0.01):
         draft_total_time = draft_len * _finite_nonnegative(req["draft_time_per_token"], "draft_time_per_token")
     transport_rtt = _timing_value(req, "transport_rtt", "edge_rtt", default=0.0)
     return -((draft_total_time + transport_rtt) / acc_prob) + wait_term
+
+
+def compute_priority_score(req, accept_stats, now=None, lamda=0.01):
+    """Compatibility dispatcher; scores are compared within one queue."""
+    if req["task_type"] == "prefill":
+        return prefill_priority_score(req, now=now, lamda=lamda)
+    return verify_priority_score(req, accept_stats, now=now, lamda=lamda)
 
 
 def should_switch_to_prefill(verify_underutilized_flags, has_prefill_tasks: bool) -> bool:
@@ -358,6 +382,15 @@ class AdmissionPlan:
     _all_items: list[WorkItem] = field(default_factory=list, repr=False)
     start_cycle: int = 0
     plan_ms: float = 0.0
+    seal_reason: str = ""
+    prediction_assumptions: dict[str, str] = field(default_factory=dict)
+    _committed: bool = field(default=False, repr=False)
+
+    @property
+    def ordered_slices(self):
+        """Slices in successful WRR visit order, before execution phase grouping."""
+        by_id = {sl.work_id: sl for sl in self.verify_slices + self.prefill_slices}
+        return [by_id[work_id] for work_id in self.selected_work_ids]
 
     @property
     def verify_proc_ids(self):
@@ -392,7 +425,12 @@ def cost_features(item, sl=None):
 def transition_work_item(item, sl, *, start_cycle, next_cycle,
                          progress=None, completed=False, category_for=None):
     """Pure, idempotent state transition used by projection and commit."""
-    result = replace(item, request=dict(item.request))
+    result = copy.copy(item)
+    result.request = dict(item.request)
+    if getattr(item, "cancel_pending", False) or item.state in {"cancelled", "canceled", "released"}:
+        result.finished = True
+        result.state = "finished"
+        return result
     if sl is not None:
         advance = sl.draft_token_count if progress is None else int(progress)
         target = sl.offset + max(0, min(sl.draft_token_count, advance))
@@ -406,7 +444,7 @@ def transition_work_item(item, sl, *, start_cycle, next_cycle,
         result.state = "finished" if result.finished else "ready"
     elif item.task_type == "prefill" and not item.finished:
         result.missed_cycles += max(0, next_cycle - max(start_cycle, item.enqueue_cycle))
-    if category_for is not None and item.task_type == "prefill":
+    if category_for is not None:
         result.category = category_for(result)
     return result
 
@@ -435,46 +473,31 @@ def _priority(item: WorkItem, accept_stats: Mapping[Any, Sequence[float]], now: 
     return compute_priority_score(item.request, accept_stats, now=now)
 
 
-def _candidate_for_category(
-    state: dict[str, dict[str, list[WorkItem]]],
-    category: str,
-    selected: set[str],
-    accept_stats: Mapping[Any, Sequence[float]],
-    now: float,
-    remaining_budget: int,
-    min_prefill_chunk_tokens: int,
-    reserved: set[str],
-) -> WorkItem | None:
-    candidates: list[WorkItem] = []
-    overdue = []
-    for task_type in ("verify", "prefill"):
-        for item in state[task_type][category]:
-            if item.work_id in selected or item.work_id in reserved or item.finished or item.remaining_tokens <= 0:
-                continue
-            if task_type == "prefill" and not item.timing_ready:
-                continue
-            if task_type == "verify":
-                # A bridge token is an external pipeline token carried only
-                # by the first slice of a logical verify round.  The executor
-                # clears ``bridge_pending`` after an all-accepted partial
-                # slice, before the next plan is built.
-                # Verify is itself chunkable; only the minimum viable slice
-                # (one draft token plus any bridge) must fit the remainder.
-                if item.remaining_tokens >= 1 and item.bridge_pending + 1 <= remaining_budget:
-                    candidates.append(item)
-            else:
-                if remaining_budget >= min_prefill_chunk_tokens or item.remaining_tokens < min_prefill_chunk_tokens:
-                    candidates.append(item)
-            if item.is_overdue_prefill and item in candidates:
-                overdue.append(item)
+def _eligible(item, selected, reserved):
+    return (
+        item.work_id not in selected and item.work_id not in reserved
+        and not item.finished and not getattr(item, "cancel_pending", False)
+        and item.state not in {"reserved", "running", "cancelled", "canceled", "released", "finished"}
+        and item.remaining_tokens > 0 and item.timing_ready
+    )
+
+
+def take_for_visit(state, category, selected, accept_stats, now, reserved):
+    """Choose a queue first, then its highest original score, without fit filtering.
+
+    A chosen candidate that does not fit seals the batch. Testing a later queue
+    for a smaller candidate would silently spend the current queue's visit.
+    """
+    overdue = [item for item in state["prefill"][category]
+               if _eligible(item, selected, reserved) and item.is_overdue_prefill]
     if overdue:
-        return max(overdue, key=lambda x: _priority(x, accept_stats, now))
-    verifies = [x for x in candidates if x.task_type == "verify"]
-    if verifies:
-        return max(verifies, key=lambda x: _priority(x, accept_stats, now))
-    prefills = [x for x in candidates if x.task_type == "prefill"]
-    if prefills:
-        return max(prefills, key=lambda x: _priority(x, accept_stats, now))
+        return max(overdue, key=lambda item: _priority(item, accept_stats, now))
+    for queue_name in FASTSD_VISIT_QUEUE_ORDER[category]:
+        kind, bucket = _QUEUE_COORDINATES[queue_name]
+        candidates = [item for item in state[kind][bucket]
+                      if _eligible(item, selected, reserved)]
+        if candidates:
+            return max(candidates, key=lambda item: _priority(item, accept_stats, now))
     return None
 
 
@@ -482,7 +505,7 @@ def _all_candidates(state, selected, reserved):
     for task_type in ("verify", "prefill"):
         for category in ("short", "mid", "long"):
             for item in state[task_type][category]:
-                if item.work_id not in selected and item.work_id not in reserved and not item.finished and item.remaining_tokens > 0 and item.timing_ready:
+                if _eligible(item, selected, reserved):
                     yield item
 
 
@@ -497,7 +520,7 @@ def _make_slice(item: WorkItem, budget: int, quantum: int, min_prefill: int) -> 
         if draft <= 0:
             return None
     else:
-        if budget < min_prefill and item.remaining_tokens >= min_prefill:
+        if budget < min(min_prefill, item.remaining_tokens):
             return None
         draft = min(item.remaining_tokens, budget, quantum)
         if draft <= 0:
@@ -546,6 +569,8 @@ def plan_iteration(
         raise ValueError("prefill chunk sizes must be positive")
     if min_prefill_chunk_tokens > token_budget:
         raise ValueError("min_prefill_chunk_tokens must not exceed token_budget")
+    if prefill_chunk_quantum < min_prefill_chunk_tokens:
+        raise ValueError("prefill_chunk_quantum must not be smaller than min_prefill_chunk_tokens")
     if selection_policy not in {"legacy", "fcfs", "progress"}:
         raise ValueError("unknown scheduler selection policy")
     state_raw = _normalise_queues(queues)
@@ -561,22 +586,13 @@ def plan_iteration(
     used = 0
     slots = 0
     cursor = int(wrr_cursor) % len(FASTSD_VERIFY_WRR_ORDER)
-    no_progress = 0
+    selected_items = []
+    visit_ids = []
+    seal_reason = ""
 
     while used < token_budget and len(selected) < max_num_seqs:
         category = FASTSD_VERIFY_WRR_ORDER[cursor]
-        item = _candidate_for_category(
-            state, category, selected, accept_stats, now,
-            token_budget - used, min_prefill_chunk_tokens, reserved,
-        )
-        if item is None:
-            item = max(
-                (candidate for candidate in _all_candidates(state, selected, reserved)
-                 if _make_slice(candidate, token_budget - used, prefill_chunk_quantum,
-                                min_prefill_chunk_tokens) is not None),
-                key=lambda x: (x.is_overdue_prefill, x.task_type == "verify", _priority(x, accept_stats, now)),
-                default=None,
-            )
+        item = take_for_visit(state, category, selected, accept_stats, now, reserved)
         diag_wrr_item = item
         diag_values = []
         if selection_policy != "legacy":
@@ -597,29 +613,33 @@ def plan_iteration(
                 item = max(candidates, key=progress_key, default=None)
         if DIAG.enabled and getattr(DIAG.context, "plan_kind", "") == "admission":
             DIAG.emit("scheduler_choice", plan_id=getattr(DIAG.context,"plan_id",None), policy=selection_policy, slot=slots, wrr_category=category, wrr_proposed=diag_wrr_item.work_id if diag_wrr_item else None, chosen=item.work_id if item else None, chosen_category=item.category if item else None, candidate_values=diag_values, used_tokens=used, token_budget=token_budget)
-        if item is not None:
-            sl = _make_slice(item, token_budget - used, prefill_chunk_quantum, min_prefill_chunk_tokens)
-            if sl is not None:
-                selected.add(item.work_id)
-                # One device owns one mutable target KV. Exclude all its
-                # other work from this plan, before spending further budget.
-                reserved.update(candidate.work_id for candidate in
-                                _all_candidates(state, selected, reserved)
-                                if candidate.proc_id == item.proc_id)
-                if sl.task_type == "verify":
-                    verify.append(sl)
-                else:
-                    prefill.append(sl)
-                used += sl.forward_token_count
-                no_progress = 0
-            else:
-                no_progress += 1
+        if item is None:
+            seal_reason = "no_runnable_task"
+            break
+        sl = _make_slice(item, token_budget - used, prefill_chunk_quantum, min_prefill_chunk_tokens)
+        if sl is None:
+            if not selected:
+                raise ValueError(
+                    f"work item {item.work_id} cannot fit a legal slice in full token_budget={token_budget}"
+                )
+            seal_reason = "insufficient_remaining_budget"
+            break
+        selected.add(item.work_id)
+        selected_items.append(item)
+        visit_ids.append(item.work_id)
+        # The KV belongs to a device; each plan can reserve that device once.
+        reserved.update(candidate.work_id for candidate in
+                        _all_candidates(state, selected, reserved)
+                        if candidate.proc_id == item.proc_id)
+        if sl.task_type == "verify":
+            verify.append(sl)
         else:
-            no_progress += 1
+            prefill.append(sl)
+        used += sl.forward_token_count
         slots += 1
         cursor = (cursor + 1) % len(FASTSD_VERIFY_WRR_ORDER)
-        if no_progress >= len(FASTSD_VERIFY_WRR_ORDER):
-            break
+    else:
+        seal_reason = "token_budget" if used >= token_budget else "max_num_seqs"
 
     # If a single selected Prefill is the only remaining work, fill the tail of
     # the budget while retaining the one-slice-per-WorkItem invariant.
@@ -633,7 +653,7 @@ def plan_iteration(
                                  forward_token_count=sl.forward_token_count + extra)
             used += extra
 
-    total_steps = int(wrr_cursor) + slots
+    total_steps = int(wrr_cursor) % len(FASTSD_VERIFY_WRR_ORDER) + slots
     next_cycle = int(current_cycle) + total_steps // len(FASTSD_VERIFY_WRR_ORDER)
     return AdmissionPlan(
         verify_slices=verify,
@@ -644,28 +664,100 @@ def plan_iteration(
         next_wrr_cursor=total_steps % len(FASTSD_VERIFY_WRR_ORDER),
         next_cycle=next_cycle,
         slots_consumed=slots,
-        selected_work_ids=[s.work_id for s in verify + prefill],
-        _selected_items=[item for item in _all_candidates(state, set(), reserved) if item.work_id in selected],
+        selected_work_ids=visit_ids,
+        _selected_items=selected_items,
         _all_items=[item for cats in state.values() for items in cats.values() for item in items],
         start_cycle=int(current_cycle),
         plan_ms=(time.perf_counter() - plan_started) * 1000,
+        seal_reason=seal_reason,
     )
 
 
-def project_after_plan(queues, plan, *, category_for=None):
-    """Optimistic all-accept projection using the real commit transition."""
+def project_after_plan(queues, plan, *, category_for=None, progress=None,
+                       completed_work_ids=(), applied_work_ids=()):
+    """Project metadata only; known outcomes replace the all-accept assumption.
+
+    ``applied_work_ids`` are phases already reflected in the queue snapshot.
+    They still receive the plan's service bookkeeping, without moving their
+    cursor again. New arrivals are reclassified but never aged retroactively.
+    """
     state = _normalise_queues(queues)
     slices = {s.work_id: s for s in plan.verify_slices + plan.prefill_slices}
+    completed, applied = set(completed_work_ids), set(applied_work_ids)
+    participants = {item.work_id for item in plan._all_items}
     result = {t: {c: [] for c in cats} for t, cats in state.items()}
     for task_type, categories in state.items():
         for items in categories.values():
             for item in items:
-                projected = transition_work_item(item, slices.get(item.work_id),
-                    start_cycle=plan.start_cycle, next_cycle=plan.next_cycle,
-                    category_for=category_for)
+                sl = slices.get(item.work_id)
+                if item.work_id in applied and sl is not None:
+                    projected = copy.copy(item)
+                    projected.request = dict(item.request)
+                    projected.last_served_cycle, projected.missed_cycles = plan.next_cycle, 0
+                    projected.finished = (item.finished or item.work_id in completed
+                                          or item.remaining_tokens <= 0
+                                          or getattr(item, "cancel_pending", False))
+                    projected.state = "finished" if projected.finished else "ready"
+                    if category_for is not None:
+                        projected.category = category_for(projected)
+                else:
+                    actual = progress.get(item.work_id, sl.draft_token_count) if progress is not None and sl is not None else None
+                    projected = transition_work_item(item, sl,
+                        start_cycle=plan.start_cycle,
+                        next_cycle=plan.next_cycle if item.work_id in participants or sl is not None else plan.start_cycle,
+                        progress=actual, completed=item.work_id in completed,
+                        category_for=category_for)
                 if not projected.finished and projected.remaining_tokens > 0:
                     result[task_type][projected.category].append(projected)
     return result
+
+
+def predict_next_plan(queues, inflight_plan=None, *, known_phase_results=None,
+                      applied_work_ids=(), completed_work_ids=(), category_for=None,
+                      planning_time=0.0, **planner_kwargs):
+    """Plan the complete next batch before filtering safe KV transfers.
+
+    Results map work IDs to an actual per-slice progress count, or a mapping
+    containing ``progress``, ``completed`` and ``applied``. The caller freezes
+    classifier thresholds and acceptance statistics together with its queue
+    snapshot. No real WorkItem, WRR state or classifier history is modified.
+    """
+    progress = {}
+    completed, applied = set(completed_work_ids), set(applied_work_ids)
+    for work_id, outcome in (known_phase_results or {}).items():
+        if isinstance(outcome, Mapping):
+            if outcome.get("progress") is not None:
+                progress[work_id] = int(outcome["progress"])
+            if outcome.get("completed", False):
+                completed.add(work_id)
+            if outcome.get("applied", False):
+                applied.add(work_id)
+        else:
+            progress[work_id] = int(outcome)
+    assumptions = {}
+    if inflight_plan is not None:
+        queues = project_after_plan(queues, inflight_plan, category_for=category_for,
+            progress=progress, completed_work_ids=completed, applied_work_ids=applied)
+        planner_kwargs["current_cycle"] = inflight_plan.next_cycle
+        planner_kwargs["wrr_cursor"] = inflight_plan.next_wrr_cursor
+        assumptions = {sl.work_id: "all_accept" for sl in inflight_plan.verify_slices
+                       if sl.work_id not in progress and sl.work_id not in completed and sl.work_id not in applied}
+    else:
+        snapshot = _normalise_queues(queues)
+        queues = {kind: {category: [] for category in categories}
+                  for kind, categories in snapshot.items()}
+        for kind, categories in snapshot.items():
+            for items in categories.values():
+                for item in items:
+                    cloned = copy.copy(item)
+                    cloned.request = dict(item.request)
+                    if category_for is not None:
+                        cloned.category = category_for(cloned)
+                    queues[kind][cloned.category].append(cloned)
+    planner_kwargs["now"] = planning_time
+    prediction = plan_iteration(queues, **planner_kwargs)
+    prediction.prediction_assumptions = assumptions
+    return prediction
 
 
 def reserve_admission_plan(plan: AdmissionPlan) -> None:
@@ -677,10 +769,15 @@ def reserve_admission_plan(plan: AdmissionPlan) -> None:
 
 def commit_admission_plan(plan, completed_work_ids=(), progress=None, *,
                           all_items=None, category_for=None):
+    if plan._committed:
+        return
     completed = set(completed_work_ids)
     slices = {s.work_id: s for s in plan.verify_slices + plan.prefill_slices}
+    participants = {item.work_id for item in plan._all_items or plan._selected_items}
     items = list(all_items) if all_items is not None else plan._all_items or plan._selected_items
     for item in items:
+        if item.work_id not in participants:
+            continue
         sl = slices.get(item.work_id)
         actual = progress.get(item.work_id, sl.draft_token_count) if progress is not None and sl is not None else None
         updated = transition_work_item(item, sl, start_cycle=plan.start_cycle,
@@ -689,6 +786,7 @@ def commit_admission_plan(plan, completed_work_ids=(), progress=None, *,
         for name in ("cursor", "last_served_cycle", "missed_cycles", "state", "finished",
                      "accepted_so_far", "bridge_pending", "category"):
             setattr(item, name, getattr(updated, name))
+    plan._committed = True
 
 
 def abort_admission_plan(plan: AdmissionPlan) -> None:
