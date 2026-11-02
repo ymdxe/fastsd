@@ -2,6 +2,7 @@
 from collections import defaultdict
 from dataclasses import asdict
 import unittest
+import threading
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -180,7 +181,7 @@ class PrefetchPollingTests(unittest.TestCase):
 try:
     import torch
     from src.cache_views import dynamic_cache_from_views
-    from src.cache_transfer import CacheTransferManager
+    from src.cache_transfer import CacheTransferManager, _SlabArena
     CUDA = torch.cuda.is_available()
 except ImportError:
     CUDA = False
@@ -196,14 +197,20 @@ class PrefetchBudgetTests(unittest.TestCase):
         self.assertEqual(manager.speculative_bytes, 48)
         self.assertEqual(manager.metrics['prefetch_local_budget_skips'], 1)
 
-    def test_budget_is_rechecked_after_driver_query(self):
+    def test_preallocated_reservation_is_atomic(self):
         manager = CacheTransferManager('cpu', prefetch_bytes=64, headroom_bytes=0)
-        def query(_device):
-            # Another reservation can win while this caller queries the driver.
-            manager.speculative_bytes = 48
-            return 1024, 2048
-        with patch('torch.cuda.mem_get_info', side_effect=query):
-            self.assertFalse(manager._reserve_speculation(32))
+        manager.gpu_arena = _SlabArena(torch.empty(64, dtype=torch.uint8))
+        barrier, results = threading.Barrier(3), []
+        def reserve():
+            barrier.wait()
+            results.append(manager._reserve_speculation(48))
+        workers = [threading.Thread(target=reserve) for _ in range(2)]
+        for worker in workers:
+            worker.start()
+        barrier.wait()
+        for worker in workers:
+            worker.join()
+        self.assertEqual(sorted(results), [False, True])
         self.assertEqual(manager.speculative_bytes, 48)
 
 
@@ -218,8 +225,11 @@ class PaperTransferTests(unittest.TestCase):
         manager, compute = CacheTransferManager('cuda:0'), torch.cuda.Stream()
         source = self.cache()
         try:
+            manager.install_probe('new-arrival', group_bytes=256 * 1024,
+                rate_bytes_per_second=4 * 1024 ** 2,
+                evidence={'purpose': 'bounded concurrency regression'})
             manager.admit()
-            manager.begin_execution()
+            manager.begin_execution(shape='new-arrival')
             with torch.cuda.stream(compute):
                 torch.cuda._sleep(30_000_000)
             ticket = manager.submit_h2d(source, purpose='prefetch')

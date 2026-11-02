@@ -113,15 +113,28 @@ class TransferIsolationTests(unittest.TestCase):
         finally:
             transfers.close()
 
-    def test_measured_overlap_disturbance_falls_back_after_three_observations(self):
-        transfers = CacheTransferManager('cuda:0', mode='overlap', disturbance_budget=0.1,
-                                         adaptive_fallback=True)
+    def test_calibrated_disturbance_throttles_then_pauses_without_changing_mode(self):
+        transfers = CacheTransferManager('cuda:0', mode='overlap')
         try:
-            transfers.observe_forward(('verify', 128, 4), 10, speculative=False)
+            shape = ('verify', 128, 4)
+            group_bytes = 256 * 1024
+            transfers.install_calibration(shape, baseline_ms=[10] * 8, sample_ms=[10] * 8,
+                group_bytes=group_bytes, rate_bytes_per_second=4 * 1024 ** 2,
+                evidence={'test': 'calibrated disturbance regression'})
+            transfers.set_forward_context(shape)
             for _ in range(3):
-                transfers.observe_forward(('verify', 128, 4), 12, speculative=True)
-            self.assertEqual(transfers.mode, 'protect_forward')
-            self.assertEqual(transfers.metrics['overlap_fallbacks'], 1)
+                transfers.observe_forward(shape, 12, speculative=True)
+            allowance = transfers.controller.allowance(computing=True)
+            self.assertGreater(allowance, 0)
+            self.assertLess(allowance, group_bytes)
+            self.assertEqual(transfers.controller_status()['state'], 'throttled')
+            for _ in range(3):
+                transfers.observe_forward(shape, 12, speculative=True)
+            self.assertEqual(transfers.controller.allowance(computing=True), 0)
+            self.assertEqual(transfers.controller_status()['state'], 'paused')
+            self.assertEqual(transfers.requested_mode, 'overlap')
+            self.assertEqual(transfers.mode, 'overlap')
+            self.assertEqual(transfers.metrics['overlap_fallbacks'], 0)
         finally:
             transfers.close()
 

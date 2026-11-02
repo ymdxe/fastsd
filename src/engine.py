@@ -919,6 +919,7 @@ class Decoding(ABC):
             with cache_lock:
                 ticket = residency.retire_session_locked(pid)
                 kv_cache_manager.reset(pid)
+                transfers.release_cache(owner=pid)
             if ticket is not None:
                 transfers.retire(ticket)
             with accept_stats_lock:
@@ -1089,7 +1090,25 @@ class Decoding(ABC):
             headroom_bytes=int(getattr(self.args, "kv_headroom_mb", 512)) * 1024 ** 2,
             disturbance_budget=float(getattr(self.args, "kv_overlap_max_slowdown", 0.1)),
             adaptive_fallback=bool(getattr(self.args, "kv_overlap_auto_fallback", False)),
+            rate_bytes_per_second=float(getattr(self.args, "kv_prefetch_rate_mb_s", 64)) * 1024 ** 2,
+            idle_rate_bytes_per_second=float(getattr(self.args, "kv_prefetch_idle_rate_mb_s", 512)) * 1024 ** 2,
+            event_pool_size=int(getattr(self.args, "kv_prefetch_event_pool_size", 256)),
         )
+        # Allocation and driver queries happen before either worker can forward.
+        transfers.warmup_prefetch_pool()
+        calibration_path = getattr(self.args, "kv_prefetch_calibration", None)
+        if calibration_path:
+            gpu_uuid = (str(torch.cuda.get_device_properties(target_model.device).uuid)
+                        if target_model.device.type == "cuda" else "cpu")
+            transfers.load_calibration(calibration_path, context={
+                "gpu_uuid": gpu_uuid,
+                "model": os.path.realpath(str(self.args.target_model)),
+                "dtype": str(target_model.dtype),
+                "attention_backend": str(getattr(self.args, "target_attention_backend", "sdpa_per_sequence")),
+                "forward_primitive": ("varlen_generate" if requested_kv_batch_mode == "varlen"
+                                      else "KVCacheModel_batching"),
+                "kv_batch_mode": requested_kv_batch_mode,
+            })
         phase_leases = []
 
         def acquire_cache(req):
@@ -1111,6 +1130,7 @@ class Decoding(ABC):
             phase_leases.append(lease)
             with cache_lock:
                 kv_cache_manager._past_key_values[pid] = lease.cache
+                transfers.retain_cache(lease.cache, owner=pid)
             return lease.cache
 
         forward_measurements = []
@@ -1138,7 +1158,7 @@ class Decoding(ABC):
                 elapsed_gpu = start.elapsed_time(end)
                 DIAG.gpu_span("target_forward", start, end, forward_id=diag_forward_id, requests=[diag_req(r) for r in current_batch])
                 forward_measurements.append(elapsed_gpu)
-                shape = (current_batch[0]["task_type"], tuple(cost_features(req) for req in current_batch))
+                shape = forward_shape(current_batch)
                 transfers.observe_forward(shape, elapsed_gpu, speculative=spec_active or
                     transfers.metrics["speculative_submitted_bytes"] > spec_before)
             DIAG.emit("forward_host_end", forward_id=diag_forward_id)
@@ -1168,6 +1188,7 @@ class Decoding(ABC):
                 moved = transfers.submit_d2h(cache).destination_cache if offload else cache
                 with cache_lock:
                     kv_cache_manager._past_key_values[pid] = moved
+                    transfers.retain_cache(moved, owner=pid)
                     residency.bump_locked(pid)
                     if offload:
                         preloaded_gpu_pids.discard(pid)
@@ -1175,11 +1196,19 @@ class Decoding(ABC):
                         preloaded_gpu_pids.add(pid)
 
         # --------------------- 批量处理（Prefill / Verify） ----------------
+        def forward_shape(batch):
+            return (
+                batch[0]["task_type"], len(batch),
+                tuple(int(cost_features(req)[1]) for req in batch),
+                tuple(int(req.get("_cached_context", 0)) for req in batch),
+                str(target_model.dtype),
+                str(getattr(self.args, "target_attention_backend", "sdpa_per_sequence")),
+            )
+
         def handle_request_batch(batch: list[dict], return_responses: bool = False):
             proc_ids = [req["proc_id"] for req in batch]
             DIAG.emit("batch_start", batch_id=time.monotonic_ns(), requests=[diag_req(r) for r in batch])
             residency.activate(proc_ids)
-            transfers.begin_execution()
             phase_leases.clear()
             forward_measurements.clear()
             current_batch[:] = batch
@@ -1190,6 +1219,7 @@ class Decoding(ABC):
                         existing = kv_cache_manager._past_key_values.get(req["proc_id"])
                         req["_cached_context"] = (int(existing.get_seq_length()) if existing is not None
                             and (req["task_type"] != "prefill" or req.get("_prefill_continuation", False)) else 0)
+                transfers.begin_execution(shape=forward_shape(batch))
                 with torch.cuda.stream(compute_stream) if compute_stream is not None else nullcontext():
                     result = _handle_request_batch_inner(batch, True, requested_kv_batch_mode, proc_ids)
                     stall = sum(lease.exposed_stall_ms() for lease in phase_leases)
@@ -1253,6 +1283,7 @@ class Decoding(ABC):
                         preloaded_gpu_pids.discard(pid)
                         if pid not in [req["proc_id"] for req, cont in zip(batch, continuation) if cont]:
                             kv_cache_manager.reset(pid)
+                            transfers.release_cache(owner=pid)
 
                 for req, cont in zip(batch, continuation):
                     if cont:
@@ -1581,6 +1612,7 @@ class Decoding(ABC):
 
         def _cache_set(pid, cache):
             kv_cache_manager._past_key_values[pid] = cache
+            transfers.retain_cache(cache, owner=pid)
 
         def _bind_target_device():
             # CUDA's current device is per-thread; executor/prefetch threads
@@ -2300,6 +2332,7 @@ class Decoding(ABC):
             flush_session_releases()
             transfers.close()
             scheduler_metrics["cache_transfers"] = dict(transfers.metrics)
+            scheduler_metrics["kv_overlap_controller"] = transfers.controller_status()
             scheduler_metrics["kv_prefetch_effective_mode"] = transfers.mode
             scheduler_metrics["batch_cost_profiles"] = {str(k): v for k, v in batch_cost.table.items()}
             if energy_service is not None:

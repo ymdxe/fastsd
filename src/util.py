@@ -367,6 +367,14 @@ def parse_arguments():
                         help="fall back after three overlap forwards exceed a measured same-shape baseline")
     parser.add_argument("--kv_prefetch_mb", type=int, default=64)
     parser.add_argument("--kv_prefetch_chunk_kb", type=int, default=4096)
+    parser.add_argument("--kv_prefetch_rate_mb_s", type=float, default=64.0,
+                        help="maximum speculative compute-window submission rate in MiB/s")
+    parser.add_argument("--kv_prefetch_idle_rate_mb_s", type=float, default=512.0,
+                        help="maximum speculative submission rate while compute is idle in MiB/s")
+    parser.add_argument("--kv_prefetch_event_pool_size", type=int, default=256,
+                        help="CUDA transfer events prepared before execution")
+    parser.add_argument("--kv_prefetch_calibration", default=None,
+                        help="paired-replay calibration JSON; unknown contexts pause compute-window DMA")
     parser.add_argument("--gamma_policy", choices=("legacy", "progress"), default="progress")
     args = parser.parse_args()
     if args.arrival_distribution == "poisson" and args.arrival_rate <= 0:
@@ -395,6 +403,10 @@ def parse_arguments():
             parser.error(f"--{name} must be finite and non-negative")
     if args.kv_prefetch_mb < 0 or args.kv_prefetch_chunk_kb <= 0:
         parser.error("prefetch budget must be non-negative; chunk size must be positive")
+    if (not all(math.isfinite(value) and value > 0 for value in (
+            args.kv_prefetch_rate_mb_s, args.kv_prefetch_idle_rate_mb_s))
+            or args.kv_prefetch_event_pool_size < 2):
+        parser.error("prefetch rates must be finite and positive; event pool must contain at least two events")
     if args.pinned_pool_mb < 0 or args.kv_transfer_gbps == 0 or args.scheduler_max_wait_s == 0:
         parser.error("pinned pool must be non-negative; transfer bandwidth and maximum wait must be positive")
     if args.pipeline_gamma_min < 1:
