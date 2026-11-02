@@ -60,7 +60,7 @@ from .fastsd_scheduler import (
     abort_admission_plan,
     commit_admission_plan,
     plan_iteration,
-    project_after_plan,
+    predict_next_plan,
     reserve_admission_plan,
     should_switch_to_prefill as _should_switch_to_prefill,
     update_length_thresholds as _update_length_thresholds,
@@ -902,7 +902,7 @@ class Decoding(ABC):
         # rollback window) or by an admitted-but-not-yet-forwarded plan. The
         # async prefetch worker must never touch these.
         active_pids = residency.active
-        in_flight = {"plan": None}
+        in_flight = {"plan": None, "job": None}
 
         def cancel_session(pid):
             removed = set()
@@ -1556,12 +1556,12 @@ class Decoding(ABC):
                     for pid, values in accept_stats.items()
                 }
 
-        def _sort_queues_if_dirty():
+        def _sort_queues_if_dirty(now=None):
             # Wait times use the cloud monotonic clock; only re-sort when
             # ingress/completion actually changed the queues.
             task_queues.sort(
                 accept_stats_snapshot(),
-                now=time.monotonic(),
+                now=time.monotonic() if now is None else now,
                 category_for=length_classifier.category,
                 priority=lambda request, stats, now: _compute_priority_score(
                     request, stats, now=now
@@ -1707,28 +1707,43 @@ class Decoding(ABC):
             return length_classifier.category(item)
 
         def build_plan(reserved_work_ids=(), cycle=None, cursor=None, projected_plan=None,
-                       diagnostic_kind=None, excluded_proc_ids=()):
+                       diagnostic_kind=None, excluded_proc_ids=(), planning_time=None):
             started = time.perf_counter()
-            _sort_queues_if_dirty()
+            planning_time = time.monotonic() if planning_time is None else planning_time
+            if projected_plan is None and diagnostic_kind != "lookahead":
+                _sort_queues_if_dirty(now=planning_time)
             queues = task_queues.snapshot()
-            if projected_plan is not None:
-                queues = project_after_plan(queues, projected_plan, category_for=category_for)
+            thresholds = dict(length_classifier.thresholds)
+            frozen_category = lambda item: _length_category(
+                item.remaining_tokens, *thresholds[item.task_type])
             items = {item.work_id: item for cats in queues.values() for rows in cats.values() for item in rows}
             DIAG.context.plan_kind = diagnostic_kind or ("lookahead" if projected_plan is not None else "admission")
             DIAG.context.plan_id = time.monotonic_ns()
-            plan = plan_iteration(
-                queues, token_budget=int(self.args.token_budget),
+            kwargs = dict(
+                token_budget=int(self.args.token_budget),
                 current_cycle=scheduler_state["current_cycle"] if cycle is None else cycle,
                 wrr_cursor=scheduler_state["wrr_cursor"] if cursor is None else cursor,
                 max_num_seqs=int(self.args.batch_size),
                 min_prefill_chunk_tokens=int(self.args.min_prefill_chunk_tokens),
                 prefill_chunk_quantum=int(self.args.prefill_chunk_quantum),
-                accept_stats=accept_stats_snapshot(), now=time.monotonic(),
+                accept_stats=accept_stats_snapshot(),
                 reserved_work_ids=reserved_work_ids,
                 excluded_proc_ids=excluded_proc_ids,
                 selection_policy=getattr(self.args, "scheduler_policy", "legacy"),
                 candidate_value=lambda item, sl, selected: candidate_value(item, sl, selected, items),
                 max_wait_s=float(getattr(self.args, "scheduler_max_wait_s", 1.0)))
+            if diagnostic_kind == "lookahead" or projected_plan is not None:
+                job = in_flight["job"]
+                applied_ids = (() if job is None or not job.verify_applied else
+                               tuple(sl.work_id for sl in job.plan.verify_slices))
+                plan = predict_next_plan(
+                    queues, projected_plan, category_for=frozen_category,
+                    planning_time=planning_time,
+                    known_phase_results=None if job is None else dict(job.progress),
+                    completed_work_ids=() if job is None else set(job.completed),
+                    applied_work_ids=applied_ids, **kwargs)
+            else:
+                plan = plan_iteration(queues, now=planning_time, **kwargs)
             metric = "lookahead_ms" if DIAG.context.plan_kind.startswith("lookahead") else "plan_ms"
             value = (time.perf_counter() - started) * 1000.0
             scheduler_metrics[metric + "_total"] = scheduler_metrics.get(metric + "_total", 0) + value
@@ -1739,23 +1754,41 @@ class Decoding(ABC):
             DIAG.emit("plan_built", plan_id=plan._diag_id, plan_kind=DIAG.context.plan_kind, duration_ms=value, queue_count=len(items), selected=plan.selected_work_ids, used_tokens=plan.used_tokens)
             return plan
 
-        def refresh_prefetch():
-            """Paper Algorithm 1: Plan(Q_t, h_t, B_t) on a read-only snapshot.
+        last_prediction = {"signature": None}
 
-            Exclude current devices BEFORE allocating tokens or device slots.
-            Prediction never commits task progress or the live WRR cursor.
-            """
+        def refresh_prefetch():
+            """Plan the complete projected next batch, then filter transfers."""
 
             if not prefetch_enabled or not getattr(self.args, "kv_prefetch", True):
                 return
-            excluded = residency.protected_snapshot()
-            lookahead = build_plan(excluded_proc_ids=excluded, diagnostic_kind="lookahead")
+            job = in_flight["job"]
+            signature = (
+                scheduler_state["wrr_cursor"], scheduler_state["current_cycle"],
+                id(in_flight["plan"]), bool(job and job.verify_applied),
+                tuple((item.work_id, item.cursor, item.accepted_so_far,
+                       item.bridge_pending, item.finished, item.state,
+                       item.missed_cycles, id(item.request),
+                       bool(getattr(item, "cancel_pending", False)))
+                      for item in task_queues.iter_items()),
+                tuple(sorted(length_classifier.thresholds.items())),
+                tuple(sorted(accept_stats_snapshot().items(), key=lambda pair: str(pair[0]))),
+            )
+            if signature == last_prediction["signature"]:
+                return
+            lookahead = build_plan(projected_plan=in_flight["plan"], diagnostic_kind="lookahead")
+            protected = residency.protected_snapshot()
+            safe_pids = [pid for pid in lookahead.verify_proc_ids if pid not in protected]
             DIAG.emit("prefetch_prediction", plan_id=getattr(lookahead, "_diag_id", None),
-                      excluded_proc_ids=sorted(excluded), ordered_verify_pids=lookahead.verify_proc_ids,
+                      protected_proc_ids=sorted(protected), ordered_verify_pids=lookahead.verify_proc_ids,
+                      transfer_proc_ids=safe_pids,
+                      assumptions=getattr(lookahead, "prediction_assumptions", ()),
+                      next_cursor=lookahead.next_wrr_cursor, next_cycle=lookahead.next_cycle,
                       policy=getattr(self.args, "scheduler_policy", "legacy"))
             if not lookahead.verify_proc_ids and not task_queues.has_live_task("verify"):
                 scheduler_metrics["prefetch_no_verify_candidates"] += 1
-            prefetch_coordinator.refresh(lookahead.verify_proc_ids)
+            prefetch_coordinator.refresh(safe_pids)
+            last_prediction["signature"] = signature
+            scheduler_metrics["prefetch_prediction_versions"] = scheduler_metrics.get("prefetch_prediction_versions", 0) + 1
 
         def submit_plan(plan):
             """Atomically admit the whole plan, then hand it to the executor."""
@@ -1792,12 +1825,13 @@ class Decoding(ABC):
                 prefill_batch=prefill_batch, reserved_pids=reserved_pids,
                 cache_tickets=tickets, ready_at=ready_at)
             in_flight["plan"] = plan
+            in_flight["job"] = job
             scheduler_metrics["iterations"] += 1
             try:
-                refresh_prefetch()
                 executor.submit(job)
             except BaseException:
                 in_flight["plan"] = None
+                in_flight["job"] = None
                 residency.release(reserved_pids)
                 transfers.release_admission()
                 for ticket in tickets.values():
@@ -1984,11 +2018,13 @@ class Decoding(ABC):
                     abort_admission_plan(plan)
                 # An intermediate-stage failure still ends this plan.
                 in_flight["plan"] = None
+                in_flight["job"] = None
                 residency.release(job.reserved_pids)
                 raise
             finally:
                 if outcome.final or outcome.error is not None:
                     in_flight["plan"] = None
+                    in_flight["job"] = None
                     residency.release(job.reserved_pids)
                     transfers.release_admission()
                     for ticket in job.cache_tickets.values():

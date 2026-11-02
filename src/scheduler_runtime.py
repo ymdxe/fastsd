@@ -1174,8 +1174,7 @@ class TargetSchedulerRuntime:
             # to admit already-ready work.  Scheduling must not depend on the
             # ingress queue becoming empty, otherwise a continuous stream of
             # requests can starve every model submission.
-            if self._poll_ingress(0):
-                self._refresh_prefetch()
+            self._poll_ingress(0)
             plan = self._build_plan()
             if plan is not None and plan.selected_work_ids:
                 self._submit_plan(plan)
