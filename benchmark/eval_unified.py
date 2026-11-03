@@ -44,25 +44,26 @@ class UnifiedEvaluation(Decoding):
         method = "draft_only" if self.args.eval_mode == "small" else "standard_sd"
         requests_path = Path(self.args.exp_name) / "requests.jsonl"
         records = []
-        run_start = time.monotonic()
+        run_start = time.perf_counter()
 
         with requests_path.open("w", encoding="utf-8") as output:
             for record in self.data:
                 scheduled = float(record.get("scheduled_arrival_s", 0.0))
-                remaining = scheduled - (time.monotonic() - run_start)
+                remaining = scheduled - (time.perf_counter() - run_start)
                 if remaining > 0:
                     time.sleep(remaining)
-                actual_arrival = max(0.0, time.monotonic() - run_start)
+                request_start = time.perf_counter()
+                actual_arrival = max(0.0, request_start - run_start)
 
                 input_ids = self.tokenizer.encode(
                     record["prompt"], return_tensors="pt", add_special_tokens=True
                 )
                 seed_everything(self.args.seed + int(record.get("global_index", 0)))
-                generated = decoding(input_ids)
+                generated = decoding(input_ids, request_start=request_start)
                 metrics = dict(self.last_generation_metrics)
                 new_tokens = generated[0, input_ids.shape[1] :]
                 completion = self.tokenizer.decode(new_tokens, skip_special_tokens=True)
-                completion_s = max(0.0, time.monotonic() - run_start)
+                completion_s = metrics["completion_time_s"] - run_start
                 request_record = {
                     "schema_version": 1,
                     "sample_id": record["sample_id"],
@@ -71,12 +72,19 @@ class UnifiedEvaluation(Decoding):
                     "workload_hash": self.args.workload_hash,
                     "scheduled_arrival_s": scheduled,
                     "actual_arrival_s": actual_arrival,
+                    "processing_start_s": request_start - run_start,
+                    "latency_basis": "request_processing_start",
                     "completion_s": completion_s,
                     "arrival_lag_ms": max(0.0, (actual_arrival - scheduled) * 1000.0),
                     "generated_tokens": int(metrics["generated_tokens"]),
                     "ttft_ms": float(metrics["ttft_ms"]),
                     "tpot_ms": float(metrics["tpot_ms"]),
                     "e2e_ms": float(metrics["e2e_ms"]),
+                    "request_e2e_ms": float(metrics["e2e_ms"]),
+                    "throughput_tok_s": (
+                        int(metrics["generated_tokens"]) / (float(metrics["e2e_ms"]) / 1000.0)
+                        if metrics["e2e_ms"] > 0 else None
+                    ),
                     "output_text": completion,
                     "reference": record.get("reference"),
                 }
@@ -84,7 +92,7 @@ class UnifiedEvaluation(Decoding):
                 output.flush()
                 records.append(request_record)
 
-        wallclock_s = max(0.0, time.monotonic() - run_start)
+        wallclock_s = max(0.0, time.perf_counter() - run_start)
         summary = summarize_requests(
             records,
             method=method,

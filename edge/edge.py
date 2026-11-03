@@ -1322,6 +1322,7 @@ class EdgeRunner(Decoding):
 
         task_e2e = [float(r.get("task_e2e_ms", 0.0)) for r in records]
         request_e2e = [float(r.get("request_e2e_ms", 0.0)) for r in records]
+        decode_e2e = [float(r["decode_e2e_ms"]) for r in records if r.get("decode_e2e_ms") is not None]
         ttft = [float(r["ttft_ms"]) for r in records if r.get("ttft_ms") is not None]
         decode_ttft = [
             float(r["decode_ttft_ms"])
@@ -1363,12 +1364,15 @@ class EdgeRunner(Decoding):
         scheduled_arrivals = [
             float(r["scheduled_arrival_s"]) for r in records if "scheduled_arrival_s" in r
         ]
-        completions = [float(r["completion_s"]) for r in records if "completion_s" in r]
-        active_window_s = 0.0
+        processing_starts = [float(r["processing_start_monotonic_s"]) for r in records]
+        processing_completions = [float(r["completion_monotonic_s"]) for r in records]
+        active_window_start = min(processing_starts) if processing_starts else None
+        active_window_end = max(processing_completions) if processing_completions else None
+        active_window_s = (
+            active_window_end - active_window_start if processing_starts else 0.0
+        )
         actual_arrival_span_s = 0.0
         scheduled_arrival_span_s = 0.0
-        if actual_arrivals and completions:
-            active_window_s = max(0.0, max(completions) - min(actual_arrivals))
         if len(actual_arrivals) > 1:
             actual_arrival_span_s = max(actual_arrivals) - min(actual_arrivals)
         if len(scheduled_arrivals) > 1:
@@ -1390,7 +1394,11 @@ class EdgeRunner(Decoding):
             "arrival_distribution": self.args.arrival_distribution,
             "arrival_rate_rps": float(self.args.arrival_rate),
             "arrival_seed": int(self.args.arrival_seed),
-            "ttft_definition": "request_start_to_first_output_token_visible",
+            "latency_basis": "request_processing_start",
+            "ttft_definition": "CPU_worker_request_processing_start_before_session_and_input_preparation_to_first_visible_output_token",
+            "task_e2e_definition": "same_request_processing_start_as_TTFT_to_request_completion",
+            "request_e2e_definition": "same_request_processing_start_as_TTFT_to_request_completion",
+            "decode_e2e_definition": "prefill_complete_to_request_completion",
             "decode_ttft_definition": "prefill_complete_to_first_output_token_visible",
             "tpot_definition": "(request_completion-first_token_time)/(output_tokens-1)",
             "scheduled_arrival_span_s": float(scheduled_arrival_span_s),
@@ -1407,10 +1415,14 @@ class EdgeRunner(Decoding):
             ),
             "num_tasks": len(records),
             "wallclock_s": float(wallclock_s),
+            "wallclock_definition": "parent_eval_start_to_all_workers_joined_including_process_startup_warmup_and_load_gaps",
             "total_generated_tokens": int(total_tokens),
             "max_generated_tokens_observed": int(max_generated_tokens_observed),
             "system_tok_per_s": float(total_tokens / wallclock_s) if wallclock_s > 0 else 0.0,
             "active_window_s": float(active_window_s),
+            "active_window_start_monotonic_s": active_window_start,
+            "active_window_end_monotonic_s": active_window_end,
+            "active_window_definition": "first_worker_request_processing_start_to_last_request_completion_including_load_gaps",
             "active_window_tok_per_s": float(total_tokens / active_window_s) if active_window_s > 0 else 0.0,
             "accept_rate": float(total_accepted / total_drafted) if total_drafted > 0 else 0.0,
             "q_tail_avg": float(statistics.mean(q_tail)) if q_tail else None,
@@ -1418,6 +1430,10 @@ class EdgeRunner(Decoding):
             "task_e2e_ms_p50": self._percentile(task_e2e, 0.50),
             "task_e2e_ms_p90": self._percentile(task_e2e, 0.90),
             "task_e2e_ms_p95": self._percentile(task_e2e, 0.95),
+            "decode_e2e_ms_avg": float(statistics.mean(decode_e2e)) if decode_e2e else 0.0,
+            "decode_e2e_ms_p50": self._percentile(decode_e2e, 0.50),
+            "decode_e2e_ms_p90": self._percentile(decode_e2e, 0.90),
+            "decode_e2e_ms_p95": self._percentile(decode_e2e, 0.95),
             "request_e2e_ms_avg": float(statistics.mean(request_e2e)) if request_e2e else 0.0,
             "request_e2e_ms_p50": self._percentile(request_e2e, 0.50),
             "request_e2e_ms_p90": self._percentile(request_e2e, 0.90),
@@ -1641,6 +1657,7 @@ class EdgeRunner(Decoding):
             else:
                 arrival_origin = time.monotonic()
         seed_everything(42 + proc_id)
+        processing_origin = arrival_origin if arrival_origin is not None else time.monotonic()
 
         prefill_timing_estimate = {}
         for idx, (global_idx, sample) in enumerate(indexed_samples):
@@ -1716,7 +1733,7 @@ class EdgeRunner(Decoding):
                 prefill_ms = 0.0
                 prefill_first_draft_overlap_ms = 0.0
                 prefill_wait_after_first_draft_ms = 0.0
-                task_start = None
+                decode_start = None
                 first_round_draft_started_at = None
                 first_round_timings = {}
                 if prefix.shape[1] < max_len:
@@ -1752,7 +1769,7 @@ class EdgeRunner(Decoding):
                         "prefill_wait_after_first_draft_ms"
                     ]
                     first_round_draft_started_at = first_round_timings["draft_started_at"]
-                    task_start = first_round_timings["prefill_completed_at"]
+                    decode_start = first_round_timings["prefill_completed_at"]
                 else:
                     # Keep the session protocol valid even when no decode round is
                     # requested.  This branch normally does not occur in benchmark
@@ -1766,7 +1783,7 @@ class EdgeRunner(Decoding):
                         raise
                     prefill_completed_at = time.monotonic()
                     prefill_ms = max(0.0, (prefill_completed_at - prefill_start) * 1000.0)
-                    task_start = prefill_completed_at
+                    decode_start = prefill_completed_at
                 last_transport_rtt = 0.0
                 last_pull_s = float(prefill_resp.get("pull_s", 0.0))
                 first_prefill_pull_s = last_pull_s
@@ -2240,15 +2257,16 @@ class EdgeRunner(Decoding):
                 self.color_print(f"[Edge {proc_id}] task {task_id} output:\n{generated_text}", 2)
 
                 generated_tokens = int(prefix.shape[1] - input_ids.shape[1])
-                task_e2e_ms = elapsed_ms(task_start, completion_time)
                 request_e2e_ms = elapsed_ms(request_start, completion_time)
+                task_e2e_ms = request_e2e_ms
+                decode_e2e_ms = elapsed_ms(decode_start, completion_time)
                 ttft_value = (
                     elapsed_ms(request_start, first_token_time)
                     if first_token_time is not None
                     else None
                 )
                 decode_ttft_value = (
-                    elapsed_ms(task_start, first_token_time)
+                    elapsed_ms(decode_start, first_token_time)
                     if first_token_time is not None
                     else None
                 )
@@ -2257,11 +2275,7 @@ class EdgeRunner(Decoding):
                     if first_token_time is not None
                     else None
                 )
-                completion_s = (
-                    max(0.0, completion_time - arrival_origin)
-                    if arrival_origin is not None
-                    else request_e2e_ms / 1000.0
-                )
+                completion_s = completion_time - processing_origin
                 per_task = {
                     "task_id": task_id,
                     "proc_id": int(proc_id),
@@ -2290,6 +2304,10 @@ class EdgeRunner(Decoding):
                     "scheduled_arrival_s": scheduled_arrival_s,
                     "actual_arrival_s": actual_arrival_s,
                     "arrival_lag_ms": arrival_lag_ms,
+                    "latency_basis": "request_processing_start",
+                    "processing_start_s": request_start - processing_origin,
+                    "processing_start_monotonic_s": request_start,
+                    "completion_monotonic_s": completion_time,
                     "prefill_ms": prefill_ms,
                     "local_prefill_s": float(first_round_timings.get("local_prefill_s", 0.0)),
                     "local_prefill_ms": float(first_round_timings.get("local_prefill_ms", 0.0)),
@@ -2309,6 +2327,8 @@ class EdgeRunner(Decoding):
                     "prefill_first_draft_overlap_ms": prefill_first_draft_overlap_ms,
                     "prefill_wait_after_first_draft_ms": prefill_wait_after_first_draft_ms,
                     "request_e2e_ms": request_e2e_ms,
+                    "e2e_ms": request_e2e_ms,
+                    "decode_e2e_ms": decode_e2e_ms,
                     **target_components,
                     "ttft_ms": ttft_value,
                     "decode_ttft_ms": decode_ttft_value,
@@ -2316,6 +2336,7 @@ class EdgeRunner(Decoding):
                     "completion_s": completion_s,
                     "task_e2e_ms": task_e2e_ms,
                     "tok_per_s_task": float(generated_tokens / (task_e2e_ms / 1000.0)) if task_e2e_ms > 0 else 0.0,
+                    "throughput_tok_s": float(generated_tokens / (request_e2e_ms / 1000.0)) if request_e2e_ms > 0 else 0.0,
                     "rounds": int(rounds),
                     "avg_round_ms": float(sum_round_ms / rounds) if rounds > 0 else 0.0,
                     "avg_draft_ms": float(sum_draft_ms / rounds) if rounds > 0 else 0.0,

@@ -78,9 +78,10 @@ def run(config_path: str) -> int:
                 **config["generation"],
                 "temperature": 0.0,
             },
+            request_start=request_start,
         )
         generated_ids = generated[0, input_ids.shape[1] :]
-        request_e2e_ms = (time.perf_counter() - request_start) * 1000.0
+        request_e2e_ms = metrics["e2e_ms"]
         generated_records.append(
             {
                 "schema_version": 1,
@@ -93,6 +94,14 @@ def run(config_path: str) -> int:
                 "ttft_ms": float(metrics["ttft_ms"]),
                 "tpot_ms": float(metrics["tpot_ms"]),
                 "e2e_ms": request_e2e_ms,
+                "request_e2e_ms": request_e2e_ms,
+                "processing_start_s": request_start - run_start,
+                "completion_s": metrics["completion_time_s"] - run_start,
+                "latency_basis": "request_processing_start",
+                "throughput_tok_s": (
+                    int(generated_ids.numel()) / (request_e2e_ms / 1000.0)
+                    if request_e2e_ms > 0 else None
+                ),
                 "output_text": tokenizer.decode(generated_ids, skip_special_tokens=True),
                 "output_token_ids": [int(token_id) for token_id in generated_ids.tolist()],
                 "reference": record.get("reference"),

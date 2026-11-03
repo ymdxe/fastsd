@@ -29,6 +29,72 @@ Bridge tokens count toward the shared budget. Final commitment ages only the
 plan's participating snapshot, once; later arrivals receive no retroactive age.
 The optional `fcfs` and `progress` experiment policies remain available.
 
+### Config1 scheduling ablations
+
+`--scheduler_policy legacy` remains the full default. Here **softfill** means
+both the visit table's cross-queue fallback selection and extending an isolated
+Prefill beyond its normal chunk quantum to fill the remaining token budget.
+It does not mean searching for a smaller request after the chosen candidate
+fails to fit; full scheduling already seals that batch.
+
+| Flag | Selection and filling behavior |
+| --- | --- |
+| `--scheduler_policy legacy` | Full six-queue priority selection, 6:3:1 class WRR, current-class overdue Prefill protection, and softfill. |
+| `--scheduler_policy rr` | Equal round robin over SV, SP, MV, MP, LV, LP; original score within each queue; no overdue promotion or softfill. |
+| `--scheduler_policy fifo` | One logical global queue, ordered by cloud `server_enqueue_monotonic` with `work_id` breaking equal timestamps; no score, class priority, WRR, overdue promotion, or softfill. |
+| `--scheduler_policy legacy --no-kv_prefetch` | Full scheduling with speculative KV prefetch disabled; required demand transfers remain enabled. |
+
+The `fifo` mode flattens the existing queue storage for selection; it does not
+replace the six internal dictionaries. It is a joint queue/scheduling ablation.
+The `rr` mode skips empty or non-runnable queues to reach the next runnable
+queue, then leaves its cursor immediately after the queue actually served.
+This is ordinary RR advancement, rather than the full policy's fixed class
+visit and cross-queue priority fallback. A selected candidate that cannot fit
+seals the batch in both ablations, without searching other queues for a smaller
+fit. Prefill retains its normal minimum chunk and quantum; neither ablation
+extends an isolated Prefill to fill the batch tail.
+
+For `rr`, one cycle is one traversal of the six concrete queues. Empty positions
+passed before a successful admission advance that same cursor and cycle; an
+entirely empty scan or a failed fit advances neither. For `fifo`, every successful
+slice completes one single-queue cycle and its cursor remains zero. Waiting
+Prefill age is still recorded through the shared transition code, but never
+changes either ablation's selection. Successful slices, shared token/sequence
+budgets, chunking, device reservations, execution phases and the KV runtime use
+the same implementation in every mode. Actual planning and next-plan prediction
+receive the same policy and use identical cursor/cycle transitions.
+
+Full versus `rr` measures the WRR-plus-softfill package. `rr` versus `fifo`
+measures the conditional contribution of queue classification and within-queue
+priority with WRR and softfill absent. Full versus `fifo` is the joint difference;
+none of these comparisons identifies a standalone multi-queue causal effect.
+The older `fcfs` and `progress` flags remain diagnostic policies with their
+existing behavior and are not these ablations.
+
+### Request timing
+
+The common latency origin is the CPU worker entering task processing, before
+session creation, connection work and input preparation. Planned release
+waiting and waiting for the worker's previous task are excluded. Target-only
+uses its CPU sender's equivalent processing entry, even though it has no Draft
+model. `processing_start_s` records that entry relative to the workload origin;
+`latency_basis` is `request_processing_start`.
+
+`ttft_ms` measures this origin to the first visible output token.
+`request_e2e_ms`, `task_e2e_ms` and common `e2e_ms` measure the same origin to
+completion. Request token throughput uses this E2E denominator. The old
+Prefill-completion origin is retained explicitly as `decode_e2e_ms` and
+`decode_ttft_ms`. TPOT remains the post-first-token interval divided by the
+remaining output-token count; shifting its origin to request start would
+duplicate TTFT in that metric.
+
+Arrival lag and scheduled-release latency are separate diagnostics. Aggregation
+does not add arrival lag to primary latency or mutate input records. Run token
+throughput still divides total output tokens by the measured workload window,
+including the frozen arrival gaps. Edge also labels its processing active span
+from the first worker's processing entry to the last completion; neither
+denominator is the sum of concurrent request latencies.
+
 ## Complete next-plan prediction
 
 `predict_next_plan` copies scheduling metadata, projects current slices, applies

@@ -279,7 +279,8 @@ class Decoding(ABC):
         pass
     
     @torch.no_grad()
-    def autoregressive_sampling(self, prefix):
+    def autoregressive_sampling(self, prefix, *, request_start=None):
+        generation_start = time.perf_counter() if request_start is None else request_start
         if self.args.eval_mode == "small":
             model = self.draft_model
         elif self.args.eval_mode == "large":
@@ -288,7 +289,6 @@ class Decoding(ABC):
             raise RuntimeError("Auto-Regressive Decoding can be used only in small / large eval mode!")
         
         prefix = prefix.to(model.device)
-        generation_start = time.perf_counter()
         first_token_time = None
 
         prefix_len = prefix.shape[1]
@@ -330,14 +330,16 @@ class Decoding(ABC):
             ),
             "e2e_ms": (completion_time - generation_start) * 1000.0,
             "generated_tokens": generated_tokens,
+            "first_token_time_s": first_token_time,
+            "completion_time_s": completion_time,
         }
         return x
 
     @torch.no_grad()
-    def speculative_decoding(self, prefix):
+    def speculative_decoding(self, prefix, *, request_start=None):
+        generation_start = time.perf_counter() if request_start is None else request_start
         original_prefix_len = prefix.shape[1]
         max_tokens = original_prefix_len + self.args.max_tokens
-        generation_start = time.perf_counter()
         first_token_time = None
         
         draft_device = self.draft_model.device
@@ -423,6 +425,8 @@ class Decoding(ABC):
             ),
             "e2e_ms": (completion_time - generation_start) * 1000.0,
             "generated_tokens": generated_tokens,
+            "first_token_time_s": first_token_time,
+            "completion_time_s": completion_time,
         }
         return prefix
 
@@ -1590,13 +1594,14 @@ class Decoding(ABC):
         def _sort_queues_if_dirty(now=None):
             # Wait times use the cloud monotonic clock; only re-sort when
             # ingress/completion actually changed the queues.
+            priority = ((lambda request, stats, now: 0.0)
+                        if getattr(self.args, "scheduler_policy", "legacy") == "fifo"
+                        else _compute_priority_score)
             task_queues.sort(
                 accept_stats_snapshot(),
                 now=time.monotonic() if now is None else now,
                 category_for=length_classifier.category,
-                priority=lambda request, stats, now: _compute_priority_score(
-                    request, stats, now=now
-                ),
+                priority=priority,
             )
 
         # ---- 异步 KV 预取：后台线程执行 CPU<->GPU 搬移 ----

@@ -571,7 +571,7 @@ def plan_iteration(
         raise ValueError("min_prefill_chunk_tokens must not exceed token_budget")
     if prefill_chunk_quantum < min_prefill_chunk_tokens:
         raise ValueError("prefill_chunk_quantum must not be smaller than min_prefill_chunk_tokens")
-    if selection_policy not in {"legacy", "fcfs", "progress"}:
+    if selection_policy not in {"legacy", "fifo", "rr", "fcfs", "progress"}:
         raise ValueError("unknown scheduler selection policy")
     state_raw = _normalise_queues(queues)
     state = {t: {c: [_as_work_item(x, t, c, current_cycle) for x in state_raw[t][c]] for c in state_raw[t]} for t in state_raw}
@@ -585,17 +585,37 @@ def plan_iteration(
     prefill: list[ExecutionSlice] = []
     used = 0
     slots = 0
-    cursor = int(wrr_cursor) % len(FASTSD_VERIFY_WRR_ORDER)
+    cycle_length = (len(FASTSD_QUEUE_ORDER) if selection_policy == "rr" else
+                    1 if selection_policy == "fifo" else len(FASTSD_VERIFY_WRR_ORDER))
+    cursor = int(wrr_cursor) % cycle_length
+    steps = 0
     selected_items = []
     visit_ids = []
     seal_reason = ""
 
     while used < token_budget and len(selected) < max_num_seqs:
-        category = FASTSD_VERIFY_WRR_ORDER[cursor]
-        item = take_for_visit(state, category, selected, accept_stats, now, reserved)
+        visit_steps = 1
+        if selection_policy == "fifo":
+            category = "global"
+            item = min(_all_candidates(state, selected, reserved),
+                       key=lambda x: (x.request["server_enqueue_monotonic"], x.work_id),
+                       default=None)
+        elif selection_policy == "rr":
+            item = None
+            for skipped in range(cycle_length):
+                queue_name = FASTSD_QUEUE_ORDER[(cursor + skipped) % cycle_length]
+                kind, category = _QUEUE_COORDINATES[queue_name]
+                candidates = [x for x in state[kind][category] if _eligible(x, selected, reserved)]
+                if candidates:
+                    item = max(candidates, key=lambda x: _priority(x, accept_stats, now))
+                    visit_steps = skipped + 1
+                    break
+        else:
+            category = FASTSD_VERIFY_WRR_ORDER[cursor]
+            item = take_for_visit(state, category, selected, accept_stats, now, reserved)
         diag_wrr_item = item
         diag_values = []
-        if selection_policy != "legacy":
+        if selection_policy in {"fcfs", "progress"}:
             candidates = [x for x in _all_candidates(state, selected, reserved)
                           if _make_slice(x, token_budget - used, prefill_chunk_quantum, min_prefill_chunk_tokens) is not None]
             if selection_policy == "fcfs":
@@ -637,14 +657,16 @@ def plan_iteration(
             prefill.append(sl)
         used += sl.forward_token_count
         slots += 1
-        cursor = (cursor + 1) % len(FASTSD_VERIFY_WRR_ORDER)
+        steps += visit_steps
+        cursor = (cursor + visit_steps) % cycle_length
     else:
         seal_reason = "token_budget" if used >= token_budget else "max_num_seqs"
 
     # If a single selected Prefill is the only remaining work, fill the tail of
     # the budget while retaining the one-slice-per-WorkItem invariant.
     live = list(_all_candidates(state, set(), reserved))
-    if used < token_budget and len(live) == 1 and len(prefill) == 1 and not verify:
+    if (selection_policy not in {"fifo", "rr"} and used < token_budget
+            and len(live) == 1 and len(prefill) == 1 and not verify):
         item = live[0]
         sl = prefill[0]
         extra = min(token_budget - used, item.remaining_tokens - sl.draft_token_count)
@@ -653,15 +675,15 @@ def plan_iteration(
                                  forward_token_count=sl.forward_token_count + extra)
             used += extra
 
-    total_steps = int(wrr_cursor) % len(FASTSD_VERIFY_WRR_ORDER) + slots
-    next_cycle = int(current_cycle) + total_steps // len(FASTSD_VERIFY_WRR_ORDER)
+    total_steps = int(wrr_cursor) % cycle_length + steps
+    next_cycle = int(current_cycle) + total_steps // cycle_length
     return AdmissionPlan(
         verify_slices=verify,
         prefill_slices=prefill,
         used_tokens=used,
         token_budget=token_budget,
         max_num_seqs=max_num_seqs,
-        next_wrr_cursor=total_steps % len(FASTSD_VERIFY_WRR_ORDER),
+        next_wrr_cursor=total_steps % cycle_length,
         next_cycle=next_cycle,
         slots_consumed=slots,
         selected_work_ids=visit_ids,

@@ -353,8 +353,9 @@ def parse_arguments():
                         help="use event-fenced CUDA copies and pinned CPU buffers")
     parser.add_argument("--pinned_pool_mb", type=int, default=128,
                         help="maximum retained reusable pinned CPU memory in MiB")
-    parser.add_argument("--scheduler_policy", choices=("legacy", "fcfs", "progress"), default="legacy",
-                        help="selection rule within the same batched backend and KV runtime")
+    parser.add_argument("--scheduler_policy", choices=("legacy", "fifo", "rr", "fcfs", "progress"), default="legacy",
+                        help="legacy: full WRR/softfill; fifo: joint queue/scheduling ablation; "
+                             "rr: equal six-queue RR without WRR/softfill; fcfs/progress: diagnostic policies")
     parser.add_argument("--scheduler_max_wait_s", type=float, default=1.0)
     parser.add_argument("--kv_transfer_gbps", type=float, default=10.0,
                         help="initial exposed-transfer cost estimate; calibrate for the host")

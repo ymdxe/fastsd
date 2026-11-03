@@ -230,6 +230,7 @@ async def main():
                 actual_arrival = 0.0
 
             request_start = time.perf_counter()
+            processing_start_s = time.time() - start_epoch
             client = IntegratedSpecExecClient(
                 engine=engine,
                 tokenizer=tokenizer,
@@ -238,8 +239,9 @@ async def main():
             )
             client.measurement_start = request_start
             await client.generate_exact(int(record["global_index"]))
+            completion_time = time.perf_counter()
             transport_stats = client._validator.snapshot_stats()
-            request_e2e_ms = (time.perf_counter() - request_start) * 1000.0
+            request_e2e_ms = (completion_time - request_start) * 1000.0
             generated_ids = client._prefix_tokens[0, client._num_original_tokens :]
             completion = tokenizer.decode(generated_ids, skip_special_tokens=True)
             ttft_ms = (
@@ -255,10 +257,14 @@ async def main():
                 "dataset": record["dataset"],
                 "scheduled_arrival_s": scheduled,
                 "actual_arrival_s": actual_arrival,
-                "completion_s": max(0.0, time.time() - start_epoch),
+                "processing_start_s": processing_start_s,
+                "completion_s": processing_start_s + request_e2e_ms / 1000.0,
                 "arrival_lag_ms": max(0.0, (actual_arrival - scheduled) * 1000.0),
+                "latency_basis": "request_processing_start",
+                "e2e_ms": request_e2e_ms,
                 "request_e2e_ms": request_e2e_ms,
                 "generated_tokens": generated_tokens,
+                "throughput_tok_s": generated_tokens / (request_e2e_ms / 1000.0) if request_e2e_ms > 0 else 0.0,
                 "ttft_ms": ttft_ms,
                 "tpot_ms": (
                     (request_e2e_ms - ttft_ms) / (generated_tokens - 1)

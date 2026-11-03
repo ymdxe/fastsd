@@ -244,12 +244,17 @@ def summarize_requests(
     extra: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     request_records = list(records)
+    scheduled_ttft_records = []
     for record in request_records:
-        if record.get("ttft_ms") is not None and record.get("arrival_lag_ms") is not None:
-            record.setdefault(
-                "scheduled_ttft_ms",
-                float(record["ttft_ms"]) + float(record["arrival_lag_ms"]),
-            )
+        scheduled_ttft = record.get("scheduled_ttft_ms")
+        if (
+            scheduled_ttft is None
+            and record.get("ttft_ms") is not None
+            and record.get("arrival_lag_ms") is not None
+        ):
+            scheduled_ttft = float(record["ttft_ms"]) + float(record["arrival_lag_ms"])
+        if scheduled_ttft is not None:
+            scheduled_ttft_records.append({"scheduled_ttft_ms": scheduled_ttft})
     generated = sum(int(record.get("generated_tokens", 0)) for record in request_records)
     if wallclock_s is None:
         completions = _numeric(request_records, "completion_s")
@@ -281,6 +286,7 @@ def summarize_requests(
             else "quality metrics are reported for the configured workload"
         ),
         "total_generated_tokens": generated,
+        "latency_basis": "request_processing_start",
         "wallclock_s": float(wallclock_s or 0.0),
         "throughput_tok_s": generated / wallclock_s if wallclock_s and wallclock_s > 0 else None,
         "goodput_req_s": (
@@ -290,7 +296,8 @@ def summarize_requests(
             successful_tokens / wallclock_s if wallclock_s and wallclock_s > 0 else None
         ),
         "ttft_ms": _metric_stats(request_records, "ttft_ms"),
-        "scheduled_ttft_ms": _metric_stats(request_records, "scheduled_ttft_ms"),
+        "scheduled_ttft_ms": _metric_stats(scheduled_ttft_records, "scheduled_ttft_ms"),
+        "arrival_lag_ms": _metric_stats(request_records, "arrival_lag_ms"),
         "tpot_ms": _metric_stats(request_records, "tpot_ms"),
         "e2e_ms": _metric_stats(request_records, "e2e_ms"),
         "accept_rate": (
@@ -304,10 +311,16 @@ def summarize_requests(
         ),
         "quality_exact_match": exact_match_quality(request_records, dataset),
         "metric_definitions": {
-            "ttft_ms": "actual worker start to first output token visible",
-            "scheduled_ttft_ms": "scheduled workload release to first output token, including arrival lag",
+            "ttft_ms": (
+                "CPU worker request processing start before session/input preparation to first "
+                "visible output token; excludes scheduled wait and previous-request queue"
+            ),
+            "e2e_ms": "same CPU worker request processing start as TTFT to request completion",
+            "scheduled_ttft_ms": "diagnostic only: scheduled workload release to first output token, including arrival lag",
+            "arrival_lag_ms": "diagnostic only: delay from scheduled release to worker processing start",
             "tpot_ms": "post-first-output generation time divided by remaining output tokens",
-            "throughput_tok_s": "all generated output tokens divided by measured run wallclock",
+            "request_throughput_tok_s": "request generated output tokens divided by processing-start E2E seconds",
+            "throughput_tok_s": "all generated output tokens divided by measured run wallclock, retaining scheduled load gaps",
             "goodput_req_s": "successful completed requests divided by measured run wallclock",
             "goodput_tok_s": "tokens from successful completed requests divided by measured run wallclock",
             "request_bytes": (

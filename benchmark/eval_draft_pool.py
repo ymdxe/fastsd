@@ -106,12 +106,15 @@ def _load_model(model_path: str, device: str, dtype: str | None = "auto"):
 
 
 @torch.inference_mode()
-def _generate(model, input_ids, tokenizer, generation: dict[str, Any]) -> tuple[torch.Tensor, dict]:
+def _generate(
+    model, input_ids, tokenizer, generation: dict[str, Any], *,
+    request_start: float | None = None,
+) -> tuple[torch.Tensor, dict]:
+    start = time.perf_counter() if request_start is None else request_start
     device = model.device
     output_ids = input_ids.to(device)
     prompt_len = output_ids.shape[1]
     past_key_values = None
-    start = time.perf_counter()
     first_token_time = None
 
     for _ in range(int(generation["max_new_tokens"])):
@@ -146,6 +149,8 @@ def _generate(model, input_ids, tokenizer, generation: dict[str, Any]) -> tuple[
             else 0.0
         ),
         "e2e_ms": (end - start) * 1000.0,
+        "first_token_time_s": first_token_time,
+        "completion_time_s": end,
     }
     return output_ids, metrics
 
@@ -194,17 +199,14 @@ def _worker(
                 # worker-local queueing is not reported as arrival lag.
                 actual_arrival = 0.0
             request_start = time.perf_counter()
+            processing_start_s = time.time() - float(start_epoch.value)
             input_ids = _encode_prompt(tokenizer, record["prompt"], record["dataset"])
             seed_everything(int(generation["seed"]) + int(record["global_index"]))
             generated, model_metrics = _generate(
-                model, input_ids, tokenizer, generation
+                model, input_ids, tokenizer, generation, request_start=request_start
             )
-            request_end = time.perf_counter()
             generated_ids = generated[0, input_ids.shape[1] :]
-            request_e2e_ms = (request_end - request_start) * 1000.0
-            ttft_ms = model_metrics["ttft_ms"] + (
-                request_e2e_ms - model_metrics["e2e_ms"]
-            )
+            request_e2e_ms = model_metrics["e2e_ms"]
             payload = {
                 "schema_version": 1,
                 "sample_id": record["sample_id"],
@@ -215,12 +217,19 @@ def _worker(
                 "workload_hash": workload_hash,
                 "scheduled_arrival_s": scheduled,
                 "actual_arrival_s": actual_arrival,
-                "completion_s": max(0.0, time.time() - float(start_epoch.value)),
+                "processing_start_s": processing_start_s,
+                "latency_basis": "request_processing_start",
+                "completion_s": processing_start_s + request_e2e_ms / 1000.0,
                 "arrival_lag_ms": max(0.0, (actual_arrival - scheduled) * 1000.0),
                 "generated_tokens": int(model_metrics["generated_tokens"]),
-                "ttft_ms": ttft_ms,
+                "ttft_ms": float(model_metrics["ttft_ms"]),
                 "tpot_ms": float(model_metrics["tpot_ms"]),
                 "e2e_ms": request_e2e_ms,
+                "request_e2e_ms": request_e2e_ms,
+                "throughput_tok_s": (
+                    int(model_metrics["generated_tokens"]) / (request_e2e_ms / 1000.0)
+                    if request_e2e_ms > 0 else None
+                ),
                 "output_text": tokenizer.decode(generated_ids, skip_special_tokens=True),
                 "output_token_ids": [int(token_id) for token_id in generated_ids.tolist()],
                 "reference": record.get("reference"),
