@@ -12,7 +12,6 @@ from typing import Any, Dict, List
 
 import requests
 import torch
-from auto_gptq import AutoGPTQForCausalLM
 
 sys.path.append(os.path.join(sys.path[0], "../"))
 
@@ -47,6 +46,23 @@ class EdgeClient:
         resp = self._post("/session/init", {})
         return resp["session_id"]
 
+    def sync_clock(self) -> None:
+        measurements = []
+        for _ in range(5):
+            sent = time.time()
+            response = self._post("/clock/sync", {})
+            received = time.time()
+            offset = ((response["received"] - sent) + (response["sent"] - received)) / 2
+            rtt = received - sent - (response["sent"] - response["received"])
+            measurements.append((rtt, offset))
+        self.clock_offset = min(measurements, key=lambda measurement: measurement[0])[1]
+
+    def register_arrival(self, session_id: str) -> None:
+        self._post("/prefill/arrival", {"session_id": session_id})
+
+    def release(self, session_id: str) -> None:
+        self._post("/session/release", {"session_id": session_id})
+
     def prefill(
         self,
         session_id: str,
@@ -55,6 +71,9 @@ class EdgeClient:
         prefix_len: int,
         lag: float,
         current_time: float,
+        gamma: int,
+        prefill_time: float,
+        draft_time_per_token: float,
     ) -> Dict[str, Any]:
         payload = {
             "session_id": session_id,
@@ -63,6 +82,11 @@ class EdgeClient:
             "prefix_len": prefix_len,
             "lag": lag,
             "current_time": current_time,
+            "gamma": gamma,
+            "prefill_time": prefill_time,
+            "draft_time_per_token": draft_time_per_token,
+            "clock_offset": self.clock_offset,
+            "edge_send_time": time.time(),
         }
         return self._post("/prefill", payload)
 
@@ -75,6 +99,8 @@ class EdgeClient:
         lag: float,
         current_time: float,
         gamma: int,
+        draft_time_per_token: float,
+        pull_time: float,
         transport_rtt: float = 0.0,
         tail_only: bool = False,
         has_bridge_token: bool = False,
@@ -87,13 +113,18 @@ class EdgeClient:
             "lag": lag,
             "current_time": current_time,
             "gamma": gamma,
+            "draft_time_per_token": draft_time_per_token,
+            "pull_time": pull_time,
+            "clock_offset": self.clock_offset,
+            "edge_send_time": time.time(),
             "transport_rtt": transport_rtt,
             "tail_only": tail_only,
             "has_bridge_token": has_bridge_token,
         }
-        transport_start = time.time()
+        transport_start = time.perf_counter()
         resp = self._post("/verify", payload)
-        measured_http_total = max(0.0, time.time() - transport_start)
+        resp["pull_time"] = max(0.0, time.time() + self.clock_offset - resp["cloud_send_time"])
+        measured_http_total = time.perf_counter() - transport_start
         return resp, measured_http_total
 
 
@@ -383,6 +414,8 @@ class EdgeRunner(Decoding):
 
     @torch.no_grad()
     def run_draft_process_http(self, tokenizer, proc_id: int):
+        from auto_gptq import AutoGPTQForCausalLM
+
         gpu_id = (proc_id % max(1, self.args.edge_gpus)) + self.args.edge_gpu_start
         device = f"cuda:{gpu_id}"
         self.color_print(f"[Edge {proc_id}] loading draft model on {device}", 3)
@@ -399,13 +432,14 @@ class EdgeRunner(Decoding):
         health = client.health()
         if health.get("status") not in {"ok", "healthy"}:
             raise RuntimeError(f"Cloud service health check failed: {health}")
+        client.sync_clock()
 
         data_file = self._resolve_data_file()
         with open(data_file, "r") as f:
             samples = [json.loads(line) for line in f.readlines()]
 
-        # 按进程序号切分任务，并限制每个 proc 只跑 1 个任务（用于快速并行测试）。
-        samples = [s for idx, s in enumerate(samples) if idx % self.args.num_drafts == proc_id][:1]
+        samples = [s for idx, s in enumerate(samples) if idx % self.args.num_drafts == proc_id][
+            :self.args.max_tasks_per_draft]
         seed_everything(42 + proc_id)
 
         for idx, sample in enumerate(samples):
@@ -430,18 +464,36 @@ class EdgeRunner(Decoding):
             prefix = input_ids.clone()
             max_len = input_ids.shape[1] + self.args.max_tokens
 
+            task_start = time.perf_counter()
+            client.register_arrival(session_id)
+            # Paper Eq. (3): measure this request's local prefill (first token
+            # included) separately from the remaining m-1 draft tokens.
+            torch.cuda.synchronize(draft_model.device)
+            started = time.perf_counter()
+            first_draft = approx_model_cache.generate(prefix, 1)
+            torch.cuda.synchronize(draft_model.device)
+            prefill_time = time.perf_counter() - started
+            started = time.perf_counter()
+            if self.args.gamma > 1:
+                first_draft = approx_model_cache.generate(first_draft, self.args.gamma - 1)
+            torch.cuda.synchronize(draft_model.device)
+            decode_time = time.perf_counter() - started if self.args.gamma > 1 else 0.0
+            first_draft_time = prefill_time + decode_time
+            first_decode_per_token = decode_time / (self.args.gamma - 1) if self.args.gamma > 1 else 0.0
             prefill_resp = client.prefill(
                 session_id=session_id,
                 task_id=task_id,
                 draft_output=prefix[0].tolist(),
                 prefix_len=prefix.shape[1],
-                lag=0.0,
+                lag=first_draft_time,
                 current_time=time.time(),
+                gamma=self.args.gamma,
+                prefill_time=prefill_time,
+                draft_time_per_token=first_decode_per_token,
             )
             if prefill_resp.get("status") != "prefill_ok":
                 raise RuntimeError(f"prefill failed: {prefill_resp}")
 
-            task_start = time.time()
             pipeline_enabled = bool(getattr(self.args, "enable_pipeline", True))
             proactive_enabled = bool(getattr(self.args, "enable_proactive_draft", True))
             final_token = None
@@ -449,6 +501,7 @@ class EdgeRunner(Decoding):
             current_gamma = int(self.args.gamma)
             verify_executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
             last_transport_rtt = 0.0
+            last_pull_time = 0.0  # No preceding verification result in the first round.
             reuse_hit_rounds = 0
             reuse_miss_rounds = 0
             reuse_miss_not_full_accept_rounds = 0
@@ -464,11 +517,16 @@ class EdgeRunner(Decoding):
             rounds = 0
             while prefix.shape[1] < max_len:
                 prefix_len = prefix.shape[1]
-                round_start = time.time()
+                round_start = time.perf_counter()
                 req_gamma = current_gamma if pipeline_enabled else int(self.args.gamma)
 
                 # 若上一轮复用 token 不足 gamma，这里补齐到 gamma 后再发起验证。
-                if reused_pending_tokens:
+                if first_draft is not None:
+                    x, first_draft = first_draft, None
+                    draft_elapsed = first_draft_time
+                    draft_time_per_token = first_decode_per_token
+                    round_start = task_start
+                elif reused_pending_tokens:
                     reuse_count = min(len(reused_pending_tokens), req_gamma)
                     reuse_tensor = torch.tensor(
                         [reused_pending_tokens[:reuse_count]],
@@ -478,8 +536,14 @@ class EdgeRunner(Decoding):
                     x = torch.cat((prefix, reuse_tensor), dim=1)
                     if reuse_count < req_gamma:
                         x = approx_model_cache.generate(x, req_gamma - reuse_count)
+                    torch.cuda.synchronize(draft_model.device)
+                    draft_elapsed = time.perf_counter() - round_start
+                    draft_time_per_token = draft_elapsed / req_gamma
                 else:
                     x = approx_model_cache.generate(prefix, req_gamma)
+                    torch.cuda.synchronize(draft_model.device)
+                    draft_elapsed = time.perf_counter() - round_start
+                    draft_time_per_token = draft_elapsed / req_gamma
 
                 has_bridge_token = pipeline_enabled and (final_token is not None)
                 if pipeline_enabled:
@@ -508,14 +572,15 @@ class EdgeRunner(Decoding):
                     task_id=task_id,
                     draft_output=payload_tokens,
                     prefix_len=prefix_len,
-                    lag=time.time() - round_start,
+                    lag=draft_elapsed,
                     current_time=time.time(),
                     gamma=req_gamma,
+                    draft_time_per_token=draft_time_per_token,
+                    pull_time=last_pull_time,
                     transport_rtt=last_transport_rtt,
                     tail_only=pipeline_enabled,
                     has_bridge_token=has_bridge_token,
                 )
-                draft_elapsed = max(0.0, time.time() - round_start)
                 if getattr(self.args, "debug_pipeline", False):
                     self.color_print(
                         f"[PIPELINE-EDGE][pid={proc_id}][session={session_id}] "
@@ -568,11 +633,12 @@ class EdgeRunner(Decoding):
                     )
 
                 verify_resp, measured_http_total = verify_future.result()
+                last_pull_time = verify_resp["pull_time"]
                 verify_ms = float(verify_resp.get("verify_ms", 0.0))
                 cloud_total_ms = float(verify_resp.get("cloud_total_ms", 0.0))
                 # A purer transport estimate: subtract cloud-side service time from end-to-end HTTP time.
                 last_transport_rtt = max(0.0, measured_http_total - cloud_total_ms / 1000.0)
-                round_elapsed = max(0.0, time.time() - round_start)
+                round_elapsed = time.perf_counter() - round_start
                 wait_elapsed_ms = max(0.0, (time.time() - wait_start) * 1000.0)
                 sum_round_ms += round_elapsed * 1000.0
                 sum_draft_ms += draft_elapsed * 1000.0
@@ -696,6 +762,7 @@ class EdgeRunner(Decoding):
                         break
 
             verify_executor.shutdown(wait=True)
+            client.release(session_id)
 
             generated_text = tokenizer.decode(
                 prefix[0, input_ids.shape[1]:], skip_special_tokens=True
@@ -716,7 +783,7 @@ class EdgeRunner(Decoding):
             self.color_print(f"[Edge {proc_id}] task {task_id} output:\n{generated_text}", 2)
 
             generated_tokens = int(prefix.shape[1] - input_ids.shape[1])
-            task_e2e_ms = max(0.0, (time.time() - task_start) * 1000.0)
+            task_e2e_ms = (time.perf_counter() - task_start) * 1000.0
             per_task = {
                 "task_id": task_id,
                 "proc_id": int(proc_id),

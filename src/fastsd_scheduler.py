@@ -1,4 +1,5 @@
 import math
+from dataclasses import dataclass
 
 
 FASTSD_DEFAULT_R1 = 128
@@ -61,9 +62,14 @@ def compute_priority_score(req, accept_stats, now=None, lamda=0.01):
     if now is None:
         now = 0.0
 
-    elapsed = max(0.0, float(now) - float(req["current_time"]))
+    arrival = req["arrival_time"] if "arrival_time" in req else req["current_time"]
+    elapsed = max(0.0, float(now) - float(arrival))
     wait_term = math.exp(lamda * elapsed)
     if req["task_type"] == "prefill":
+        if "prefill_time" in req:
+            cost = (req["prefill_time"] + req["draft_time_per_token"] *
+                    (req["gamma"] - 1) + req["push_time"])
+            return -cost + wait_term  # Initial acceptance probability is one.
         return wait_term
 
     pid = req["proc_id"]
@@ -75,6 +81,11 @@ def compute_priority_score(req, accept_stats, now=None, lamda=0.01):
         # Laplace smoothing prevents cold-start tasks from being catastrophically deprioritized.
         acc_prob = (accepted_sum + 1.0) / (total_sum + 1.0)
     acc_prob = max(acc_prob, 1e-6)
+
+    if "push_time" in req:
+        cost = (req["draft_time_per_token"] * req["gamma"] +
+                req["push_time"] + req["pull_time"])
+        return -cost / acc_prob + wait_term
 
     draft_len = max(1, int(req.get("gamma", 1) or 1))
     draft_total_time = float(req.get("lag", 0.0))
@@ -119,3 +130,104 @@ def predict_next_verify_proc_ids(
                 return predicted
 
     return predicted
+
+
+@dataclass
+class Task:
+    """One logical request; only execution advances its offset."""
+
+    request: dict
+    length: int
+    offset: int = 0
+    bridge: int = 0
+    waited_cycles: int = 0
+    last_served_cycle: int = -1
+    verify_ms: float = 0.0
+
+    @property
+    def pid(self):
+        return self.request["proc_id"]
+
+    @property
+    def kind(self):
+        return self.request["task_type"]
+
+    @property
+    def remaining(self):
+        return self.length - self.offset
+
+
+@dataclass(frozen=True)
+class Allocation:
+    task: Task
+    offset: int
+    tokens: int
+    bridge: int
+    cycle: int = 0
+
+    @property
+    def cost(self):
+        return self.tokens + self.bridge
+
+
+@dataclass(frozen=True)
+class BatchPlan:
+    allocations: tuple
+    cursor: int
+    cycle: int
+
+
+def rebuild_queues(tasks, thresholds, accept_stats, now):
+    """Algorithm 1 QueueUpdate: preserve arrivals and execution progress."""
+    queues = {kind: {c: [] for c in ("short", "mid", "long")}
+              for kind in ("verify", "prefill")}
+    for task in tasks:
+        category = length_category(task.length, *thresholds[task.kind])
+        queues[task.kind][category].append(task)
+    for categories in queues.values():
+        for items in categories.values():
+            items.sort(key=lambda task: compute_priority_score(
+                task.request, accept_stats, now), reverse=True)
+    return queues
+
+
+def plan_batch(queues, cursor, cycle, token_budget, max_devices, excluded=()):
+    """Read-only WRR plan, reused verbatim for predictive preloading.
+
+    Each class visit consumes one WRR slot. Soft fill borrows that visit and
+    never charges another slot. Budget feasibility is checked before choosing
+    a task, including any uncomputed bridge between its prefix and KV.
+    """
+    order = FASTSD_VERIFY_WRR_ORDER
+    selected = set(excluded)
+    allocations = []
+    budget = token_budget
+
+    def choose(category):
+        overdue = [t for t in queues["prefill"][category] if t.waited_cycles >= 2]
+        candidates = overdue + queues["verify"][category] + queues["prefill"][category]
+        for task in candidates:
+            bridge = task.bridge if task.offset == 0 else 0
+            if task.pid not in selected and task.remaining > 0 and budget > bridge:
+                return Allocation(task, task.offset, min(task.remaining, budget - bridge), bridge, visit_cycle)
+        return None
+
+    while budget > 0 and len(allocations) < max_devices:
+        visit_cycle = cycle
+        category = order[cursor]
+        cursor = (cursor + 1) % len(order)
+        if cursor == 0:
+            cycle += 1
+        allocation = choose(category)
+        if allocation is None:
+            for other in ("short", "mid", "long"):
+                if other != category:
+                    allocation = choose(other)
+                    if allocation is not None:
+                        break
+        if allocation is None:
+            break
+        allocations.append(allocation)
+        selected.add(allocation.task.pid)
+        budget -= allocation.cost
+    return BatchPlan(tuple(allocations), cursor, cycle)

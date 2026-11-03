@@ -1,5 +1,7 @@
 # FastSD
 
+This branch implements the supplied paper's scheduling and KV-preloading algorithm directly on initial commit `39fdab402c659dc189dc672e4460349d9559c866`. See [the implementation mapping, run commands, and validation limits](docs/PAPER_IMPLEMENTATION.md).
+
 FastSD is a research codebase for speculative decoding under cloud-edge collaboration. The current repository mixes three layers in one place:
 
 - core decoding and KV-cache logic in `src/`

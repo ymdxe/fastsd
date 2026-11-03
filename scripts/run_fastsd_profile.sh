@@ -11,7 +11,8 @@ shift 1 || true
 COMMON_ARGS=(
   --profile custom
   --server_sched_mode fastsd
-  --enable_proactive_draft
+  --no-enable_proactive_draft
+  --no-pipeline_gamma_adapt
   --no-enable_pipeline
   --exp_name "$EXP_NAME"
   "$@"

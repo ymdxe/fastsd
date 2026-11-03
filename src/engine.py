@@ -22,21 +22,14 @@ from collections import defaultdict, deque
 import math
 import random
 import time
-import threading
 import requests
 
 from .energy_meter import EnergyControlService, EnergyServiceConfig
 from .fastsd_scheduler import (
-    FASTSD_DEFAULT_R1,
-    FASTSD_DEFAULT_R2,
-    FASTSD_DYNAMIC_WINDOW,
-    build_fixed_wrr_order as _build_fixed_wrr_order,
-    compute_priority_score as _compute_priority_score,
-    length_category as _length_category,
-    predict_next_verify_proc_ids as _predict_next_verify_proc_ids,
-    should_switch_to_prefill as _should_switch_to_prefill,
-    update_length_thresholds as _update_length_thresholds,
+    FASTSD_DYNAMIC_WINDOW, Task, Allocation, BatchPlan,
+    rebuild_queues, plan_batch, update_length_thresholds,
 )
+from .kv_preload import KVPreloader
 
 
 class Decoding(ABC):
@@ -602,500 +595,205 @@ class Decoding(ABC):
     # Target-side process – batch prefill / verify 版本
     # ----------------------------------------------------------------------
     @torch.no_grad()
-    def run_target_process_batching(self, tokenizer,
-                                    request_queue,  # Draft → Target 公共队列
-                                    response_queues):  # proc_id → Queue
-
-        self.color_print(f"Loading target model: {self.args.target_model}", 3)
+    def run_target_process_batching(self, tokenizer, request_queue, response_queues):
+        """Paper Algorithm 1: queue update, read-only planning, execution, commit."""
         target_model = self._load_target_model_for_service(
-            self.args.target_model, self._service_target_device()
-        )
-        self.vocab_size = self.args.vocab_size
+            self.args.target_model, self._service_target_device())
+        config = target_model.config
+        if (getattr(config, "_attn_implementation", "eager") == "flash_attention_2"
+                or "sliding_attention" in (getattr(config, "layer_types", None) or [])
+                or getattr(config, "use_sliding_window", False)):
+            raise ValueError("Packed FastSD requires full attention with an eager/SDPA 4D mask")
+        rope = getattr(config, "rope_scaling", None) or {}
+        if rope.get("rope_type", rope.get("type", "default")) not in {"default", "linear"}:
+            raise ValueError("Packed FastSD requires default or linear position scaling")
+        kv = KVCacheModel_batching(target_model, self.args.temp, self.args.top_k, self.args.top_p)
+        kv.vocab_size = tokenizer.vocab_size
+        preloader = KVPreloader(kv._past_key_values, target_model.device)
         energy_service = self._maybe_start_energy_service()
+        pending = {}
+        accept_stats = defaultdict(lambda: [0, 0])
+        history = {kind: deque(maxlen=FASTSD_DYNAMIC_WINDOW) for kind in ("prefill", "verify")}
+        defaults = {"prefill": (128, 512), "verify": (20, 100)}
+        thresholds = dict(defaults)
+        cursor = cycle = 0
+        stopping = False
+        fastsd = self.args.server_sched_mode == "fastsd"
+        budget, max_devices = int(self.args.token_budget), int(self.args.batch_size)
+        feedback_ema = {}
 
-        # 批处理版 KVCache 管理器
-        kv_cache_manager = KVCacheModel_batching(target_model,
-                                        temperature=self.args.temp,
-                                        top_k=self.args.top_k,
-                                        top_p=self.args.top_p)
-        kv_cache_manager.vocab_size = tokenizer.vocab_size
-
-        # --------------------------- 队列与统计 ---------------------------
-        task_queues = {
-            "prefill": {"short": queue.Queue(), "mid": queue.Queue(), "long": queue.Queue()},
-            "verify": {"short": queue.Queue(), "mid": queue.Queue(), "long": queue.Queue()},
-        }
-        accept_stats = defaultdict(lambda: [0, 1])  # {proc_id: [accepted_sum, total_sum]}
-        committed_prefix_tokens = {}  # {proc_id: List[int]} for debug context display
-        verify_time_ema = {}
-        edge_draft_per_token_ema = {}
-        edge_rtt_ema = {}
-        recent_prefix_lens = deque(maxlen=FASTSD_DYNAMIC_WINDOW)
-        len_r1 = FASTSD_DEFAULT_R1
-        len_r2 = FASTSD_DEFAULT_R2
-        cache_lock = threading.Lock()
-        preloaded_gpu_pids = set()
-
-        def update_ema(store: dict, pid, value: float) -> float:
-            alpha = float(getattr(self.args, "pipeline_ema_alpha", 0.2))
-            old = store.get(pid, None)
-            if old is None:
-                store[pid] = value
-            else:
-                store[pid] = (1 - alpha) * old + alpha * value
-            return store[pid]
-
-        def token_repr(token_id: int) -> str:
-            tok_id = int(token_id)
-            piece = tokenizer.convert_ids_to_tokens(tok_id)
-            if piece is None:
-                piece = "<None>"
-            # Human-readable view (escaped), e.g. '\n', '    ', '('
-            text = tokenizer.decode([tok_id], skip_special_tokens=False)
-            text_repr = repr(text)
-            return f"{tok_id}(text={text_repr}, piece={piece})"
-
-        def ids_text_repr(token_ids: list[int]) -> str:
-            if not token_ids:
-                return "''"
-            text = tokenizer.decode(token_ids, skip_special_tokens=False)
-            return repr(text)
-
-        # 将 DynamicCache 中的每一层的 key/value 移动到 CPU 上
-        def move_dynamic_cache_to(cache, device):
-            legacy_cache = cache.to_legacy_cache()
-            current_device = legacy_cache[0][0].device  # 任意一层 key 的 device 作为参考
-
-            if str(current_device) == device:
-                return cache  # 已在目标设备上，无需迁移
-
-            new_cache = []
-            for k, v in legacy_cache:
-                new_cache.append((k.to(device), v.to(device)))
-            return DynamicCache.from_legacy_cache(new_cache)
-
-        # --------------------- 批量处理（Prefill / Verify） ----------------
-        def handle_request_batch(batch: list[dict]):
-            """
-            batch : 同一种 task_type (全部 prefill or 全部 verify)
-            """
-            proc_ids = [req["proc_id"] for req in batch]
-            prefix_len = [req["prefix_len"] for req in batch]
-
-            if batch[0]["task_type"] == "prefill":
-                # 按最大长度 pad
-                seqs = [req["draft_output"].to(target_model.device) for req in batch]
-                input_lens = [x.shape[1] for x in seqs]
-                max_T = max(x.shape[1] for x in seqs)
-                padded = []
-                for x in seqs:
-                    pad_len = max_T - x.shape[1]
-                    if pad_len:
-                        pad = torch.full((1, pad_len), tokenizer.pad_token_id, device=x.device, dtype=x.dtype)
-                        padded.append(torch.cat([x, pad], dim=1))
-                    else:
-                        padded.append(x)
-                x_batch = torch.cat(padded, dim=0)  # (B, max_T)
-
-                # 新 prompt，给每个 pid 刷新 cache
-                with cache_lock:
-                    for pid in proc_ids:
-                        preloaded_gpu_pids.discard(pid)
-                        kv_cache_manager.reset(pid)  # 只清该 pid
-
-                _ = kv_cache_manager.generate(
-                    x_batch,
-                    1,
-                    proc_ids=proc_ids,
-                    pad_token_id=tokenizer.pad_token_id,
-                    is_prefill=True,
-                    input_lens=input_lens,
-                )
-
-                # prefill之后，将KV cache移到CPU节省显存
-                with cache_lock:
-                    for pid in proc_ids:
-                        cache = kv_cache_manager._past_key_values[pid]
-                        if should_offload_target_cache("prefill", pid=pid):
-                            kv_cache_manager._past_key_values[pid] = move_dynamic_cache_to(cache, "cpu")
-
-                self.color_print(f"process prefill tasks from: {proc_ids}", 3)
-            else:  # verify 批量
-                seqs = [req["draft_output"].to(target_model.device) for req in batch]
-                x_batch = []
-                for req, x in zip(batch, seqs):
-                    # tail_only 模式下，edge 仅发送 [final_token + gamma_draft] 或 [gamma_draft]。
-                    # 这里补一个虚拟前缀长度，让 kvcache 内部按 cached_len 正确截取 residual。
-                    if req.get("tail_only", False):
-                        pid = req["proc_id"]
-                        cached_len = kv_cache_manager._past_key_values[pid].get_seq_length()
-                        pad = torch.full(
-                            (1, cached_len),
-                            tokenizer.pad_token_id,
-                            dtype=x.dtype,
-                            device=x.device,
-                        )
-                        x_batch.append(torch.cat((pad, x), dim=1))
-                    else:
-                        x_batch.append(x)
-                debug_enabled = getattr(self.args, "debug_verify_tokens", False)
-                debug_tail = 16
-
-                # verify前，将KV cache移回GPU以供推理使用
-                with cache_lock:
-                    preloaded_gpu_pids.difference_update(proc_ids)
-                    for req, pid in zip(batch, proc_ids):
-                        if debug_enabled:
-                            cached_len = kv_cache_manager._past_key_values[pid].get_seq_length()
-                            req_prefix_len = req["prefix_len"]
-                            recv_tokens = req["draft_output"][0].tolist()
-                            self.color_print(
-                                f"[VERIFY-CHECK][pid={pid}] cached_len={cached_len} "
-                                f"prefix_len={req_prefix_len} same={cached_len == req_prefix_len}",
-                                3,
-                            )
-                            self.color_print(
-                                f"[VERIFY-CLOUD-RECV][pid={pid}] tail_ids={recv_tokens[-debug_tail:]} "
-                                f"prefix_tail_ids={recv_tokens[max(0, req_prefix_len - debug_tail):req_prefix_len]}",
-                                3,
-                            )
-                        cache = kv_cache_manager._past_key_values[pid]
-                        kv_cache_manager._past_key_values[pid] = move_dynamic_cache_to(cache, target_model.device)
-
-                verify_compute_start = time.time()
-                _ = kv_cache_manager.generate(x_batch, 1, proc_ids=proc_ids, pad_token_id=tokenizer.pad_token_id, is_prefill=False)
-                verify_elapsed = time.time() - verify_compute_start
-
-                # verify之后，将KV cache移到CPU节省显存
-                with cache_lock:
-                    for pid in proc_ids:
-                        if not should_offload_target_cache("verify", pid=pid, pinned_gpu_pids=preloaded_gpu_pids):
-                            continue
-                        cache = kv_cache_manager._past_key_values[pid]
-                        kv_cache_manager._past_key_values[pid] = move_dynamic_cache_to(cache, "cpu")
-
-                # self.color_print(f"process verify tasks from: {proc_ids}", 3)
-
-            # ---------- 逐样本接受 / 采样 ---------------------------------
-            probs_full = [kv_cache_manager._prob_history[pid] for pid in proc_ids]  # (1, *, V) each
-            for idx, req in enumerate(batch):
-                pid = req["proc_id"]
-                prefix_len = req["prefix_len"]
-                probs = probs_full[idx]  # (1, L, V)
-                x = req["draft_output"].to(target_model.device)
-                tail_only = req.get("tail_only", False)
-                has_bridge_token = req.get("has_bridge_token", False)
-                req_gamma = max(1, int(req.get("gamma", self.args.gamma) or self.args.gamma))
-
-                if req["task_type"] == "prefill":
-                    # prefill 仅初始化 cache，回滚到 prefix 长度供下一轮 verify 使用
-                    kv_cache_manager.rollback(pid, prefix_len)
-                    committed_prefix_tokens[pid] = req["draft_output"][0, :prefix_len].tolist()
-                    response_queues[pid].put({
-                        "status": "prefill_ok",
-                    })
-                    continue
-
-                # 验证 γ 个 token：target 贪心 token 与 draft token 不一致则在前一位置截断
-                n = prefix_len + req_gamma - 1
-                mismatch_pos = None
-                debug_enabled = getattr(self.args, "debug_verify_tokens", False)
-                debug_max_steps = max(0, int(getattr(self.args, "debug_max_print_steps", 8)))
-                if debug_enabled:
-                    if pid in committed_prefix_tokens:
-                        ctx_ids = committed_prefix_tokens[pid][max(0, len(committed_prefix_tokens[pid]) - 20):]
-                        ctx_src = "committed_prefix_tail20"
-                    else:
-                        start = max(0, prefix_len - 20)
-                        ctx_ids = x[0, start:prefix_len].tolist()
-                        ctx_src = "request_prefix_tail20_fallback"
-                    self.color_print(
-                        f"[VERIFY-CONTEXT][pid={pid}] src={ctx_src} "
-                        f"prefix_len={prefix_len} ctx_ids={ctx_ids} ctx_text={ids_text_repr(ctx_ids)}",
-                        3,
-                    )
-                for i in range(req_gamma):
-                    if tail_only:
-                        tail_offset = 1 if has_bridge_token else 0
-                        j = x[:, tail_offset + i]
-                    else:
-                        j = x[:, prefix_len + i]
-                    target_logits = probs[:, prefix_len + i - 1, :self.vocab_size]
-                    greedy_token = torch.argmax(target_logits, dim=-1)  # (1,)
-                    draft_token_id = int(j.item())
-                    target_token_id = int(greedy_token.item())
-
-                    if debug_enabled and i < debug_max_steps:
-                        match_flag = "MATCH" if draft_token_id == target_token_id else "MISMATCH"
-                        self.color_print(
-                            f"[VERIFY][pid={pid}] step={i} pos={prefix_len + i} "
-                            f"draft={token_repr(draft_token_id)} "
-                            f"target={token_repr(target_token_id)} {match_flag}",
-                            6,
-                        )
-
-                    if j.item() != greedy_token.item():
-                        n = prefix_len + i - 1
-                        mismatch_pos = prefix_len + i
-                        break
-
-                accepted_len = n + 1
-                accepted_cnt = accepted_len - prefix_len
-                if accepted_cnt < req_gamma:
-                    # 存在拒绝：在位置 n 上使用 target 贪心 token 作为 new_token
-                    target_logits_next = probs[:, n, :self.vocab_size]
-                    new_token = torch.argmax(target_logits_next, dim=-1).unsqueeze(-1)
-                else:
-                    # 所有 draft token 被接受：在最后一步位置上使用 target 贪心 token
-                    target_logits_next = probs[:, -1, :self.vocab_size]
-                    new_token = torch.argmax(target_logits_next, dim=-1).unsqueeze(-1)
-
-                # Keep only accepted prefix in target cache.
-                # final_token will be consumed in the next verify call together with new draft tokens.
-                kv_cache_manager.rollback(pid, accepted_len)
-
-                # 更新统计并回传
-                accept_stats[pid][0] += accepted_len - prefix_len
-                accept_stats[pid][1] += req_gamma
-                if pid in committed_prefix_tokens:
-                    if tail_only:
-                        req_tokens = x[0].tolist()
-                        draft_start_idx = 1 if has_bridge_token else 0
-                        accepted_draft_tokens = req_tokens[draft_start_idx:draft_start_idx + accepted_cnt]
-                        committed_prefix_tokens[pid].extend(accepted_draft_tokens)
-                        committed_prefix_tokens[pid].append(int(new_token.item()))
-                    else:
-                        committed_prefix_tokens[pid] = x[0, :accepted_len].tolist()
-                        committed_prefix_tokens[pid].append(int(new_token.item()))
-                if debug_enabled:
-                    accepted_cnt = accepted_len - prefix_len
-                    mismatch_info = mismatch_pos if mismatch_pos is not None else "none"
-                    self.color_print(
-                        f"[VERIFY][pid={pid}] prefix_len={prefix_len} accepted={accepted_cnt}/{req_gamma} "
-                        f"accepted_len={accepted_len} mismatch_pos={mismatch_info} "
-                        f"new_token={token_repr(int(new_token.item()))}",
-                        2,
-                    )
-
-                response_payload = {
-                    "accepted": accepted_len,
-                    "final_token": new_token,
-                    "verify_ms": verify_elapsed * 1000.0,
-                }
-                if getattr(self.args, "enable_pipeline", True) and getattr(self.args, "pipeline_gamma_adapt", True):
-                    # Target: T_verify ~= T_edge_draft + RTT.
-                    # Use online EMA to suggest per-session gamma for next round.
-                    drafted_tokens = max(1, req_gamma)
-                    edge_per_tok = float(req.get("lag", 0.0)) / drafted_tokens
-                    avg_cloud_total_ms = max(
-                        0.0, float(req.get("avg_cloud_total_ms", 0.0))
-                    )
-                    # Use global average cloud_total_ms across all tasks when available.
-                    # Fallback to local verify elapsed for warmup.
-                    verify_budget = (
-                        avg_cloud_total_ms / 1000.0 if avg_cloud_total_ms > 0.0 else verify_elapsed
-                    )
-                    transport_rtt = max(
-                        0.0, float(req.get("transport_rtt", req.get("edge_rtt", 0.0)))
-                    )
-                    v_ema = update_ema(verify_time_ema, pid, max(1e-6, verify_budget))
-                    d_ema = update_ema(edge_draft_per_token_ema, pid, max(1e-6, edge_per_tok))
-                    rtt_ema = update_ema(edge_rtt_ema, pid, transport_rtt)
-                    target_draft_time = max(1e-6, v_ema - rtt_ema)
-                    suggested = int(round(target_draft_time / d_ema))
-                    min_gamma = int(getattr(self.args, "pipeline_gamma_min", 1))
-                    max_gamma = int(getattr(self.args, "pipeline_gamma_max", 16))
-                    suggested = max(min_gamma, min(max_gamma, suggested))
-                    response_payload["suggested_gamma"] = suggested
-                    if getattr(self.args, "debug_pipeline", False):
-                        self.color_print(
-                            f"[PIPELINE-CLOUD][pid={pid}] req_gamma={req_gamma} "
-                            f"accepted={accepted_cnt}/{req_gamma} verify={verify_elapsed*1000:.2f}ms "
-                            f"avg_cloud_total={avg_cloud_total_ms:.2f}ms "
-                            f"transport_rtt={transport_rtt*1000:.2f}ms v_ema={v_ema*1000:.2f}ms "
-                            f"d_ema={d_ema*1000:.4f}ms/tok rtt_ema={rtt_ema*1000:.2f}ms "
-                            f"target_draft={target_draft_time*1000:.2f}ms suggested_gamma={suggested}",
-                            3,
-                        )
-
-                response_queues[pid].put(response_payload)
-
-        def sort_task_queues():
-            now = time.time()
-            for ttype in ["verify", "prefill"]:
-                for cat in task_queues[ttype]:
-                    items = []
-                    while not task_queues[ttype][cat].empty():
-                        items.append(task_queues[ttype][cat].get())
-                    items.sort(
-                        key=lambda r: _compute_priority_score(r, accept_stats, now=now),
-                        reverse=True,
-                    )
-                    for item in items:
-                        task_queues[ttype][cat].put(item)
-
-        def preload_kvcache(proc_ids):
-            if not proc_ids:
+        def admit_request(req):
+            pid = req["proc_id"]
+            if req.get("task_type") == "release":
+                if pid in pending:
+                    raise ValueError("cannot release a device with pending work")
+                kv.reset(pid)
+                accept_stats.pop(pid, None)
+                feedback_ema.pop(pid, None)
+                response_queues[pid].put({"status": "released"})
                 return
-            with cache_lock:
-                for pid in proc_ids:
-                    cache = kv_cache_manager._past_key_values.get(pid)
-                    if cache is None:
-                        continue
-                    kv_cache_manager._past_key_values[pid] = move_dynamic_cache_to(cache, target_model.device)
-                    preloaded_gpu_pids.add(pid)
+            # The IPC queue is an external input boundary. Canonicalize once.
+            req = dict(req)
+            tokens = torch.as_tensor(req["draft_output"], dtype=torch.long).reshape(1, -1)
+            req["draft_output"] = tokens
+            req.setdefault("arrival_time", time.monotonic())
+            req.setdefault("current_time", time.time())
+            if pid in pending:
+                raise ValueError("only one unfinished task per device is allowed")
+            kind = req["task_type"]
+            if kind not in {"prefill", "verify"} or tokens.numel() == 0:
+                raise ValueError("expected a nonempty prefill/verify request")
+            if tokens.min().item() < 0 or tokens.max().item() >= config.vocab_size:
+                raise ValueError("token ID is outside the target vocabulary")
+            if kind == "prefill":
+                if int(req["prefix_len"]) != tokens.numel():
+                    raise ValueError("prefill must contain exactly the prompt")
+                kv.reset(pid)
+                accept_stats[pid] = [0, 0]
+                length, bridge = tokens.numel(), 0
+            else:
+                length = int(req.get("gamma", 0) or self.args.gamma)
+                req["gamma"] = length
+                if pid not in kv._past_key_values:
+                    raise ValueError("verify requires a completed prefill")
+                bridge = int(req["prefix_len"]) - kv._past_key_values[pid].get_seq_length()
+                expected = length + (bridge if req.get("tail_only", False) else int(req["prefix_len"]))
+                if length <= 0 or bridge < 0 or tokens.numel() != expected:
+                    raise ValueError("verify payload does not match its prefix, cache and gamma")
+                if bridge >= budget and fastsd:
+                    raise ValueError("token_budget must fit the bridge and one draft token")
+            task = Task(req, length, bridge=bridge, last_served_cycle=cycle)
+            pending[pid] = task
+            history[kind].append(length)
+            thresholds[kind] = update_length_thresholds(history[kind], *defaults[kind])
 
-        def schedule_tasks(task_type: str):
-            token_budget = self.args.token_budget
-            batch_size = self.args.batch_size
-            order = _build_fixed_wrr_order()
-            verify_underutilized = []
+        def receive(req):
+            # Report malformed external requests to their caller. Inference
+            # errors remain fail-fast in execute(), outside this boundary.
+            try:
+                admit_request(req)
+            except ValueError as exc:
+                response_queues[req["proc_id"]].put({"error": str(exc)})
 
-            self.color_print(f"[FASTSD] task_type={task_type} order={order}", 3)
-
-            for idx, cat in enumerate(order):
-                batch = []
-                total_tokens = 0
-                max_len_in_batch = 0
-
-                while not task_queues[task_type][cat].empty():
-                    item = task_queues[task_type][cat].queue[0]
-                    seq_len = item["draft_output"].shape[1]
-
-                    if task_type == "prefill":
-                        if total_tokens + seq_len <= token_budget:
-                            task_queues[task_type][cat].get()
-                            batch.append(item)
-                            total_tokens += seq_len
-                            max_len_in_batch = max(max_len_in_batch, seq_len)
-                        elif not batch:
-                            task_queues[task_type][cat].get()
-                            batch.append(item)
-                            total_tokens += seq_len
-                            max_len_in_batch = max(max_len_in_batch, seq_len)
-                        else:
-                            break
-                    else:
-                        if len(batch) < batch_size:
-                            task_queues[task_type][cat].get()
-                            batch.append(item)
-                        else:
-                            break
-
-                if batch and task_type == "prefill" and total_tokens < token_budget:
-                    for alt_cat in ("short", "mid", "long"):
-                        if alt_cat == cat:
-                            continue
-                        while not task_queues[task_type][alt_cat].empty():
-                            item = task_queues[task_type][alt_cat].queue[0]
-                            seq_len = item["draft_output"].shape[1]
-                            if seq_len <= max_len_in_batch + 128 and total_tokens + seq_len <= token_budget:
-                                task_queues[task_type][alt_cat].get()
-                                batch.append(item)
-                                total_tokens += seq_len
-                            else:
-                                break
-
-                if task_type == "verify":
-                    verify_underutilized.append(1 if len(batch) < batch_size else 0)
-
-                if not batch:
+        def execute(allocations, kind):
+            tokens = []
+            for allocation in allocations:
+                task, req = allocation.task, allocation.task.request
+                if task.pid in kv._past_key_values:
+                    preloader.ensure(task.pid)
+                if kind == "prefill":
+                    start = allocation.offset
+                elif req.get("tail_only", False):
+                    start = task.bridge + allocation.offset - allocation.bridge
+                else:
+                    start = int(req["prefix_len"]) + allocation.offset - allocation.bridge
+                tokens.append(req["draft_output"][:, start:start + allocation.cost])
+            started = time.perf_counter()
+            kv.forward(tokens, [a.task.pid for a in allocations])
+            if target_model.device.type == "cuda":
+                torch.cuda.current_stream(target_model.device).synchronize()
+            elapsed_ms = (time.perf_counter() - started) * 1000
+            for allocation in allocations:
+                task, req = allocation.task, allocation.task.request
+                pid = task.pid
+                if kind == "prefill":
+                    task.offset += allocation.tokens
+                    if task.remaining == 0:
+                        response_queues[pid].put({"status": "prefill_ok"})
+                        del pending[pid]
                     continue
+                task.verify_ms += elapsed_ms
+                absolute = int(req["prefix_len"]) + allocation.offset
+                draft_start = (task.bridge + allocation.offset if req.get("tail_only", False)
+                               else absolute)
+                draft = req["draft_output"][0, draft_start:draft_start + allocation.tokens]
+                target = kv._prob_history[pid][0, absolute - 1:absolute + allocation.tokens - 1].argmax(-1)
+                mismatches = (draft.to(target.device) != target).nonzero()
+                accepted = int(mismatches[0].item()) if mismatches.numel() else allocation.tokens
+                task.offset += accepted
+                finished = accepted < allocation.tokens or task.remaining == 0
+                if finished:
+                    accepted_length = int(req["prefix_len"]) + task.offset
+                    final_token = kv._prob_history[pid][0, accepted_length - 1].argmax().item()
+                    kv.rollback(pid, accepted_length)
+                    accept_stats[pid][0] += task.offset
+                    accept_stats[pid][1] += task.length
+                    result = {"accepted": accepted_length, "final_token": int(final_token),
+                              "verify_ms": task.verify_ms}
+                    # Keep the original feedback rule for the existing pipeline baseline.
+                    # Paper FastSD uses the device's declared draft length m_n.
+                    if (not fastsd and self.args.enable_pipeline and self.args.pipeline_gamma_adapt):
+                        values = (max(1e-6, req.get("avg_cloud_total_ms", 0) / 1000 or task.verify_ms / 1000),
+                                  max(1e-6, req["lag"] / task.length), req.get("transport_rtt", 0))
+                        previous = feedback_ema.get(pid, values)
+                        alpha = self.args.pipeline_ema_alpha
+                        v, d, rtt = feedback_ema[pid] = tuple((1 - alpha) * old + alpha * new
+                                                            for old, new in zip(previous, values))
+                        result["suggested_gamma"] = max(self.args.pipeline_gamma_min,
+                            min(self.args.pipeline_gamma_max, round(max(1e-6, v - rtt) / d)))
+                    response_queues[pid].put(result)
+                    del pending[pid]
 
-                next_verify_proc_ids = _predict_next_verify_proc_ids(
-                    {cat_name: list(q_obj.queue) for cat_name, q_obj in task_queues["verify"].items()},
-                    order,
-                    batch_size=self.args.batch_size,
-                    start_idx=(idx + 1) if task_type == "verify" else 0,
-                    pinned_gpu_pids=preloaded_gpu_pids,
-                )
-                preload_thread = None
-                if next_verify_proc_ids:
-                    preload_thread = threading.Thread(target=preload_kvcache, args=(next_verify_proc_ids,))
-                    preload_thread.start()
-
+        try:
+            while pending or not stopping:
+                if not pending and not stopping:
+                    req = request_queue.get()
+                    if req is None:
+                        stopping = True
+                    else:
+                        receive(req)
+                # Bounded ingress prevents a continuous producer from starving execution.
+                if not stopping:
+                    for _ in range(1024):
+                        try:
+                            req = request_queue.get_nowait()
+                        except queue.Empty:
+                            break
+                        if req is None:
+                            stopping = True
+                            break
+                        receive(req)
+                if not pending:
+                    continue
+                queues = rebuild_queues(pending.values(), thresholds, accept_stats, time.monotonic())
+                if fastsd:
+                    plan = plan_batch(queues, cursor, cycle, budget, max_devices)
+                else:
+                    task = next(iter(pending.values()))
+                    plan = BatchPlan((Allocation(task, task.offset, task.remaining, task.bridge),), cursor, cycle)
+                active = {a.task.pid for a in plan.allocations}
+                if fastsd:
+                    # Paper Eq. (8): same Q_t and h_t, excluding current devices.
+                    prediction = plan_batch(queues, cursor, cycle, budget, max_devices, excluded=active)
+                    predicted = [a.task.pid for a in prediction.allocations if a.task.kind == "verify"]
+                    preloader.predict(predicted, active=active)
                 if energy_service is not None:
                     energy_service.enter_active()
                 try:
-                    handle_request_batch(batch)
+                    for kind in ("verify", "prefill"):
+                        allocations = [a for a in plan.allocations if a.task.kind == kind]
+                        if allocations:
+                            execute(allocations, kind)
                 finally:
                     if energy_service is not None:
                         energy_service.exit_active()
-                if preload_thread is not None:
-                    preload_thread.join()
-
-            return verify_underutilized
-
-        # ---------------------- 主循环 -------------------------------
-        sched_mode = getattr(self.args, "server_sched_mode", "fastsd")
-        use_strict_fcfs = sched_mode in {"pipeline", "vanilla"}
-
-        # Pipeline baseline: strict FCFS, single-request handling only.
-        # No queue categorization, no batching, no preload, no priority scheduling.
-        try:
-            if use_strict_fcfs:
-                while True:
-                    try:
-                        req = request_queue.get(timeout=0.01)
-                        if req is None:
-                            return
-                        if energy_service is not None:
-                            energy_service.enter_active()
-                        try:
-                            handle_request_batch([req])
-                        finally:
-                            if energy_service is not None:
-                                energy_service.exit_active()
-                    except queue.Empty:
-                        time.sleep(0.01)
-                return
-
-            while True:
-                # ============ 1) 不断拉取 Draft 请求 ==============
-                try:
-                    while True:
-                        req = request_queue.get(timeout=0.01)
-                        if req is None:  # 终止信号
-                            return
-                        recent_prefix_lens.append(int(req["prefix_len"]))
-                        len_r1, len_r2 = _update_length_thresholds(recent_prefix_lens)
-                        cat = _length_category(req["prefix_len"], len_r1, len_r2)
-                        task_queues[req["task_type"]][cat].put(req)
-                except queue.Empty:
-                    pass
-
-                # fastsd path: keep all cloud-side scheduling optimizations.
-                sort_task_queues()
-
-                has_verify = any(not q.empty() for q in task_queues["verify"].values())
-                has_prefill = any(not q.empty() for q in task_queues["prefill"].values())
-
-                if getattr(self.args, "debug_pipeline", False):
-                    self.color_print(
-                        f"[FASTSD] thresholds prefix_len: short<={len_r1}, mid<={len_r2}",
-                        3,
-                    )
-
-                if has_verify:
-                    verify_underutilized = schedule_tasks("verify")
-                    if _should_switch_to_prefill(verify_underutilized, has_prefill_tasks=has_prefill):
-                        schedule_tasks("prefill")
-                elif has_prefill:
-                    schedule_tasks("prefill")
-                else:
-                    time.sleep(0.01)
+                # Commit the actual plan only after both phases succeed.
+                for allocation in plan.allocations:
+                    allocation.task.last_served_cycle = allocation.cycle
+                for task in pending.values():
+                    if task.kind == "prefill":
+                        # Count only complete cycles without service, excluding
+                        # the cycle of arrival or most recent execution.
+                        task.waited_cycles = max(0, plan.cycle - task.last_served_cycle - 1)
+                cursor, cycle = plan.cursor, plan.cycle
+                for allocation in plan.allocations:
+                    if should_offload_target_cache(allocation.task.kind, pid=allocation.task.pid):
+                        preloader.offload(allocation.task.pid)
+                preloader.collect()
         finally:
+            preloader.close()
             if energy_service is not None:
                 energy_service.shutdown()
-
-            # if (time.time() - last_prefill) < 10 and any(not q.empty() for q in task_queues["verify"].values()):
-            #     schedule_tasks("verify")
-            #     last_prefill = time.time()
-            # elif any(not q.empty() for q in task_queues["prefill"].values()):
-            #     schedule_tasks("prefill")
-            # else:
-            #     time.sleep(0.01)
-
 
     @torch.no_grad()
     def parallel_speculative_decoding(self, prefix):

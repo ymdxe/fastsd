@@ -6,9 +6,8 @@ import threading
 import uuid
 from typing import Dict, Optional
 
-import torch
-from fastapi import FastAPI
-from pydantic import BaseModel
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel, Field, NonNegativeInt
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
@@ -28,6 +27,7 @@ worker_proc: Optional[mp.Process] = None
 # FastAPI 请求等待表
 _pending: Dict[str, asyncio.Future] = {}
 _pending_lock = threading.Lock()
+_prefill_arrivals: Dict[str, float] = {}
 _cloud_time_lock = threading.Lock()
 _cloud_total_ms_sum: float = 0.0
 _cloud_total_ms_count: int = 0
@@ -47,24 +47,29 @@ def _record_cloud_total_ms(value_ms: float) -> None:
         _cloud_total_ms_count += 1
 
 
-class PrefillRequest(BaseModel):
+class SessionRequest(BaseModel):
     session_id: str
-    task_id: str
-    draft_output: list[int]
-    prefix_len: int
-    lag: float
-    current_time: float
 
 
-class VerifyRequest(BaseModel):
-    session_id: str
+class TaskRequest(SessionRequest):
     task_id: str
-    draft_output: list[int]
-    prefix_len: int
-    lag: float
-    current_time: float
-    gamma: int = 0
-    transport_rtt: float = 0.0
+    draft_output: list[NonNegativeInt] = Field(min_length=1)
+    prefix_len: int = Field(gt=0)
+    lag: float = Field(ge=0, allow_inf_nan=False)
+    current_time: float = Field(allow_inf_nan=False)
+    gamma: int = Field(gt=0)
+    draft_time_per_token: float = Field(ge=0, allow_inf_nan=False)
+    edge_send_time: float = Field(allow_inf_nan=False)
+    clock_offset: float = Field(allow_inf_nan=False)
+
+
+class PrefillRequest(TaskRequest):
+    prefill_time: float = Field(ge=0, allow_inf_nan=False)
+
+
+class VerifyRequest(TaskRequest):
+    pull_time: float = Field(ge=0, allow_inf_nan=False)
+    transport_rtt: float = Field(default=0, ge=0, allow_inf_nan=False)
     tail_only: bool = False
     has_bridge_token: bool = False
 
@@ -139,17 +144,20 @@ def _start_result_dispatcher(loop: asyncio.AbstractEventLoop) -> None:
             msg = response_queue.get()
             req_id = msg.get("request_id")
             payload = msg.get("payload", {})
-            with _pending_lock:
-                fut = _pending.pop(req_id, None)
-            if fut is not None and not fut.done():
-                loop.call_soon_threadsafe(fut.set_result, payload)
+            loop.call_soon_threadsafe(_deliver, req_id, payload)
+
+    def _deliver(req_id, payload):
+        with _pending_lock:
+            fut = _pending.pop(req_id, None)
+        if fut is not None and not fut.done():
+            fut.set_result(payload)
 
     t = threading.Thread(target=_run, daemon=True)
     t.start()
 
 
 @app.on_event("startup")
-def startup_event() -> None:
+async def startup_event() -> None:
     """
     FastAPI 启动时启动结果分发线程。
     队列与 Worker 由 main 初始化。
@@ -173,70 +181,77 @@ def session_init() -> dict:
     return {"session_id": uuid.uuid4().hex}
 
 
+@app.post("/clock/sync")
+async def clock_sync() -> dict:
+    received = time.time()
+    return {"received": received, "sent": time.time()}
+
+
+@app.post("/prefill/arrival")
+async def prefill_arrival(req: SessionRequest) -> dict:
+    if req.session_id in _prefill_arrivals:
+        raise HTTPException(409, "prefill arrival already registered")
+    _prefill_arrivals[req.session_id] = time.monotonic()
+    return {"status": "registered"}
+
+
 async def _enqueue_and_wait(request_dict: dict, req_id: str) -> dict:
     if request_queue is None:
-        return {"error": "queues_not_initialized"}
+        raise HTTPException(503, "queues_not_initialized")
 
     loop = asyncio.get_running_loop()
     fut = loop.create_future()
     with _pending_lock:
+        if req_id in _pending:
+            raise HTTPException(409, "session already has unfinished work")
         _pending[req_id] = fut
 
     request_queue.put(request_dict)
-    result = await fut
+    result = await asyncio.shield(fut)
+    if "error" in result:
+        raise HTTPException(400, result["error"])
+    return result
+
+
+@app.post("/session/release")
+async def session_release(req: SessionRequest) -> dict:
+    result = await _enqueue_and_wait(
+        {"proc_id": req.session_id, "task_type": "release"}, req.session_id)
+    _prefill_arrivals.pop(req.session_id, None)
     return result
 
 
 @app.post("/prefill")
 async def prefill(req: PrefillRequest) -> dict:
-    if request_queue is None:
-        return {"error": "queues_not_initialized"}
-
     req_id = req.session_id
-
-    draft_output_tensor = torch.tensor(req.draft_output, dtype=torch.long).unsqueeze(0)
-
-    request_dict = {
-        "task_id": req.task_id,
-        "draft_output": draft_output_tensor,
-        "prefix_len": req.prefix_len,
+    if req_id not in _prefill_arrivals:
+        raise HTTPException(400, "register arrival before generating the first draft")
+    if len(req.draft_output) != req.prefix_len:
+        raise HTTPException(400, "prefill must contain exactly the prompt")
+    request_dict = req.model_dump()
+    request_dict.update({
         "proc_id": req_id,
-        "lag": req.lag,
-        "current_time": req.current_time,
         "task_type": "prefill",
-    }
-
+        "arrival_time": _prefill_arrivals[req_id],
+        "push_time": max(0.0, time.time() - req.edge_send_time - req.clock_offset),
+    })
     resp = await _enqueue_and_wait(request_dict, req_id)
-    if "status" in resp:
-        return {"session_id": req_id, "status": resp["status"]}
-    return {"session_id": req_id, "status": "prefill_ok"}
+    _prefill_arrivals.pop(req_id)
+    return {"session_id": req_id, "status": resp["status"], "cloud_send_time": time.time()}
 
 
 @app.post("/verify")
 async def verify(req: VerifyRequest) -> dict:
-    api_start = time.time()
-    if request_queue is None:
-        return {"error": "queues_not_initialized"}
-
+    api_start = time.monotonic()
     req_id = req.session_id
-
-    draft_output_tensor = torch.tensor(req.draft_output, dtype=torch.long).unsqueeze(0)
-    avg_cloud_total_ms = _get_avg_cloud_total_ms()
-
-    request_dict = {
-        "task_id": req.task_id,
-        "draft_output": draft_output_tensor,
-        "prefix_len": req.prefix_len,
+    request_dict = req.model_dump()
+    request_dict.update({
         "proc_id": req_id,
-        "lag": req.lag,
-        "current_time": req.current_time,
-        "gamma": req.gamma,
-        "transport_rtt": req.transport_rtt,
-        "avg_cloud_total_ms": avg_cloud_total_ms,
+        "arrival_time": api_start,
+        "push_time": max(0.0, time.time() - req.edge_send_time - req.clock_offset),
+        "avg_cloud_total_ms": _get_avg_cloud_total_ms(),
         "task_type": "verify",
-        "tail_only": req.tail_only,
-        "has_bridge_token": req.has_bridge_token,
-    }
+    })
 
     resp = await _enqueue_and_wait(request_dict, req_id)
     accepted = int(resp["accepted"])
@@ -251,8 +266,9 @@ async def verify(req: VerifyRequest) -> dict:
     if "suggested_gamma" in resp:
         out["suggested_gamma"] = int(resp["suggested_gamma"])
     # Cloud-side end-to-end service time for this HTTP verify request.
-    out["cloud_total_ms"] = (time.time() - api_start) * 1000.0
+    out["cloud_total_ms"] = (time.monotonic() - api_start) * 1000.0
     _record_cloud_total_ms(out["cloud_total_ms"])
+    out["cloud_send_time"] = time.time()
     return out
 
 

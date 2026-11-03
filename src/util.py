@@ -200,6 +200,13 @@ def parse_arguments():
         help="max token comparison steps to print per verify request",
     )
     args = parser.parse_args()
+    if args.gamma <= 0 or args.token_budget <= 0 or args.batch_size <= 0:
+        parser.error("gamma, token_budget and batch_size must be positive")
+    if args.server_sched_mode == "fastsd":
+        # The paper's scheduler uses the declared draft length and measured
+        # local draft time, without the baseline's speculative overlap policy.
+        args.enable_proactive_draft = False
+        args.pipeline_gamma_adapt = False
     if args.profile != "custom":
         # Baseline profiles must not be mixed with FastSD scheduler.
         if args.server_sched_mode == "fastsd":
@@ -265,7 +272,7 @@ def norm_logits(logits : torch.Tensor, temperature : float, top_k : float, top_p
     if temperature == 0:
         idx = logits.argmax(dim=1)
         new_logits = torch.zeros_like(logits, device=logits.device)
-        new_logits[:, idx] = 1
+        new_logits.scatter_(1, idx.unsqueeze(1), 1)
         return new_logits.float()
     logits = logits / temperature
     logits = top_k_top_p_filter(logits, top_k=top_k, top_p=top_p)
