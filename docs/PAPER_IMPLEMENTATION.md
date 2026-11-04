@@ -42,7 +42,7 @@
 python cloud/cloud_service.py \
   --profile custom --server_sched_mode fastsd \
   --draft_model TinyLlama-1.1B-Chat-v1.0-GPTQ --target_model llama-2-7b \
-  --token_budget 512 --batch_size 4 --gamma 6 --exp_name paper_cloud
+  --token_budget 64 --batch_size 4 --gamma 6 --exp_name paper_cloud
 ```
 
 边缘端示例：
@@ -54,6 +54,11 @@ SERVER_URL=http://CLOUD_HOST:8001 bash scripts/run_fastsd_profile.sh paper_edge 
 ```
 
 `token_budget` 必须能容纳 bridge 与至少一个 draft token，正常续轮至少需要 2。
+
+默认 `token_budget=64`。`vanilla` Standard SD 同样按该预算分片，继续采用单设备处理；
+bridge 只在一个 verify 请求的第一片计算。输出长度仍由 `max_tokens` 控制。
+四方法 Config 1 的预算口径与 SpecEdge 图形状见
+[`experiments/config1-budget64.md`](experiments/config1-budget64.md)。
 端侧按 `max_tasks_per_draft` 处理样本，不再受初始代码硬编码的单样本限制；完成后释放会话缓存。
 
 时钟同步使用 5 次交换中 RTT 最小的一次估计偏移。单向通信时间受链路不对称影响，

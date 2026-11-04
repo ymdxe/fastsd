@@ -96,7 +96,8 @@ def parse_arguments():
     parser.add_argument('--gamma', type=int, default=6, help='guess time.')
     parser.add_argument("--num_drafts", type=int, default=4)
     parser.add_argument("--batch_size", type=int, default=4)
-    parser.add_argument("--token_budget", type=int, default=512)
+    parser.add_argument("--token_budget", type=int, default=64,
+                        help="Maximum new input token positions per Target forward, including bridge tokens")
     parser.add_argument(
         "--max_tasks_per_draft",
         type=int,

@@ -660,7 +660,7 @@ class Decoding(ABC):
                 expected = length + (bridge if req.get("tail_only", False) else int(req["prefix_len"]))
                 if length <= 0 or bridge < 0 or tokens.numel() != expected:
                     raise ValueError("verify payload does not match its prefix, cache and gamma")
-                if bridge >= budget and fastsd:
+                if bridge >= budget:
                     raise ValueError("token_budget must fit the bridge and one draft token")
             task = Task(req, length, bridge=bridge, last_served_cycle=cycle)
             pending[pid] = task
@@ -760,7 +760,9 @@ class Decoding(ABC):
                     plan = plan_batch(queues, cursor, cycle, budget, max_devices)
                 else:
                     task = next(iter(pending.values()))
-                    plan = BatchPlan((Allocation(task, task.offset, task.remaining, task.bridge),), cursor, cycle)
+                    bridge = task.bridge if task.offset == 0 else 0
+                    tokens = min(task.remaining, budget - bridge)
+                    plan = BatchPlan((Allocation(task, task.offset, tokens, bridge),), cursor, cycle)
                 active = {a.task.pid for a in plan.allocations}
                 if fastsd:
                     # Paper Eq. (8): same Q_t and h_t, excluding current devices.
