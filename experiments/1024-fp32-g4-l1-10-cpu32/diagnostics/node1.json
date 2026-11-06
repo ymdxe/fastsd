@@ -1,0 +1,130 @@
+{
+  "node": "node1",
+  "agent_stopped": true,
+  "worker_errors": {
+    "worker-03": "[RANK 0] Detected kernel version 3.10.0, which is below the recommended minimum of 5.5.0; this can cause the process to hang. It is recommended to upgrade the kernel to the minimum version or higher.\n\u001b[92m[Edge 3] task gsm8k-0003 reuse stats: hit=14 miss=0 skip_not_full_accept=4 hit_rate=1.000\u001b[0m\n\u001b[92m[Edge 3] finished task gsm8k-0003, generated 83 tokens\u001b[0m\n\u001b[92m[Edge 3] task gsm8k-0003 output:\nJames runs 3 sprints each week, and each sprint is 60 meters.\n\nSo, the total distance he runs in a week is:\n\n$$\n3 \\text{ sprints} \\times 60 \\text{ meters/sprint} = 180 \\text{ meters}\n$$\n\n### Final Answer:\n$$\n\\boxed{180} \\text{ meters}\n$$\u001b[0m\n\u001b[92m[Edge 3] task gsm8k-0035 reuse stats: hit=36 miss=3 skip_not_full_accept=15 hit_rate=0.923\u001b[0m\n\u001b[92m[Edge 3] finished task gsm8k-0035, generated 222 tokens\u001b[0m\n\u001b[92m[Edge 3] task gsm8k-0035 output:\nLet's break down the problem step by step.\n\n### Given:\n- Mike plays **40 minutes** in total.\n- In the **first 20 minutes**, he scores **4 points**.\n- In the **second 20 minutes**, he scores **25% more points** than in the first 20 minutes.\n\n---\n\n### Step 1: Calculate the points in the second 20 minutes\n\nHe scores **25% more** than 4 points.\n\n$$\n25\\% \\text{ of } 4 = 0.25 \\times 4 = 1\n$$\n\nSo, the second 20 minutes = $ 4 + 1 = 5 $ points.\n\n---\n\n### Step 2: Add the points from both periods\n\n- First 20 minutes: 4 points\n- Second 20 minutes: 5 points\n\n$$\n\\text{Total points} = 4 + 5 = \\boxed{9}\n$$\n\n---\n\n### \u2705 Final Answer:\n$$\n\\boxed{9}\n$$\u001b[0m\n\u001b[92m[Edge 3] task gsm8k-0067 reuse stats: hit=46 miss=4 skip_not_full_accept=12 hit_rate=0.920\u001b[0m\n\u001b[92m[Edge 3] finished task gsm8k-0067, generated 280 tokens\u001b[0m\n\u001b[92m[Edge 3] task gsm8k-0067 output:\nWe are given the following:\n\n- There are **175 diamonds**.\n- There are **35 fewer rubies** than diamonds.\n- There are **twice the number of emeralds** than rubies.\n\nWe are to find the **total number of gems** in the chest.\n\n---\n\n### Step 1: Find the number of rubies\n\nThe number of rubies is **35 fewer** than the number of diamonds:\n\n$$\n\\text{Rubies} = 175 - 35 = 140\n$$\n\n---\n\n### Step 2: Find the number of emeralds\n\nThe number of emeralds is **twice** the number of rubies:\n\n$$\n\\text{Emeralds} = 2 \\times 140 = 280\n$$\n\n---\n\n### Step 3: Find the total number of gems\n\n$$\n\\text{Total gems} = \\text{Diamonds} + \\text{Rubies} + \\text{Emeralds}\n$$\n\n$$\n\\text{Total gems} = 175 + 140 + 280 = 595\n$$\n\n---\n\n### \u2705 Final Answer:\n\n$$\n\\boxed{595}\n$$\n\nThere are **595 gems** in the chest.\u001b[0m\n\u001b[92m[Edge 3] task gsm8k-0099 reuse stats: hit=30 miss=6 skip_not_full_accept=26 hit_rate=0.833\u001b[0m\n\u001b[92m[Edge 3] finished task gsm8k-0099, generated 238 tokens\u001b[0m\n\u001b[92m[Edge 3] task gsm8k-0099 output:\nLet's break down the problem step by step.\n\n---\n\n### **1. Plants Mary Received:**\n- Mary received **18 new potted plants**.\n\n---\n\n### **2. Plants She Already Has:**\n- She has **2 potted plants on each of 40 ledges**.\n- So, total plants she already has =  \n  $$\n  2 \\times 40 = 80 \\text{ plants}\n  $$\n\n---\n\n### **3. Plants She Gives Away:**\n- She gives **1 potted plant from each ledge** to friends and family.\n- So, she gives away:\n  $$\n  1 \\times 40 = 40 \\text{ plants}\n  $$\n\n---\n\n### **4. Total Plants Mary Will Remain With:**\n\n- **New plants** + **Existing plants** - **Plants given away**  \n  $$\n  18 + 80 - 40 = 58\n  $$\n\n---\n\n### \u2705 **Final Answer:**\n$$\n\\boxed{58}\n$$\n\nMary will remain with **58 potted plants**.\u001b[0m\nTraceback (most recent call last):\n  File \"/home/zhangh/workspace/fastsd/experiments/1024-fp32-g4-l1-10-cpu32/native_worker.py\", line 102, in <module>\n    r.run_draft_process_http(r.tokenizer,int(os.environ['EXP_GLOBAL_WORKER']),Barrier(),Origin())\n  File \"/home/zhangh/venvs/fastsd_cpu/lib/python3.11/site-packages/torch/utils/_contextlib.py\", line 116, in decorate_context\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/zhangh/workspace/fastsd/experiments/1024-fp32-g4-l1-10-cpu32/source/edge/edge.py\", line 1279, in run_draft_process_http\n    return self._run_draft_process_http_impl(\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/zhangh/workspace/fastsd/experiments/1024-fp32-g4-l1-10-cpu32/source/edge/edge.py\", line 1761, in _run_draft_process_http_impl\n    verify_resp, measured_http_total = verify_future.result()\n                                       ^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/zhangh/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/concurrent/futures/_base.py\", line 449, in result\n    return self.__get_result()\n           ^^^^^^^^^^^^^^^^^^^\n  File \"/home/zhangh/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/concurrent/futures/_base.py\", line 401, in __get_result\n    raise self._exception\n  File \"/home/zhangh/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/concurrent/futures/thread.py\", line 58, in run\n    result = self.fn(*self.args, **self.kwargs)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/zhangh/workspace/fastsd/experiments/1024-fp32-g4-l1-10-cpu32/source/edge/edge.py\", line 676, in verify\n    resp = self._post(\"/verify\", payload)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/zhangh/workspace/fastsd/experiments/1024-fp32-g4-l1-10-cpu32/native_worker.py\", line 56, in _post\n    r=super()._post(path,payload)\n      ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/zhangh/workspace/fastsd/experiments/1024-fp32-g4-l1-10-cpu32/source/edge/edge.py\", line 432, in _post\n    response.raise_for_status()\n  File \"/home/zhangh/venvs/fastsd_cpu/lib/python3.11/site-packages/requests/models.py\", line 1167, in raise_for_status\n    raise HTTPError(http_error_msg, response=self)\nrequests.exceptions.HTTPError: 503 Server Error: Service Unavailable for url: http://127.0.0.1:28635/verify\n",
+    "worker-07": "[RANK 0] Detected kernel version 3.10.0, which is below the recommended minimum of 5.5.0; this can cause the process to hang. It is recommended to upgrade the kernel to the minimum version or higher.\n\u001b[92m[Edge 7] task gsm8k-0007 reuse stats: hit=73 miss=5 skip_not_full_accept=42 hit_rate=0.936\u001b[0m\n\u001b[92m[Edge 7] finished task gsm8k-0007, generated 475 tokens\u001b[0m\n\u001b[92m[Edge 7] task gsm8k-0007 output:\nWe are given the following information:\n\n- **Total file size**: 200 GB  \n- **Normal download speed**: 2 GB/minute  \n- **Windows restarts 40% of the way through the download**, which takes **20 minutes**  \n- **After the restart, Carla restarts the download from the beginning**\n\nWe are to find **how long it takes to download the entire 200 GB file**.\n\n---\n\n### Step 1: Determine how much of the file is downloaded before the restart\n\n40% of 200 GB is:\n\n$$\n0.4 \\times 200 = 80 \\text{ GB}\n$$\n\nSo, **80 GB** is downloaded before the restart.\n\n---\n\n### Step 2: Calculate the time taken to download the first 80 GB\n\nAt a speed of 2 GB/minute:\n\n$$\n\\text{Time} = \\frac{80 \\text{ GB}}{2 \\text{ GB/minute}} = 40 \\text{ minutes}\n$$\n\n---\n\n### Step 3: Account for the 20-minute restart\n\nThe restart takes **20 minutes**, so the total time before the restart is:\n\n$$\n40 \\text{ minutes} + 20 \\text{ minutes} = 60 \\text{ minutes}\n$$\n\n---\n\n### Step 4: Calculate the time to download the remaining 120 GB\n\nAfter the restart, Carla starts the download again from the beginning.\n\nSo, the remaining file is:\n\n$$\n200 \\text{ GB} - 80 \\text{ GB} = 120 \\text{ GB}\n$$\n\nAt 2 GB/minute:\n\n$$\n\\text{Time} = \\frac{120 \\text{ GB}}{2 \\text{ GB/minute}} = 60 \\text{ minutes}\n$$\n\n---\n\n### Step 5: Total time to download the file\n\n$$\n\\text{Total time} = 60 \\text{ minutes} + 60 \\text{ minutes} = \\boxed{120 \\text{ minutes}}\n$$\n\n---\n\n### \u2705 Final Answer:\n\n$$\n\\boxed{120} \\text{ minutes}\n$$\u001b[0m\nTraceback (most recent call last):\n  File \"/home/zhangh/workspace/fastsd/experiments/1024-fp32-g4-l1-10-cpu32/native_worker.py\", line 102, in <module>\n    r.run_draft_process_http(r.tokenizer,int(os.environ['EXP_GLOBAL_WORKER']),Barrier(),Origin())\n  File \"/home/zhangh/venvs/fastsd_cpu/lib/python3.11/site-packages/torch/utils/_contextlib.py\", line 116, in decorate_context\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/zhangh/workspace/fastsd/experiments/1024-fp32-g4-l1-10-cpu32/source/edge/edge.py\", line 1279, in run_draft_process_http\n    return self._run_draft_process_http_impl(\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/zhangh/workspace/fastsd/experiments/1024-fp32-g4-l1-10-cpu32/source/edge/edge.py\", line 1761, in _run_draft_process_http_impl\n    verify_resp, measured_http_total = verify_future.result()\n                                       ^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/zhangh/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/concurrent/futures/_base.py\", line 449, in result\n    return self.__get_result()\n           ^^^^^^^^^^^^^^^^^^^\n  File \"/home/zhangh/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/concurrent/futures/_base.py\", line 401, in __get_result\n    raise self._exception\n  File \"/home/zhangh/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/concurrent/futures/thread.py\", line 58, in run\n    result = self.fn(*self.args, **self.kwargs)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/zhangh/workspace/fastsd/experiments/1024-fp32-g4-l1-10-cpu32/source/edge/edge.py\", line 676, in verify\n    resp = self._post(\"/verify\", payload)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/zhangh/workspace/fastsd/experiments/1024-fp32-g4-l1-10-cpu32/native_worker.py\", line 56, in _post\n    r=super()._post(path,payload)\n      ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/zhangh/workspace/fastsd/experiments/1024-fp32-g4-l1-10-cpu32/source/edge/edge.py\", line 432, in _post\n    response.raise_for_status()\n  File \"/home/zhangh/venvs/fastsd_cpu/lib/python3.11/site-packages/requests/models.py\", line 1167, in raise_for_status\n    raise HTTPError(http_error_msg, response=self)\nrequests.exceptions.HTTPError: 503 Server Error: Service Unavailable for url: http://127.0.0.1:28635/verify\n"
+  },
+  "error_summaries": [
+    {
+      "worker": "worker-03",
+      "mtime": 1792836103.7932477,
+      "last_line": "requests.exceptions.HTTPError: 503 Server Error: Service Unavailable for url: http://127.0.0.1:28635/verify"
+    },
+    {
+      "worker": "worker-07",
+      "mtime": 1792836103.930246,
+      "last_line": "requests.exceptions.HTTPError: 503 Server Error: Service Unavailable for url: http://127.0.0.1:28635/verify"
+    },
+    {
+      "worker": "worker-14",
+      "mtime": 1792836104.0272448,
+      "last_line": "requests.exceptions.HTTPError: 503 Server Error: Service Unavailable for url: http://127.0.0.1:28635/verify"
+    },
+    {
+      "worker": "worker-10",
+      "mtime": 1792836104.3462412,
+      "last_line": "requests.exceptions.HTTPError: 503 Server Error: Service Unavailable for url: http://127.0.0.1:28635/verify"
+    },
+    {
+      "worker": "worker-01",
+      "mtime": 1792836104.6752374,
+      "last_line": "requests.exceptions.HTTPError: 503 Server Error: Service Unavailable for url: http://127.0.0.1:28635/verify"
+    },
+    {
+      "worker": "worker-11",
+      "mtime": 1792836104.696237,
+      "last_line": "requests.exceptions.HTTPError: 503 Server Error: Service Unavailable for url: http://127.0.0.1:28635/verify"
+    },
+    {
+      "worker": "worker-15",
+      "mtime": 1792836105.0102334,
+      "last_line": "requests.exceptions.HTTPError: 503 Server Error: Service Unavailable for url: http://127.0.0.1:28635/verify"
+    },
+    {
+      "worker": "worker-09",
+      "mtime": 1792836105.0832326,
+      "last_line": "requests.exceptions.ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))"
+    },
+    {
+      "worker": "worker-13",
+      "mtime": 1792836105.225231,
+      "last_line": "requests.exceptions.ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))"
+    },
+    {
+      "worker": "worker-04",
+      "mtime": 1792836105.2492306,
+      "last_line": "requests.exceptions.ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))"
+    },
+    {
+      "worker": "worker-05",
+      "mtime": 1792836105.3052301,
+      "last_line": "requests.exceptions.ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))"
+    },
+    {
+      "worker": "worker-00",
+      "mtime": 1792836105.4232287,
+      "last_line": "requests.exceptions.ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))"
+    },
+    {
+      "worker": "worker-02",
+      "mtime": 1792836105.571227,
+      "last_line": "requests.exceptions.ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))"
+    },
+    {
+      "worker": "worker-08",
+      "mtime": 1792836105.572227,
+      "last_line": "requests.exceptions.ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))"
+    },
+    {
+      "worker": "worker-06",
+      "mtime": 1792836105.6332262,
+      "last_line": "requests.exceptions.ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))"
+    },
+    {
+      "worker": "worker-12",
+      "mtime": 1792836105.653226,
+      "last_line": "requests.exceptions.ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))"
+    }
+  ],
+  "worker08_last_rpc": [
+    {
+      "endpoint": "/verify",
+      "task_id": "gsm8k-0040",
+      "start_epoch": 1792836087.179067,
+      "http_ms": 153.20852771401405,
+      "cloud_total_ms": 145.68424224853516,
+      "verify_ms": 65.49191474914551
+    },
+    {
+      "endpoint": "/verify",
+      "task_id": "gsm8k-0040",
+      "start_epoch": 1792836091.0714343,
+      "http_ms": 496.3081609457731,
+      "cloud_total_ms": 488.94214630126953,
+      "verify_ms": 148.17094802856445
+    },
+    {
+      "endpoint": "/verify",
+      "task_id": "gsm8k-0040",
+      "start_epoch": 1792836095.0236459,
+      "http_ms": 5787.205005995929,
+      "cloud_total_ms": 5779.214859008789,
+      "verify_ms": 142.39764213562012
+    },
+    {
+      "endpoint": "/verify",
+      "task_id": "gsm8k-0040",
+      "start_epoch": 1792836100.8148258,
+      "http_ms": 391.8030858039856,
+      "cloud_total_ms": 384.7684860229492,
+      "verify_ms": 82.47518539428711
+    }
+  ],
+  "worker08_log_mtime": 1792836105.572227,
+  "loadavg": [
+    0.19,
+    0.17,
+    0.15
+  ]
+}

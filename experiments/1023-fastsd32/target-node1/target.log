@@ -1,0 +1,483 @@
+INFO:     Started server process [174055]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://10.66.0.3:18601 (Press CTRL+C to quit)
+[RANK 0] Detected kernel version 3.10.0, which is below the recommended minimum of 5.5.0; this can cause the process to hang. It is recommended to upgrade the kernel to the minimum version or higher.
+[93mLoading tokenizer of /mnt/nfs0/zhangh/models/Qwen3-1.7B...[0m
+[93mLoading target model: /mnt/nfs0/zhangh/models/Qwen3-1.7B[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:00<00:00,  1.30it/s]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:00<00:00,  2.50it/s]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:00<00:00,  2.19it/s]
+INFO:     10.66.0.2:36604 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36604 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36604 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36604 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36604 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36604 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36604 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36604 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36604 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36604 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36604 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36750 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36756 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36760 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36752 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36758 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36762 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36770 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36774 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36780 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36782 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36784 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36772 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36792 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36798 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36794 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36802 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36804 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36753 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36810 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36764 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36766 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36776 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36786 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36796 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36790 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36806 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36808 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36800 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36767 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36788 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36778 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36812 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36750 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36752 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36770 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36756 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36760 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36774 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36782 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36792 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36798 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36804 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36784 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36753 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36794 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36776 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36790 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36762 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36758 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36802 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36810 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36764 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36786 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36780 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36808 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36772 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36778 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36767 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36800 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36788 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36766 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36806 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36796 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36812 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36774 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36782 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36752 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36798 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36753 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36776 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36756 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36750 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36804 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36790 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36760 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36758 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36764 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36792 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36808 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36810 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36786 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36794 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36784 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36772 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36762 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36802 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36770 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36780 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36800 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36767 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36778 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36806 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36766 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36812 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36788 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36796 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36756 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36750 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36776 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36774 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36810 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36758 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36784 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36772 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36802 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36753 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36790 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36782 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36808 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36798 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36762 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36767 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36752 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36764 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36792 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36794 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36770 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36780 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36804 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36800 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36786 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36760 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36778 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36812 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36806 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36766 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36796 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36788 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36778 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36774 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36772 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36808 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36802 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36752 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36792 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36794 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36786 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36798 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36800 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36782 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36756 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36810 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36762 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36780 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36750 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36770 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36764 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36804 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36753 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36760 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36758 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36784 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36776 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36790 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36767 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36812 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36766 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36788 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36772 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36806 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36808 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36796 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36774 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36778 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36802 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36786 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36782 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36750 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36798 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36764 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36753 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36758 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36776 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36792 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36756 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36767 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36762 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36810 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36770 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36800 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36752 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36780 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36794 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36784 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36790 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36760 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36804 - "GET /clock/sync HTTP/1.1" 200 OK
+Initializing new session...
+Initializing new session...Initializing new session...
+
+Initializing new session...Initializing new session...
+
+Initializing new session...
+INFO:     10.66.0.2:36806 - "GET /clock/sync HTTP/1.1" 200 OK
+Initializing new session...Initializing new session...
+
+INFO:     10.66.0.2:36796 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36812 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36788 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36766 - "GET /clock/sync HTTP/1.1" 200 OK
+Initializing new session...
+Initializing new session...
+Initializing new session...Initializing new session...Initializing new session...Initializing new session...Initializing new session...Initializing new session...
+
+Initializing new session...
+
+
+
+
+Initializing new session...Initializing new session...Initializing new session...Initializing new session...
+Initializing new session...
+Initializing new session...
+Initializing new session...INFO:     10.66.0.2:36772 - "POST /session/init HTTP/1.1" 200 OK
+
+
+Initializing new session...
+INFO:     10.66.0.2:36778 - "POST /session/init HTTP/1.1" 200 OK
+Initializing new session...Initializing new session...
+
+
+INFO:     10.66.0.2:36786 - "POST /session/init HTTP/1.1" 200 OK
+Initializing new session...Initializing new session...Initializing new session...Initializing new session...INFO:     10.66.0.2:36802 - "POST /session/init HTTP/1.1" 200 OK
+
+
+
+
+
+INFO:     10.66.0.2:36782 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36808 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36750 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36774 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36764 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36798 - "POST /session/init HTTP/1.1" 200 OK
+Initializing new session...INFO:     10.66.0.2:36762 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36776 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36758 - "POST /session/init HTTP/1.1" 200 OK
+
+INFO:     10.66.0.2:36753 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36792 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36756 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36794 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36770 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36780 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36760 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36752 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36804 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36800 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36784 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36790 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36767 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36796 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36812 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36788 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36810 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36806 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36766 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36782 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36750 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36770 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36780 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36794 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36778 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36776 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36774 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36798 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36786 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36802 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36772 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36764 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36808 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36756 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36792 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36753 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36762 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36752 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36758 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36810 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36796 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36804 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36766 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36812 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36806 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36767 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36800 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36784 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36790 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36760 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36788 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36914 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36914 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36922 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36922 - "POST /verify HTTP/1.1" 422 Unprocessable Entity
+INFO:     10.66.0.2:36928 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36928 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36928 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36942 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36942 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36928 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36928 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36952 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36954 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36954 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36956 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36956 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36958 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36952 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36958 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36968 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36968 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36972 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36952 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36976 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36980 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36972 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36952 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36986 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36976 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36988 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36980 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36988 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36972 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36952 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36986 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36976 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36980 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36972 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36998 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36976 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36986 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37000 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36998 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36980 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36972 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37006 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37000 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36976 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36986 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37006 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37010 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36980 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37016 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37010 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37020 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:36986 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37000 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37020 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37022 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37016 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37024 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37022 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37024 - "POST /verify HTTP/1.1" 422 Unprocessable Entity
+INFO:     10.66.0.2:37030 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37016 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37000 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37032 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37038 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37036 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37032 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37000 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37042 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37036 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37038 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37030 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37040 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37050 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37042 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37016 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37032 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37040 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37050 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37062 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37060 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37048 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37032 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37016 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37042 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37076 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37062 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37048 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37060 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37068 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37032 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37042 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37076 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37068 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37084 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37070 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37072 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37042 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37076 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37048 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37062 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37100 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37070 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37084 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37078 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37048 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37072 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37078 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37062 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37100 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37076 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37088 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37090 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37088 - "POST /verify HTTP/1.1" 422 Unprocessable Entity
+INFO:     10.66.0.2:37122 - "POST /prefill/cancel HTTP/1.1" 409 Conflict
+INFO:     10.66.0.2:37076 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37048 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37062 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37100 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37116 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37092 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37062 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37116 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37048 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37124 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37092 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37100 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37124 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37116 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37100 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37048 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37062 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37134 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37136 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37116 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37134 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37136 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37116 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37134 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37136 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37134 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37134 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37170 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37170 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37184 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37184 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37184 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37198 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37204 - "POST /prefill/cancel HTTP/1.1" 409 Conflict
+INFO:     10.66.0.2:37184 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37184 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37222 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37222 - "POST /verify HTTP/1.1" 422 Unprocessable Entity
+INFO:     10.66.0.2:37256 - "POST /verify HTTP/1.1" 422 Unprocessable Entity
+INFO:     10.66.0.2:37256 - "POST /verify HTTP/1.1" 422 Unprocessable Entity
+INFO:     10.66.0.2:37256 - "POST /verify HTTP/1.1" 422 Unprocessable Entity
+INFO:     10.66.0.2:37256 - "POST /verify HTTP/1.1" 422 Unprocessable Entity
+INFO:     10.66.0.2:37256 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37256 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37256 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37256 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37256 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     10.66.0.2:37354 - "POST /exit HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [174055]
+/home/zhangh/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/multiprocessing/resource_tracker.py:254: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown
+  warnings.warn('resource_tracker: There appear to be %d '

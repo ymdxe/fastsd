@@ -1,0 +1,755 @@
+[
+  {
+    "id": "fastsd-g200-l50",
+    "method": "fastsd",
+    "gamma": 200,
+    "rate": 50.0,
+    "cap": 1024,
+    "expected_requests": 1319,
+    "completed_requests": 21,
+    "unique_samples": 21,
+    "output_tokens": 4978,
+    "status": "failed",
+    "arrival_ttft_ms": {
+      "n": 21,
+      "mean": 239090.75297298178,
+      "p50": 183294.96870062474,
+      "p95": 578481.1380371843,
+      "p99": 1482745.2273377604
+    },
+    "service_ttft_ms": {
+      "n": 21,
+      "mean": 139693.93473220547,
+      "p50": 101587.11385540664,
+      "p95": 205197.09299877286,
+      "p99": 205424.4273941964
+    },
+    "tpot_ms": {
+      "n": 21,
+      "mean": 10128.587302258376,
+      "p50": 9328.583030603253,
+      "p95": 18824.94769509383,
+      "p99": 19620.342674628002
+    },
+    "arrival_request_e2e_ms": {
+      "n": 21,
+      "mean": 2517574.0531133087,
+      "p50": 2596255.1385442847,
+      "p95": 3835960.3771262914,
+      "p99": 4038991.270960451
+    },
+    "service_request_e2e_ms": {
+      "n": 21,
+      "mean": 2418177.2348725325,
+      "p50": 2182855.115082115,
+      "p95": 3835960.2026026696,
+      "p99": 4038985.993877426
+    },
+    "arrival_lag_ms": {
+      "n": 21,
+      "mean": 99396.81824077632,
+      "p50": 0.286455079179293,
+      "p95": 478364.98226750834,
+      "p99": 1382815.6554968485
+    },
+    "by_node": {
+      "node1": {
+        "arrival_ttft_ms": {
+          "n": 12,
+          "mean": 272817.6295268522,
+          "p50": 98828.12464374432,
+          "p95": 1087129.6882687572,
+          "p99": 1584474.937384075
+        },
+        "service_ttft_ms": {
+          "n": 12,
+          "mean": 98875.79179741442,
+          "p50": 98827.91093923151,
+          "p95": 108074.74663453175,
+          "p99": 114418.20979634301
+        },
+        "tpot_ms": {
+          "n": 12,
+          "mean": 8472.431889677091,
+          "p50": 8030.334997973012,
+          "p95": 13009.419627539612,
+          "p99": 14406.982330366223
+        },
+        "arrival_lag_ms": {
+          "n": 12,
+          "mean": 173941.83772943777,
+          "p50": 0.19107526079439538,
+          "p95": 987118.4859590109,
+          "p99": 1484566.356235149
+        }
+      },
+      "node3": {
+        "arrival_ttft_ms": {
+          "n": 9,
+          "mean": 194121.58423448788,
+          "p50": 194265.93492345506,
+          "p95": 205372.23183588072,
+          "p99": 205463.87138107058
+        },
+        "service_ttft_ms": {
+          "n": 9,
+          "mean": 194118.12531192682,
+          "p50": 194265.77579788864,
+          "p95": 205367.5937953405,
+          "p99": 205458.52755350992
+        },
+        "tpot_ms": {
+          "n": 9,
+          "mean": 12336.794519033425,
+          "p50": 10999.130396814351,
+          "p95": 19421.493929744458,
+          "p99": 19739.65192155813
+        },
+        "arrival_lag_ms": {
+          "n": 9,
+          "mean": 3.4589225610560907,
+          "p50": 3.3146898768247057,
+          "p95": 6.139743451989865,
+          "p99": 6.470126991296432
+        }
+      }
+    },
+    "scheduler": {
+      "iterations": 995,
+      "used_tokens": 193240,
+      "plans": 995,
+      "verify_slices": 943,
+      "prefill_slices": 53,
+      "partial_verify": 0,
+      "partial_prefill": 1,
+      "prefetch_plans": 1049,
+      "prefetch_hits": 0,
+      "prefetch_misses": 49,
+      "prefetch_evictions": 0,
+      "prefetch_reserved_excluded": 0,
+      "prefetch_empty_desired": 1000,
+      "prefetch_no_verify_candidates": 54,
+      "prefetch_desired_unchanged": 950,
+      "prefetch_intent_inflight": 0,
+      "prefetch_retry": 0,
+      "prefetch_retry_throttled": 0,
+      "prefetch_noop": 0,
+      "prefetch_async_submitted": 49,
+      "prefetch_async_dropped": 0,
+      "prefetch_async_completed": 49,
+      "prefetch_async_moved": 43,
+      "prefetch_async_failed": 0,
+      "prefetch_async_skipped_stale": 6,
+      "prefetch_async_superseded": 0,
+      "prefetch_async_missing_cache": 0,
+      "prefetch_pending_underflow": 0,
+      "prefetch_async_last_error": null,
+      "finished_work_items_removed": 995,
+      "empty_plans": 941,
+      "empty_plans_with_live_work": 0,
+      "idle_waits": 941,
+      "incoming_during_forward": 54,
+      "shutdown_inflight_timeout": 0,
+      "shutdown_drained_plans": 0,
+      "shutdown_terminated_work_items": 0,
+      "timing_updates": 0,
+      "timing_ready_prefill_forwards": 53,
+      "prefill_cancels": 0,
+      "prefill_cancels_deferred": 0
+    },
+    "kv": {
+      "async_move_calls": 49,
+      "async_move_bytes": 713015296,
+      "async_move_host_wall_ms": {
+        "n": 49,
+        "mean": 16.090480981356635,
+        "p50": 15.790265053510666,
+        "p95": 23.057236894965165,
+        "p99": 28.96223958581682
+      },
+      "verify_demand_requests": 943,
+      "verify_prefetch_hits": 43,
+      "verify_prefetch_hit_rate": 0.04559915164369035
+    }
+  },
+  {
+    "id": "standard-g200-l50",
+    "method": "standard",
+    "gamma": 200,
+    "rate": 50.0,
+    "cap": 1024,
+    "expected_requests": 1319,
+    "completed_requests": 0,
+    "unique_samples": 0,
+    "output_tokens": 0,
+    "status": "pending",
+    "arrival_ttft_ms": {
+      "n": 0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    },
+    "service_ttft_ms": {
+      "n": 0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    },
+    "tpot_ms": {
+      "n": 0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    },
+    "arrival_request_e2e_ms": {
+      "n": 0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    },
+    "service_request_e2e_ms": {
+      "n": 0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    },
+    "arrival_lag_ms": {
+      "n": 0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    },
+    "by_node": {
+      "node1": {
+        "arrival_ttft_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "service_ttft_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "tpot_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "arrival_lag_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        }
+      },
+      "node3": {
+        "arrival_ttft_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "service_ttft_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "tpot_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "arrival_lag_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        }
+      }
+    }
+  },
+  {
+    "id": "specedge-g200-l50",
+    "method": "specedge",
+    "gamma": 200,
+    "rate": 50.0,
+    "cap": 1024,
+    "expected_requests": 1319,
+    "completed_requests": 0,
+    "unique_samples": 0,
+    "output_tokens": 0,
+    "status": "pending",
+    "arrival_ttft_ms": {
+      "n": 0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    },
+    "service_ttft_ms": {
+      "n": 0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    },
+    "tpot_ms": {
+      "n": 0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    },
+    "arrival_request_e2e_ms": {
+      "n": 0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    },
+    "service_request_e2e_ms": {
+      "n": 0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    },
+    "arrival_lag_ms": {
+      "n": 0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    },
+    "by_node": {
+      "node1": {
+        "arrival_ttft_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "service_ttft_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "tpot_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "arrival_lag_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        }
+      },
+      "node3": {
+        "arrival_ttft_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "service_ttft_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "tpot_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "arrival_lag_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        }
+      }
+    }
+  },
+  {
+    "id": "fastsd-g500-l50",
+    "method": "fastsd",
+    "gamma": 500,
+    "rate": 50.0,
+    "cap": 1024,
+    "expected_requests": 1319,
+    "completed_requests": 0,
+    "unique_samples": 0,
+    "output_tokens": 0,
+    "status": "pending",
+    "arrival_ttft_ms": {
+      "n": 0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    },
+    "service_ttft_ms": {
+      "n": 0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    },
+    "tpot_ms": {
+      "n": 0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    },
+    "arrival_request_e2e_ms": {
+      "n": 0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    },
+    "service_request_e2e_ms": {
+      "n": 0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    },
+    "arrival_lag_ms": {
+      "n": 0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    },
+    "by_node": {
+      "node1": {
+        "arrival_ttft_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "service_ttft_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "tpot_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "arrival_lag_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        }
+      },
+      "node3": {
+        "arrival_ttft_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "service_ttft_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "tpot_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "arrival_lag_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        }
+      }
+    }
+  },
+  {
+    "id": "standard-g500-l50",
+    "method": "standard",
+    "gamma": 500,
+    "rate": 50.0,
+    "cap": 1024,
+    "expected_requests": 1319,
+    "completed_requests": 0,
+    "unique_samples": 0,
+    "output_tokens": 0,
+    "status": "pending",
+    "arrival_ttft_ms": {
+      "n": 0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    },
+    "service_ttft_ms": {
+      "n": 0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    },
+    "tpot_ms": {
+      "n": 0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    },
+    "arrival_request_e2e_ms": {
+      "n": 0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    },
+    "service_request_e2e_ms": {
+      "n": 0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    },
+    "arrival_lag_ms": {
+      "n": 0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    },
+    "by_node": {
+      "node1": {
+        "arrival_ttft_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "service_ttft_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "tpot_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "arrival_lag_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        }
+      },
+      "node3": {
+        "arrival_ttft_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "service_ttft_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "tpot_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "arrival_lag_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        }
+      }
+    }
+  },
+  {
+    "id": "specedge-g500-l50",
+    "method": "specedge",
+    "gamma": 500,
+    "rate": 50.0,
+    "cap": 1024,
+    "expected_requests": 1319,
+    "completed_requests": 0,
+    "unique_samples": 0,
+    "output_tokens": 0,
+    "status": "pending",
+    "arrival_ttft_ms": {
+      "n": 0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    },
+    "service_ttft_ms": {
+      "n": 0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    },
+    "tpot_ms": {
+      "n": 0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    },
+    "arrival_request_e2e_ms": {
+      "n": 0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    },
+    "service_request_e2e_ms": {
+      "n": 0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    },
+    "arrival_lag_ms": {
+      "n": 0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    },
+    "by_node": {
+      "node1": {
+        "arrival_ttft_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "service_ttft_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "tpot_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "arrival_lag_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        }
+      },
+      "node3": {
+        "arrival_ttft_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "service_ttft_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "tpot_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "arrival_lag_ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        }
+      }
+    }
+  }
+]

@@ -1,0 +1,114 @@
+[
+  {
+    "cpu": 0,
+    "numa": 0,
+    "core": 0,
+    "socket": 0,
+    "initial_busy": 0.0
+  },
+  {
+    "cpu": 1,
+    "numa": 1,
+    "core": 1,
+    "socket": 1,
+    "initial_busy": 0.0
+  },
+  {
+    "cpu": 4,
+    "numa": 0,
+    "core": 4,
+    "socket": 0,
+    "initial_busy": 0.0
+  },
+  {
+    "cpu": 3,
+    "numa": 1,
+    "core": 3,
+    "socket": 1,
+    "initial_busy": 0.0
+  },
+  {
+    "cpu": 8,
+    "numa": 0,
+    "core": 8,
+    "socket": 0,
+    "initial_busy": 0.0
+  },
+  {
+    "cpu": 5,
+    "numa": 1,
+    "core": 5,
+    "socket": 1,
+    "initial_busy": 0.0
+  },
+  {
+    "cpu": 12,
+    "numa": 0,
+    "core": 12,
+    "socket": 0,
+    "initial_busy": 0.0
+  },
+  {
+    "cpu": 7,
+    "numa": 1,
+    "core": 7,
+    "socket": 1,
+    "initial_busy": 0.0
+  },
+  {
+    "cpu": 16,
+    "numa": 0,
+    "core": 16,
+    "socket": 0,
+    "initial_busy": 0.0
+  },
+  {
+    "cpu": 9,
+    "numa": 1,
+    "core": 9,
+    "socket": 1,
+    "initial_busy": 0.0
+  },
+  {
+    "cpu": 18,
+    "numa": 0,
+    "core": 18,
+    "socket": 0,
+    "initial_busy": 0.0
+  },
+  {
+    "cpu": 11,
+    "numa": 1,
+    "core": 11,
+    "socket": 1,
+    "initial_busy": 0.0
+  },
+  {
+    "cpu": 26,
+    "numa": 0,
+    "core": 26,
+    "socket": 0,
+    "initial_busy": 0.0
+  },
+  {
+    "cpu": 13,
+    "numa": 1,
+    "core": 13,
+    "socket": 1,
+    "initial_busy": 0.0
+  },
+  {
+    "cpu": 28,
+    "numa": 0,
+    "core": 28,
+    "socket": 0,
+    "initial_busy": 0.0
+  },
+  {
+    "cpu": 15,
+    "numa": 1,
+    "core": 15,
+    "socket": 1,
+    "initial_busy": 0.0
+  }
+]

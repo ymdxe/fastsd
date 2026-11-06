@@ -1,0 +1,219 @@
+[
+  {
+    "id": "fastsd-g20-l1-a2",
+    "method": "fastsd",
+    "gamma": 20,
+    "rate": 1.0,
+    "cap": 1024,
+    "expected_requests": 1319,
+    "retry_of": "fastsd-g20-l1"
+  },
+  {
+    "id": "standard-g20-l1",
+    "method": "standard",
+    "gamma": 20,
+    "rate": 1.0,
+    "cap": 1024,
+    "expected_requests": 1319
+  },
+  {
+    "id": "specedge-g20-l1",
+    "method": "specedge",
+    "gamma": 20,
+    "rate": 1.0,
+    "cap": 1024,
+    "expected_requests": 1319
+  },
+  {
+    "id": "standard-g20-l10",
+    "method": "standard",
+    "gamma": 20,
+    "rate": 10.0,
+    "cap": 1024,
+    "expected_requests": 1319
+  },
+  {
+    "id": "specedge-g20-l10",
+    "method": "specedge",
+    "gamma": 20,
+    "rate": 10.0,
+    "cap": 1024,
+    "expected_requests": 1319
+  },
+  {
+    "id": "fastsd-g20-l10",
+    "method": "fastsd",
+    "gamma": 20,
+    "rate": 10.0,
+    "cap": 1024,
+    "expected_requests": 1319
+  },
+  {
+    "id": "specedge-g20-l50",
+    "method": "specedge",
+    "gamma": 20,
+    "rate": 50.0,
+    "cap": 1024,
+    "expected_requests": 1319
+  },
+  {
+    "id": "fastsd-g20-l50",
+    "method": "fastsd",
+    "gamma": 20,
+    "rate": 50.0,
+    "cap": 1024,
+    "expected_requests": 1319
+  },
+  {
+    "id": "standard-g20-l50",
+    "method": "standard",
+    "gamma": 20,
+    "rate": 50.0,
+    "cap": 1024,
+    "expected_requests": 1319
+  },
+  {
+    "id": "fastsd-g200-l1",
+    "method": "fastsd",
+    "gamma": 200,
+    "rate": 1.0,
+    "cap": 1024,
+    "expected_requests": 1319
+  },
+  {
+    "id": "standard-g200-l1",
+    "method": "standard",
+    "gamma": 200,
+    "rate": 1.0,
+    "cap": 1024,
+    "expected_requests": 1319
+  },
+  {
+    "id": "specedge-g200-l1",
+    "method": "specedge",
+    "gamma": 200,
+    "rate": 1.0,
+    "cap": 1024,
+    "expected_requests": 1319
+  },
+  {
+    "id": "standard-g200-l10",
+    "method": "standard",
+    "gamma": 200,
+    "rate": 10.0,
+    "cap": 1024,
+    "expected_requests": 1319
+  },
+  {
+    "id": "specedge-g200-l10",
+    "method": "specedge",
+    "gamma": 200,
+    "rate": 10.0,
+    "cap": 1024,
+    "expected_requests": 1319
+  },
+  {
+    "id": "fastsd-g200-l10",
+    "method": "fastsd",
+    "gamma": 200,
+    "rate": 10.0,
+    "cap": 1024,
+    "expected_requests": 1319
+  },
+  {
+    "id": "specedge-g200-l50",
+    "method": "specedge",
+    "gamma": 200,
+    "rate": 50.0,
+    "cap": 1024,
+    "expected_requests": 1319
+  },
+  {
+    "id": "fastsd-g200-l50",
+    "method": "fastsd",
+    "gamma": 200,
+    "rate": 50.0,
+    "cap": 1024,
+    "expected_requests": 1319
+  },
+  {
+    "id": "standard-g200-l50",
+    "method": "standard",
+    "gamma": 200,
+    "rate": 50.0,
+    "cap": 1024,
+    "expected_requests": 1319
+  },
+  {
+    "id": "fastsd-g500-l1",
+    "method": "fastsd",
+    "gamma": 500,
+    "rate": 1.0,
+    "cap": 1024,
+    "expected_requests": 1319
+  },
+  {
+    "id": "standard-g500-l1",
+    "method": "standard",
+    "gamma": 500,
+    "rate": 1.0,
+    "cap": 1024,
+    "expected_requests": 1319
+  },
+  {
+    "id": "specedge-g500-l1",
+    "method": "specedge",
+    "gamma": 500,
+    "rate": 1.0,
+    "cap": 1024,
+    "expected_requests": 1319
+  },
+  {
+    "id": "standard-g500-l10",
+    "method": "standard",
+    "gamma": 500,
+    "rate": 10.0,
+    "cap": 1024,
+    "expected_requests": 1319
+  },
+  {
+    "id": "specedge-g500-l10",
+    "method": "specedge",
+    "gamma": 500,
+    "rate": 10.0,
+    "cap": 1024,
+    "expected_requests": 1319
+  },
+  {
+    "id": "fastsd-g500-l10",
+    "method": "fastsd",
+    "gamma": 500,
+    "rate": 10.0,
+    "cap": 1024,
+    "expected_requests": 1319
+  },
+  {
+    "id": "specedge-g500-l50",
+    "method": "specedge",
+    "gamma": 500,
+    "rate": 50.0,
+    "cap": 1024,
+    "expected_requests": 1319
+  },
+  {
+    "id": "fastsd-g500-l50",
+    "method": "fastsd",
+    "gamma": 500,
+    "rate": 50.0,
+    "cap": 1024,
+    "expected_requests": 1319
+  },
+  {
+    "id": "standard-g500-l50",
+    "method": "standard",
+    "gamma": 500,
+    "rate": 50.0,
+    "cap": 1024,
+    "expected_requests": 1319
+  }
+]

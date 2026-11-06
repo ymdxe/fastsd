@@ -1,0 +1,8 @@
+{
+  "pid": 2184910,
+  "pgid": 2184910,
+  "start_ticks": 18785470,
+  "uid": 1074,
+  "started_epoch_s": 1793541377.075868,
+  "script": "/home/hdd3/zhangh/workspace/fastsd/wrr-prefetch-validation-20261101/wrr-prefetch-r03/validate_gpu.py"
+}

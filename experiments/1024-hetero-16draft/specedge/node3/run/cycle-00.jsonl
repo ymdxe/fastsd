@@ -1,0 +1,11 @@
+{"req_idx": 1, "step": 0, "gamma": 20, "accepted_draft_tokens": 0, "verified_output_tokens_before_cap": 1, "retained_output_tokens": 1, "proactive_reused": false, "cycle_ms": 321969.85741890967, "hit_eos": false}
+{"req_idx": 1, "step": 1, "gamma": 20, "accepted_draft_tokens": 6, "verified_output_tokens_before_cap": 7, "retained_output_tokens": 7, "proactive_reused": false, "cycle_ms": 178907.72567410022, "hit_eos": false}
+{"req_idx": 1, "step": 2, "gamma": 20, "accepted_draft_tokens": 1, "verified_output_tokens_before_cap": 2, "retained_output_tokens": 2, "proactive_reused": false, "cycle_ms": 179255.69853186607, "hit_eos": false}
+{"req_idx": 1, "step": 3, "gamma": 20, "accepted_draft_tokens": 1, "verified_output_tokens_before_cap": 2, "retained_output_tokens": 2, "proactive_reused": false, "cycle_ms": 205707.80578581616, "hit_eos": false}
+{"req_idx": 1, "step": 4, "gamma": 20, "accepted_draft_tokens": 20, "verified_output_tokens_before_cap": 21, "retained_output_tokens": 21, "proactive_reused": true, "cycle_ms": 115011.8976579979, "hit_eos": false}
+{"req_idx": 1, "step": 5, "gamma": 20, "accepted_draft_tokens": 3, "verified_output_tokens_before_cap": 4, "retained_output_tokens": 4, "proactive_reused": false, "cycle_ms": 42769.92544811219, "hit_eos": false}
+{"req_idx": 1, "step": 6, "gamma": 20, "accepted_draft_tokens": 0, "verified_output_tokens_before_cap": 1, "retained_output_tokens": 1, "proactive_reused": false, "cycle_ms": 83447.72519590333, "hit_eos": false}
+{"req_idx": 1, "step": 7, "gamma": 20, "accepted_draft_tokens": 0, "verified_output_tokens_before_cap": 1, "retained_output_tokens": 1, "proactive_reused": false, "cycle_ms": 83439.5007211715, "hit_eos": false}
+{"req_idx": 1, "step": 8, "gamma": 20, "accepted_draft_tokens": 0, "verified_output_tokens_before_cap": 1, "retained_output_tokens": 1, "proactive_reused": false, "cycle_ms": 83427.89469379932, "hit_eos": false}
+{"req_idx": 1, "step": 9, "gamma": 20, "accepted_draft_tokens": 17, "verified_output_tokens_before_cap": 18, "retained_output_tokens": 18, "proactive_reused": false, "cycle_ms": 83447.05064687878, "hit_eos": false}
+{"req_idx": 1, "step": 10, "gamma": 20, "accepted_draft_tokens": 7, "verified_output_tokens_before_cap": 8, "retained_output_tokens": 8, "proactive_reused": false, "cycle_ms": 83450.91729145497, "hit_eos": true}

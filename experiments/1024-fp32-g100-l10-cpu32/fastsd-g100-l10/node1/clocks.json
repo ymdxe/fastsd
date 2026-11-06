@@ -1,0 +1,82 @@
+{
+  "worker-00": {
+    "clock_offset_ns": -104306,
+    "clock_uncertainty_ns": 2421105,
+    "samples": 5
+  },
+  "worker-01": {
+    "clock_offset_ns": 18247,
+    "clock_uncertainty_ns": 2620808,
+    "samples": 5
+  },
+  "worker-02": {
+    "clock_offset_ns": 63188,
+    "clock_uncertainty_ns": 2583129,
+    "samples": 5
+  },
+  "worker-03": {
+    "clock_offset_ns": -137415,
+    "clock_uncertainty_ns": 2658451,
+    "samples": 5
+  },
+  "worker-04": {
+    "clock_offset_ns": -65375,
+    "clock_uncertainty_ns": 2330838,
+    "samples": 5
+  },
+  "worker-05": {
+    "clock_offset_ns": -66188,
+    "clock_uncertainty_ns": 2317736,
+    "samples": 5
+  },
+  "worker-06": {
+    "clock_offset_ns": 63570,
+    "clock_uncertainty_ns": 2663665,
+    "samples": 5
+  },
+  "worker-07": {
+    "clock_offset_ns": -40025,
+    "clock_uncertainty_ns": 2477808,
+    "samples": 5
+  },
+  "worker-08": {
+    "clock_offset_ns": -112697,
+    "clock_uncertainty_ns": 2578110,
+    "samples": 5
+  },
+  "worker-09": {
+    "clock_offset_ns": -13751,
+    "clock_uncertainty_ns": 2386860,
+    "samples": 5
+  },
+  "worker-10": {
+    "clock_offset_ns": 41855,
+    "clock_uncertainty_ns": 2366263,
+    "samples": 5
+  },
+  "worker-11": {
+    "clock_offset_ns": -69767,
+    "clock_uncertainty_ns": 2383937,
+    "samples": 5
+  },
+  "worker-12": {
+    "clock_offset_ns": -7233,
+    "clock_uncertainty_ns": 2370715,
+    "samples": 5
+  },
+  "worker-13": {
+    "clock_offset_ns": -108758,
+    "clock_uncertainty_ns": 2479952,
+    "samples": 5
+  },
+  "worker-14": {
+    "clock_offset_ns": 43244,
+    "clock_uncertainty_ns": 2689737,
+    "samples": 5
+  },
+  "worker-15": {
+    "clock_offset_ns": 3062,
+    "clock_uncertainty_ns": 2581443,
+    "samples": 5
+  }
+}

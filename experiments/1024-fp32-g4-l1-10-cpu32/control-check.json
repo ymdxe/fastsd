@@ -1,0 +1,7 @@
+{
+  "ok": true,
+  "authenticated_control": true,
+  "metadata_endpoint": true,
+  "no_model_smoke": true,
+  "epoch": 1792849831.7240102
+}

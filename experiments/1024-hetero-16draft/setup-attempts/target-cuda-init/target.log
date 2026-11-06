@@ -1,0 +1,27 @@
+INFO:     Started server process [2493448]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:18625 (Press CTRL+C to quit)
+Process SpawnProcess-1:
+Traceback (most recent call last):
+  File "/home/hdd/zhangh/envs/fastsd/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/home/hdd/zhangh/envs/fastsd/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/hdd3/zhangh/workspace/fastsd/cloud/cloud_service.py", line 211, in _worker_entry
+    worker.run_target_process_batching(worker.tokenizer, req_q, response_queues)
+  File "/home/hdd/zhangh/envs/fastsd/lib/python3.10/site-packages/torch/utils/_contextlib.py", line 115, in decorate_context
+    return func(*args, **kwargs)
+  File "/home/hdd3/zhangh/workspace/fastsd/src/engine.py", line 740, in run_target_process_batching
+    target_model = self._load_target_model_for_service(
+  File "/home/hdd3/zhangh/workspace/fastsd/experiments/1024-hetero-16draft/target_adapter.py", line 62, in _load_offloaded_target
+    torch.cuda.reset_peak_memory_stats(0)
+  File "/home/hdd/zhangh/envs/fastsd/lib/python3.10/site-packages/torch/cuda/memory.py", line 309, in reset_peak_memory_stats
+    return torch._C._cuda_resetPeakMemoryStats(device)
+RuntimeError: Invalid device argument 0: did you call init?
+[93mLoading tokenizer of /home/hdd3/zhangh/workspace/fastsd/experiments/1024-hetero-16draft/model-view/Qwen3-32B...[0m
+[93mLoading target model: /home/hdd3/zhangh/workspace/fastsd/experiments/1024-hetero-16draft/model-view/Qwen3-32B[0m
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [2493448]

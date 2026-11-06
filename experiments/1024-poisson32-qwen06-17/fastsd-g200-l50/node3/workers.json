@@ -1,0 +1,130 @@
+{
+  "worker-07": {
+    "pid": 25105,
+    "threads": 1,
+    "affinity": [
+      73
+    ],
+    "epoch": 1792823194.1641219
+  },
+  "worker-13": {
+    "pid": 25111,
+    "threads": 1,
+    "affinity": [
+      29
+    ],
+    "epoch": 1792823194.2736194
+  },
+  "worker-06": {
+    "pid": 25104,
+    "threads": 1,
+    "affinity": [
+      51
+    ],
+    "epoch": 1792823194.121351
+  },
+  "worker-00": {
+    "pid": 25098,
+    "threads": 1,
+    "affinity": [
+      0
+    ],
+    "epoch": 1792823194.126077
+  },
+  "worker-15": {
+    "pid": 25113,
+    "threads": 1,
+    "affinity": [
+      77
+    ],
+    "epoch": 1792823193.972883
+  },
+  "worker-09": {
+    "pid": 25107,
+    "threads": 1,
+    "affinity": [
+      27
+    ],
+    "epoch": 1792823194.145246
+  },
+  "worker-05": {
+    "pid": 25103,
+    "threads": 1,
+    "affinity": [
+      25
+    ],
+    "epoch": 1792823193.984677
+  },
+  "worker-04": {
+    "pid": 25102,
+    "threads": 1,
+    "affinity": [
+      1
+    ],
+    "epoch": 1792823194.0533352
+  },
+  "worker-08": {
+    "pid": 25106,
+    "threads": 1,
+    "affinity": [
+      3
+    ],
+    "epoch": 1792823194.0989845
+  },
+  "worker-03": {
+    "pid": 25101,
+    "threads": 1,
+    "affinity": [
+      72
+    ],
+    "epoch": 1792823194.1147354
+  },
+  "worker-14": {
+    "pid": 25112,
+    "threads": 1,
+    "affinity": [
+      54
+    ],
+    "epoch": 1792823194.186138
+  },
+  "worker-11": {
+    "pid": 25109,
+    "threads": 1,
+    "affinity": [
+      74
+    ],
+    "epoch": 1792823194.123293
+  },
+  "worker-12": {
+    "pid": 25110,
+    "threads": 1,
+    "affinity": [
+      7
+    ],
+    "epoch": 1792823194.0073748
+  },
+  "worker-02": {
+    "pid": 25100,
+    "threads": 1,
+    "affinity": [
+      48
+    ],
+    "epoch": 1792823194.3108923
+  },
+  "worker-01": {
+    "pid": 25099,
+    "threads": 1,
+    "affinity": [
+      24
+    ],
+    "epoch": 1792823194.0222278
+  },
+  "worker-10": {
+    "pid": 25108,
+    "threads": 1,
+    "affinity": [
+      53
+    ],
+    "epoch": 1792823194.1863291
+  }
+}

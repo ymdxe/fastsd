@@ -1,0 +1,38 @@
+import hashlib,io,json,os,pathlib,socket,sys,tarfile,urllib.request
+root=pathlib.Path('/home/zhangh/workspace/fastsd/experiments/1024-fp32-g4-l1-10-cpu32')
+node='node3' if 'node3' in socket.gethostname() else 'node1'
+old_manifest=json.loads((root/'manifest.json').read_text())
+agent=json.loads((root/(node+'-agent.json')).read_text())['pid']
+for item in [{'pid':agent},*json.loads((root/'fastsd-g4-l1'/node/'launch.json').read_text())['workers']]:
+    path=pathlib.Path(f'/proc/{item["pid"]}/cmdline')
+    assert not path.exists() or str(root).encode() not in path.read_bytes(),'Old task still running'
+token=(root/'.control-token').read_text().strip()
+request=urllib.request.Request('http://127.0.0.1:28634/bundle',headers={'Authorization':'Bearer '+token})
+with urllib.request.build_opener(urllib.request.ProxyHandler({})).open(request,timeout=120) as response:data=response.read()
+assert hashlib.sha256(data).hexdigest()=='3833eb2698a889e5710bae30cf8bea20b033a7718c378c3467fff745c3f6bedd'
+with tarfile.open(fileobj=io.BytesIO(data),mode='r:gz') as archive:
+    files={}
+    for member in archive.getmembers():
+        p=pathlib.PurePosixPath(member.name)
+        assert not p.is_absolute() and '..' not in p.parts and member.isfile()
+        files[member.name]=archive.extractfile(member).read()
+new_manifest=json.loads(files['manifest.json'])
+assert new_manifest['gamma']==[4] and new_manifest['rates_global_rps']==[1,10] and new_manifest['http_timeout_keep_alive_s']==7200
+for name,digest in new_manifest['hashes'].items():assert hashlib.sha256(files[name]).hexdigest()==digest,name
+changed=[]
+for name,body in files.items():
+    path=root/name
+    if path.exists() and path.read_bytes()!=body:
+        if name!='manifest.json':assert hashlib.sha256(path.read_bytes()).hexdigest()==old_manifest['hashes'][name],name
+        changed.append(name)
+archive=root/'attempts/fastsd-g4-l1-clock-calibration';assert not archive.exists()
+archive.parent.mkdir(exist_ok=True);(root/'fastsd-g4-l1').rename(archive)
+for name in changed:
+    source=root/name;backup=archive/'code-before-sync'/name;backup.parent.mkdir(parents=True,exist_ok=True);backup.write_bytes(source.read_bytes())
+for name,body in files.items():
+    path=root/name;path.parent.mkdir(parents=True,exist_ok=True)
+    temporary=path.with_name(path.name+'.recovery');temporary.write_bytes(body);temporary.replace(path)
+for name,digest in new_manifest['hashes'].items():assert hashlib.sha256((root/name).read_bytes()).hexdigest()==digest,name
+(root/'recovery-sync.json').write_text(json.dumps({'bundle_sha256':'3833eb2698a889e5710bae30cf8bea20b033a7718c378c3467fff745c3f6bedd','changed_files':changed,'node':node,'from_start':True},indent=2)+'\n')
+print('CPU_RECOVERY_SYNC_OK',node,'gamma4','lambda1/10','FP32','from_start',flush=True)
+os.chdir(root);os.execv(sys.executable,[sys.executable,'-u',str(root/'node_agent.py'),node])

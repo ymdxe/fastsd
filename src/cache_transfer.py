@@ -35,10 +35,18 @@ class OverlapController:
     """
 
     def __init__(self, group_bytes, rate_bytes_per_second, idle_rate_bytes_per_second,
-                 *, clock=time.perf_counter):
+                 *, online_fraction=0.0, clock=time.perf_counter):
         self.group_bytes = int(group_bytes)
         self.rate = float(rate_bytes_per_second)
         self.idle_rate = float(idle_rate_bytes_per_second)
+        # Online mode: no calibration file, so compute-window DMA runs at a
+        # conservative fraction of the idle rate and disables itself when the
+        # measured forward time degrades.  0.0 keeps the old strict gate.
+        self.online_fraction = max(0.0, float(online_fraction))
+        self.online_rate = self.idle_rate * self.online_fraction
+        self.online_baselines = {}
+        self.online_violations = {}
+        self.online_paused = set()
         self.clock = clock
         self.profiles = {}
         self.context = None
@@ -99,7 +107,13 @@ class OverlapController:
             elif not computing:
                 state, reason, group, rate = "overlap", "gpu_idle", self.group_bytes, self.idle_rate
             elif profile is None:
-                state, reason, group, rate = "paused", "uncalibrated_context", 0, 0
+                if self.online_fraction > 0 and self.context not in self.online_paused:
+                    state, reason = "overlap", "online_conservative"
+                    group, rate = self.group_bytes, self.online_rate
+                elif self.context in self.online_paused:
+                    state, reason, group, rate = "paused", "online_disturbance_limit", 0, 0
+                else:
+                    state, reason, group, rate = "paused", "uncalibrated_context", 0, 0
             else:
                 state, reason = profile["state"], profile["reason"]
                 group, rate = profile["group_bytes"], profile["rate_bytes_per_second"]
@@ -117,7 +131,29 @@ class OverlapController:
 
     def observe(self, shape, milliseconds, *, speculative):
         with self.lock:
-            profile = self.profiles.get(_shape_key(shape))
+            key = _shape_key(shape)
+            profile = self.profiles.get(key)
+            if profile is None and self.online_fraction > 0:
+                # Online mode learns its own per-shape baseline and disables
+                # that shape once it repeatedly disturbs the forward.
+                baseline = self.online_baselines.get(key)
+                if not speculative:
+                    self.online_baselines[key] = (milliseconds if baseline is None
+                                                  else 0.8 * baseline + 0.2 * milliseconds)
+                    return
+                if baseline is None or key in self.online_paused:
+                    return
+                ratio = milliseconds / baseline - 1
+                violations = self.online_violations.get(key, 0) + 1 if ratio > .02 else 0
+                self.online_violations[key] = violations
+                if violations >= 6:
+                    self.online_paused.add(key)
+                    self._transition("paused", "online_disturbance_limit",
+                                     self.group_bytes, self.online_rate)
+                elif violations >= 3:
+                    # Back off globally: half the online rate, keep going.
+                    self.online_rate = max(self.group_bytes / 1000.0, self.online_rate / 2)
+                return
             if not speculative or profile is None or profile.get("baseline_ms") is None:
                 return
             ratio = milliseconds / profile["baseline_ms"] - 1
@@ -133,7 +169,10 @@ class OverlapController:
         with self.lock:
             return dict(state=self.state, reason=self.reason, context=self.context,
                         duration_s=self.clock() - self.changed_at,
-                        transitions=list(self.transitions), profiles=dict(self.profiles))
+                        transitions=list(self.transitions), profiles=dict(self.profiles),
+                        online_fraction=self.online_fraction,
+                        online_rate_bytes_per_second=self.online_rate,
+                        online_paused_shapes=sorted(self.online_paused))
 
 
 class _StorageLease:
@@ -266,9 +305,10 @@ class CacheTransferManager:
                  disturbance_budget=0.1, adaptive_fallback=False, record_timeline=False,
                  rate_bytes_per_second=64 * 1024 ** 2,
                  idle_rate_bytes_per_second=512 * 1024 ** 2,
-                 event_pool_size=256, warmup_pool=True):
-        if mode not in {"protect_forward", "overlap", "cpu_prepare"}:
-            raise ValueError("unknown KV prefetch mode")
+                 online_fraction=0.0,
+                 event_pool_size=256, warmup_pool=False):
+        if mode not in {"overlap", "cpu_prepare"}:
+            raise ValueError("unknown KV prefetch mode: " + str(mode))
         if (min(prefetch_bytes, headroom_bytes) < 0 or chunk_bytes <= 0
                 or min(rate_bytes_per_second, idle_rate_bytes_per_second) <= 0
                 or not all(math.isfinite(float(rate)) for rate in (
@@ -293,19 +333,43 @@ class CacheTransferManager:
         self.metrics = defaultdict(float)
         self.forward_baselines = {}
         self.controller = OverlapController(chunk_bytes, rate_bytes_per_second,
-                                            idle_rate_bytes_per_second)
+                                            idle_rate_bytes_per_second,
+                                            online_fraction=online_fraction)
         self.gpu_arena = None
         self.event_pool_size = int(event_pool_size)
         self._events = []
         self._cache_owners = {}
         self.calibration_context = None
         self.timeline = [] if record_timeline or DIAG.enabled else None
-        self.h2d_stream = torch.cuda.Stream(device=self.device) if self.enabled else None
-        self.prefetch_stream = torch.cuda.Stream(device=self.device) if self.enabled else None
-        self.d2h_stream = torch.cuda.Stream(device=self.device) if self.enabled else None
+        # Streams are created on first use so a BYPASS run allocates nothing.
+        self._h2d_stream = None
+        self._prefetch_stream = None
+        self._d2h_stream = None
         if DIAG.enabled and self.enabled: DIAG.gpu_init(torch, self.device)
         if self.enabled and warmup_pool:
             self.warmup_prefetch_pool()
+
+    def _stream(self, name):
+        """Return (and lazily create) one of the transfer streams."""
+
+        attribute = "_" + name
+        stream = getattr(self, attribute)
+        if stream is None and self.enabled:
+            stream = torch.cuda.Stream(device=self.device)
+            setattr(self, attribute, stream)
+        return stream
+
+    @property
+    def h2d_stream(self):
+        return self._stream("h2d_stream")
+
+    @property
+    def prefetch_stream(self):
+        return self._stream("prefetch_stream")
+
+    @property
+    def d2h_stream(self):
+        return self._stream("d2h_stream")
 
     def warmup_prefetch_pool(self):
         """Controlled maintenance only: no allocation or driver query in forward."""
@@ -468,10 +532,10 @@ class CacheTransferManager:
     @contextmanager
     def _speculation_slot(self, *, preparing=False):
         with self.gate:
+            # ``cpu_prepare`` never submits speculative GPU DMA; every other
+            # mode may overlap with an in-flight forward.
             allowed = (self.enabled and self.mode != "cpu_prepare"
-                       and not self.submitting
-                       and ((self.mode == "overlap")
-                            or (not self.admitted and not self.executing and self._gpu_idle())))
+                       and not self.submitting)
             if allowed:
                 self.submitting += 1
         try:

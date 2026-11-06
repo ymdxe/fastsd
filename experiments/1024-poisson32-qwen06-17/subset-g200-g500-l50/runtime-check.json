@@ -1,0 +1,18 @@
+{
+  "epoch": 1792825654.0883799,
+  "rates": [
+    50.0
+  ],
+  "gamma": [
+    200,
+    500
+  ],
+  "planned_runs": 6,
+  "active_run": "fastsd-g200-l50",
+  "completed": 10,
+  "workers_ready": 32,
+  "campaign_alive": true,
+  "target_alive": true,
+  "finish_monitor_alive": true,
+  "obsolete_handoff_alive": false
+}

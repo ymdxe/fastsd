@@ -1,0 +1,61 @@
+async def run(args, rendezvous):
+    from common import annotate, origin_monotonic
+    placement=json.loads((EXPERIMENT/f'{args.node}-worker-map.json').read_text())[args.worker]
+    bind_cpu(placement['cpu'],placement['numa'])
+    torch.set_num_threads(1);torch.set_num_interop_threads(1)
+    util.set_seed(int(config.seed))
+    started=time.monotonic()
+    model=util.load_graph_model(config.draft_model,config.device,config.dtype)
+    if model.device.type!='cpu' or {p.dtype for p in model.parameters()}!={torch.float16}:raise RuntimeError('Draft device/dtype')
+    engine=CPUEngine(model,int(config.max_len))
+    tokenizer=util.load_tokenizer(config.draft_model)
+    write_json(args.output/f'worker-{args.worker:02d}.json',{'pid':os.getpid(),'threads':torch.get_num_threads(),'affinity':sorted(os.sched_getaffinity(0)),'load_seconds':time.monotonic()-started})
+    rendezvous.barrier('model_ready')
+    with grpc.insecure_channel(config.host) as channel:
+        specedge_pb2_grpc.SpecEdgeServiceStub(channel).Sync(specedge_pb2.SyncRequest(),timeout=1800)
+    # NTP-style calibration supplies a shared epoch; it is not used for priority.
+    rendezvous.barrier('clock_acquire')
+    try:
+        probes=[]
+        for _ in range(5):
+            before=time.time_ns();r=rendezvous.call('health');after=time.time_ns()
+            probes.append((after-before,int(r['epoch']*1e9)-(before+after)//2))
+        uncertainty,offset=min(probes)
+        write_json(args.output/f'clock-{args.worker:02d}.json',{'clock_offset_ns':offset,'clock_uncertainty_ns':uncertainty//2})
+    finally:rendezvous.call('clock_release')
+    rendezvous.barrier('clock_done')
+    origin=origin_monotonic(offset)
+    samples=[json.loads(s) for s in (EXPERIMENT/'workloads'/f'lambda-{os.environ["EXP_RATE"]}.jsonl').read_text().splitlines() if s.strip()]
+    global_worker=int(os.environ['EXP_GLOBAL_WORKER'])
+    for sample in samples:
+        if sample['source_index']%32!=global_worker:continue
+        scheduled=sample['scheduled_arrival_s']
+        remaining=origin+scheduled-time.monotonic()
+        if remaining>0:await asyncio.sleep(remaining)
+        actual=time.monotonic()-origin
+        request_start=time.monotonic()
+        messages=[{'role':'user','content':sample['prompt']}]
+        prompt=tokenizer.apply_chat_template(messages,tokenize=False,add_generation_prompt=True,enable_thinking=False)
+        expected_ids=tokenizer.apply_chat_template(messages,tokenize=True,add_generation_prompt=True,enable_thinking=False)
+        if len(expected_ids)+int(config.max_new_tokens)+2*int(config.max_budget)+4>int(config.max_len):raise ValueError('Tree capacity')
+        client=SingleChainClient(engine=engine,tokenizer=tokenizer,prompt=prompt,max_len=int(config.max_len))
+        if client._prefix_tokens.reshape(-1).tolist()!=expected_ids:raise RuntimeError('Prompt parity')
+        try:
+            await client.generate_exact(int(sample['source_index']))
+            completed=time.monotonic()
+            ids=client._prefix_tokens[0,client._num_original_tokens:].tolist();tokens=len(ids)
+            if not tokens or tokens>int(config.max_new_tokens) or client.first_token_time is None:raise RuntimeError('Output cap/TTFT')
+            e2e=(completed-request_start)*1000;ttft=(client.first_token_time-request_start)*1000
+            accepted=sum(c['accepted_draft_tokens'] for c in client.cycles);drafted=sum(c['gamma'] for c in client.cycles)
+            row={'method':'specedge_cpu_adapted_single_chain','task_id':sample['sample_id'],'sample_id':sample['sample_id'],
+                 'global_sample_index':sample['source_index'],'proc_id':global_worker,'client_idx':int(config.client_idx),
+                 'generated_tokens':tokens,'max_new_tokens':int(config.max_new_tokens),'request_e2e_ms':e2e,'ttft_ms':ttft,
+                 'tpot_ms':(e2e-ttft)/(tokens-1) if tokens>1 else None,'first_draft_ms':client.first_draft_ms,
+                 'accepted_total':accepted,'drafted_total':drafted,'rounds':len(client.cycles),
+                 'accept_rate':accepted/drafted if drafted else None,'reuse_hit_rounds':sum(c['proactive_reused'] for c in client.cycles),
+                 'output_token_ids':ids,'output_text':tokenizer.decode(ids,skip_special_tokens=True),'reference':sample['answer'],
+                 'request_bytes':client._validator.request_bytes,'response_bytes':client._validator.response_bytes,'rpc_count':client._validator.rpc_count,
+                 'scheduled_arrival_s':scheduled,'actual_arrival_s':actual,'arrival_lag_ms':max(0,actual-scheduled)*1000,
+                 'completion_s':completed-origin}
+            append_json(args.output/f'edge_metrics_proc{global_worker}.jsonl',annotate(row))
+        finally:await client._validator.channel.close()

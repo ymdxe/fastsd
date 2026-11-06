@@ -1,0 +1,316 @@
+INFO:     Started server process [219238]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://10.66.0.3:18601 (Press CTRL+C to quit)
+INFO:     10.66.0.2:39164 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39164 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39164 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39164 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39164 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39164 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39164 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39164 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39164 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39164 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39164 - "GET /health HTTP/1.1" 200 OK
+[RANK 0] Detected kernel version 3.10.0, which is below the recommended minimum of 5.5.0; this can cause the process to hang. It is recommended to upgrade the kernel to the minimum version or higher.
+[93mLoading tokenizer of /mnt/nfs0/zhangh/models/Qwen3-1.7B...[0m
+[93mLoading target model: /mnt/nfs0/zhangh/models/Qwen3-1.7B[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:00<00:00,  1.40it/s]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:00<00:00,  2.70it/s]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:00<00:00,  2.37it/s]
+INFO:     10.66.0.2:39346 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39350 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39352 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39356 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39366 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39368 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39370 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39378 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39342 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39348 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39359 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39360 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39376 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39374 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39344 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39358 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39354 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39382 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39380 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39400 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39384 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39392 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39386 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39372 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39394 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39388 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39398 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39390 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39395 - "GET /health HTTP/1.1" 200 OK
+Initializing new session...Initializing new session...Initializing new session...
+Initializing new session...Initializing new session...Initializing new session...Initializing new session...
+Initializing new session...
+Initializing new session...Initializing new session...
+
+Initializing new session...
+Initializing new session...
+Initializing new session...
+Initializing new session...INFO:     10.66.0.2:39402 - "GET /health HTTP/1.1" 200 OK
+Initializing new session...
+
+Initializing new session...
+Initializing new session...Initializing new session...
+
+
+INFO:     10.66.0.2:39406 - "GET /health HTTP/1.1" 200 OK
+
+
+
+
+INFO:     10.66.0.2:39404 - "GET /health HTTP/1.1" 200 OK
+Initializing new session...
+Initializing new session...
+Initializing new session...Initializing new session...Initializing new session...Initializing new session...
+Initializing new session...
+
+Initializing new session...
+Initializing new session...Initializing new session...
+
+Initializing new session...
+INFO:     10.66.0.2:39352 - "POST /session/init HTTP/1.1" 200 OK
+
+
+INFO:     10.66.0.2:39342 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39366 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39344 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39356 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39368 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39360 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39348 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39370 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39376 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39346 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39358 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39374 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39354 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39380 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39392 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39359 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39378 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39350 - "POST /session/init HTTP/1.1" 200 OK
+Initializing new session...Initializing new session...Initializing new session...
+
+
+INFO:     10.66.0.2:39395 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39386 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39382 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39400 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39394 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39384 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39390 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39372 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39398 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39388 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39404 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39406 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39402 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39346 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39344 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39392 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39352 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39366 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39356 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39360 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39368 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39348 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39376 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39374 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39380 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39354 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39358 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39359 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39370 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39378 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39350 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39342 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39400 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39395 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39384 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39406 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39386 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39404 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39402 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39382 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39398 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39394 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39388 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39372 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39390 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39588 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39592 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39600 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39608 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39628 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39640 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39644 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39648 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39652 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39656 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39662 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39666 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39668 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39676 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39680 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39684 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39688 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39690 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39692 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39696 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39698 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39706 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39708 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39716 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39720 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39724 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39730 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39736 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39738 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39740 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39744 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39746 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39750 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39758 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39766 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39772 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39774 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39778 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39780 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39788 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39792 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39794 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39796 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39802 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39804 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39806 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39808 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39812 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39814 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39816 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39820 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39826 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39828 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39834 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39836 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39840 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39848 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39852 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39856 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39858 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39862 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39864 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39868 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39870 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39878 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39884 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39886 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39890 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39892 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39900 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39902 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39904 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39908 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39914 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39916 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39918 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39920 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39924 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39928 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39930 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39932 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39936 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39940 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39946 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39948 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39954 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39958 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39964 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39968 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39970 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39972 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39974 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39978 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39982 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39986 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39994 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:39996 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:40004 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:40010 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:40012 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:40016 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:40018 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:40024 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:40026 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:40028 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:40034 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:40036 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:40038 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:40040 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:40046 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:40048 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:40054 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:40060 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:40066 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:40070 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:40072 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:40078 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:40080 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:40094 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:40104 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:40112 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:40114 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:40116 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:40122 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:40146 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:40192 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:40218 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:40252 - "POST /verify HTTP/1.1" 200 OK
+INFO:     10.66.0.2:40296 - "POST /exit HTTP/1.1" 200 OK
+INFO:     Shutting down
+[93mprocess prefill tasks from: ['fe28adebd18a40eda8969419541081d6'][0m
+[93mprocess prefill tasks from: ['fd6089210e2d4217b659b49a77910430'][0m
+[93mprocess prefill tasks from: ['7285613ad5614c56bbab29e2973ec84b'][0m
+[93mprocess prefill tasks from: ['3c10a4720e0b4c11a47e891661ab0622'][0m
+[93mprocess prefill tasks from: ['7a2bd2e8aa3441b4992ff45cdf77cf42'][0m
+[93mprocess prefill tasks from: ['1cf4b3e895e84dffaa124fc157d7d956'][0m
+[93mprocess prefill tasks from: ['4bba083e2a5b44aca3b2ad3509a1c137'][0m
+[93mprocess prefill tasks from: ['4779fe65e7ec44daa78d6a24ea482a68'][0m
+[93mprocess prefill tasks from: ['1c2d2b99111c40b698fcf6bd34ecaf2b'][0m
+[93mprocess prefill tasks from: ['7cdd4be2ebd047e38b3900e475e80ae9'][0m
+[93mprocess prefill tasks from: ['e7c7a4b100264db5adf747ccf2062ca7'][0m
+[93mprocess prefill tasks from: ['e14e67a798f04336aa1bc5513abee319'][0m
+[93mprocess prefill tasks from: ['b25c47ec9cc6440b82862c919702f128'][0m
+[93mprocess prefill tasks from: ['280480a7cb53423a8c0aa3b286e50e85'][0m
+[93mprocess prefill tasks from: ['53c1c1801b274b17ab85a3e86c92e6d4'][0m
+[93mprocess prefill tasks from: ['4e7dd9f67ae9435e9c4ff1a096e806f0'][0m
+[93mprocess prefill tasks from: ['b082efbdad064345a0de1fb8d660fb1e'][0m
+[93mprocess prefill tasks from: ['108864e94bd642d999a13c79c167f6a8'][0m
+[93mprocess prefill tasks from: ['09c951267e184bed818e1f05e21d1578'][0m
+[93mprocess prefill tasks from: ['e7e550a71e054dcd866f3a92f53ac0c7'][0m
+[93mprocess prefill tasks from: ['2882c67b6c4e4d4bba1cc1684919bebc'][0m
+[93mprocess prefill tasks from: ['30cd1e7ad0a242b1ae629024b407fde4'][0m
+[93mprocess prefill tasks from: ['68d5d4b8faa6406288e0274fc80c29fe'][0m
+[93mprocess prefill tasks from: ['0892ab4ec6864472a707ada84544b818'][0m
+[93mprocess prefill tasks from: ['cc66a5d15de544d8b55eb88a621f75d3'][0m
+[93mprocess prefill tasks from: ['af05ffd2d7784478ba4e8c5d26f674e3'][0m
+[93mprocess prefill tasks from: ['66b11f6788684250bead646010f1ea11'][0m
+[93mprocess prefill tasks from: ['9119ca19ecf24a4993e4554f7a701754'][0m
+[93mprocess prefill tasks from: ['8f809f90b1ce4c19893f719c4ae0bcd5'][0m
+[93mprocess prefill tasks from: ['d38232442a04470fb1dcad5c82b151dc'][0m
+[93mprocess prefill tasks from: ['c0b46fc55fb44471aa6fa93666c02d66'][0m
+[93mprocess prefill tasks from: ['6075d5d8c84f47c88c6009ea57762bb2'][0m
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [219238]

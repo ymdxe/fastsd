@@ -79,8 +79,8 @@ def gpu_benchmark(iterations):
     host = dynamic_cache_from_views([(torch.ones((1, 2, 8192, 64), pin_memory=True),
                                      torch.zeros((1, 2, 8192, 64), pin_memory=True))])
     reference, results = None, {}
-    for mode in ('off', 'protect_forward', 'overlap'):
-        manager = CacheTransferManager('cuda:0', mode='protect_forward' if mode == 'off' else mode,
+    for mode in ('off', 'overlap'):
+        manager = CacheTransferManager('cuda:0', mode='cpu_prepare' if mode == 'off' else mode,
                                        chunk_bytes=256 * 1024, record_timeline=True)
         compute = torch.cuda.Stream()
         records, forward_intervals = [], []
@@ -153,8 +153,8 @@ def gpu_benchmark(iterations):
                       for a, b, direction, purpose in manager.timeline]
             overlap = sum(max(0, min(end, c['end_ms']) - max(start, c['start_ms']))
                           for start, end in forward_intervals for c in copies if c['purpose'] == 'prefetch')
-            if mode == 'protect_forward' and overlap > 0.001:
-                raise AssertionError(f'protect_forward DMA overlap: {overlap} ms')
+            if mode == 'off' and overlap > 0.001:
+                raise AssertionError(f'disabled prefetch still overlapped: {overlap} ms')
             results[mode] = {'records': records, 'forward': summary([r['forward_gpu_ms'] for r in records]),
                 'speculative_dma_forward_overlap_ms': overlap, 'forward_intervals_ms': forward_intervals,
                 'copy_intervals': copies, 'transfer_metrics': dict(manager.metrics), 'output_parity': True}

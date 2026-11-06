@@ -1,0 +1,55 @@
+{
+  "ok": true,
+  "epoch": 1792833805.6907144,
+  "validation": "Observed formal gamma4/lambda1 run; no model smoke",
+  "nodes": {
+    "node1": {
+      "models": 16,
+      "dtype": "torch.float32",
+      "threads_per_model": 2,
+      "distinct_cpus": 32,
+      "source_hashes_match_bundle": true
+    },
+    "node3": {
+      "models": 16,
+      "dtype": "torch.float32",
+      "threads_per_model": 4,
+      "distinct_cpus": 64,
+      "source_hashes_match_bundle": true
+    }
+  },
+  "target": {
+    "ready": true,
+    "pid": 3619875,
+    "epoch": 1792833728.6109126,
+    "model": "/mnt/nfs0/zhangh/models/Qwen3-1.7B",
+    "dtype": "torch.float32",
+    "physical_gpu": 1,
+    "gpu_name": "NVIDIA RTX A6000",
+    "memory_allocated_bytes": 6882300416,
+    "weight_offload": false
+  },
+  "progress": {
+    "status": "running",
+    "cell": {
+      "id": "fastsd-g4-l1",
+      "method": "fastsd",
+      "gamma": 4,
+      "rate": 1.0,
+      "cap": 1024,
+      "expected_requests": 1319
+    },
+    "completed": 3,
+    "expected": 1319,
+    "workers_ready": 32,
+    "clock_ready": 32,
+    "release_epoch": 1792833746.2622864,
+    "epoch": 1792833805.1232405
+  },
+  "observation": {
+    "verify_slices": 803,
+    "prefill_slices": 34,
+    "prefetch_async_moved": 713,
+    "prefetch_async_failed": 0
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "status": "failed",
+  "cell": {
+    "id": "fastsd-g20-l1-a2",
+    "method": "fastsd",
+    "gamma": 20,
+    "rate": 1.0,
+    "cap": 1024,
+    "expected_requests": 1319,
+    "retry_of": "fastsd-g20-l1"
+  },
+  "error": "RuntimeError('CPU worker failure: User requested only gamma200/500 at lambda50; preserve this partial gamma20/lambda1 run and stop it.')",
+  "traceback": "Traceback (most recent call last):\n  File \"/home/hdd3/zhangh/workspace/fastsd/experiments/1024-poisson32-qwen06-17/campaign.py\", line 181, in main\n    if cell is None:break\n  File \"/home/hdd3/zhangh/workspace/fastsd/experiments/1024-poisson32-qwen06-17/campaign.py\", line 126, in run\n    if state['abort']:raise RuntimeError('CPU worker failure: '+str(state['abort']))\nRuntimeError: CPU worker failure: User requested only gamma200/500 at lambda50; preserve this partial gamma20/lambda1 run and stop it.\n",
+  "epoch": 1792822662.7357018
+}

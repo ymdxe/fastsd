@@ -1,0 +1,51 @@
+{
+  "epoch": 1792833591.4433608,
+  "gpus": [
+    {
+      "index": 0,
+      "uuid": "GPU-341a3faf-c619-5dcd-4bc3-2019cb13e921",
+      "name": "NVIDIA RTX A6000",
+      "total_mib": 49140,
+      "used_mib": 31331,
+      "utilization_pct": 96,
+      "power_w": 298.57
+    },
+    {
+      "index": 1,
+      "uuid": "GPU-422501a2-5189-7f5b-5ce6-95464276b27f",
+      "name": "NVIDIA RTX A6000",
+      "total_mib": 49140,
+      "used_mib": 15,
+      "utilization_pct": 0,
+      "power_w": 16.97
+    },
+    {
+      "index": 2,
+      "uuid": "GPU-131d576e-3215-d317-dab1-4b1e4fbc0fca",
+      "name": "NVIDIA RTX A6000",
+      "total_mib": 49140,
+      "used_mib": 18,
+      "utilization_pct": 0,
+      "power_w": 30.62
+    },
+    {
+      "index": 3,
+      "uuid": "GPU-86c3cb6f-384f-586a-7ea1-49f21e6bd516",
+      "name": "NVIDIA RTX A6000",
+      "total_mib": 49140,
+      "used_mib": 27985,
+      "utilization_pct": 28,
+      "power_w": 225.09
+    }
+  ],
+  "selected_gpu": {
+    "index": 1,
+    "uuid": "GPU-422501a2-5189-7f5b-5ce6-95464276b27f",
+    "name": "NVIDIA RTX A6000",
+    "total_mib": 49140,
+    "used_mib": 15,
+    "utilization_pct": 0,
+    "power_w": 16.97
+  },
+  "disk_free_gib": 923.0359153747559
+}

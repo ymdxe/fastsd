@@ -1,0 +1,17 @@
+{
+  "state": "passed",
+  "started_epoch_s": 1793523586.121872,
+  "scope": "diagnostic_observation_only",
+  "formal_output_equivalence": false,
+  "gates": {
+    "cpu_contracts": true,
+    "trace_contracts": true,
+    "observer_contracts": true,
+    "gpu_event_transfer_probe": true
+  },
+  "diagnostic_launch_allowed": true,
+  "formal_launch_allowed": false,
+  "tests_run": 6,
+  "validated_content_sha256": "09a35f71d1b1d37992989b384f96453ba6ba2caad50b31467929992ed23ea39e",
+  "finished_epoch_s": 1793527797.5242531
+}

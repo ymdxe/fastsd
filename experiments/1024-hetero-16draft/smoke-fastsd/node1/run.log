@@ -1,0 +1,10 @@
+[RANK 0] Detected kernel version 3.10.0, which is below the recommended minimum of 5.5.0; this can cause the process to hang. It is recommended to upgrade the kernel to the minimum version or higher.
+[93mLoading tokenizer of /mnt/nfs0/zhangh/models/Qwen3-1.7B...[0m
+[93m[Edge 0] loading draft model on CPU[0m
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.92s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  2.03s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  2.31s/it]
+MODEL_READY node1-0
+[92m[Edge 0] task gsm8k-0000 reuse stats: hit=2 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 0] finished task gsm8k-0000, generated 4 tokens[0m
+[92m[Edge 0] task gsm8k-0000 output:
+Let's break down[0m
+[92m[METRICS] wrote summary: /home/zhangh/workspace/fastsd/experiments/1024-hetero-16draft/smoke-fastsd/node1/run/edge_metrics_summary.json[0m

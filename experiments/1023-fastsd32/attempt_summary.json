@@ -1,0 +1,16 @@
+{
+  "status": "partial_failure",
+  "completed_requests": 18,
+  "failed_requests": 14,
+  "exception_counts": {
+    "requests.exceptions.HTTPError: 422 Client Error: Unprocessable Entity for url: http://10.66.0.3:18601/verify": 4,
+    "RuntimeError: synchronized clocks produced a negative pull duration; retry clock calibration": 10,
+    "RuntimeError: 14 draft process(es) failed with exit codes [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]": 1
+  },
+  "launcher_status": {
+    "exit_status": 1,
+    "duration_seconds": 349.6200420130044,
+    "workers": 32
+  },
+  "note": "Native parent correctly reported exit 1 for 14 failed workers. 18 completed requests remain in the partial-run metrics."
+}

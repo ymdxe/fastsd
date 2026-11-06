@@ -1,0 +1,46 @@
+{
+  "checked_epoch": 1792805853.181983,
+  "cpu_nodes": {
+    "node1": {
+      "remaining_experiment_pids": [],
+      "tunnels_closed": {
+        "28624": true,
+        "28625": true
+      }
+    },
+    "node3": {
+      "remaining_experiment_pids": [],
+      "tunnels_closed": {
+        "28624": true,
+        "28625": true
+      }
+    }
+  },
+  "target_exits": {
+    "standard": {
+      "exit_status": 0,
+      "ended_epoch": 1792775374.918266
+    },
+    "fastsd": {
+      "exit_status": 0,
+      "ended_epoch": 1792779995.3423038
+    },
+    "specedge": {
+      "exit_status": 0,
+      "ended_epoch": 1792784437.1317863
+    }
+  },
+  "local_ports_closed": {
+    "18624": true,
+    "18625": true,
+    "18626": true
+  },
+  "gpu3": "memory.used [MiB], memory.total [MiB], utilization.gpu [%]\n15 MiB, 49140 MiB, 0 %\n",
+  "tmux_preserved": [
+    "6:0.0",
+    "6:0.1",
+    "6:0.2",
+    "8:0.0",
+    "8:0.1"
+  ]
+}

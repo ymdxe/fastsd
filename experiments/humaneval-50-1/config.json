@@ -1,0 +1,237 @@
+{
+  "source_sha": "ef6192d27c7de3c3da63c043ddfdf9b2702fd2bc",
+  "source_branch": "update-2",
+  "dataset": "per_stage",
+  "target_model": "/home/hdd/zhangh/models/Qwen3-8B",
+  "tokenizer_model": "/home/hdd/zhangh/models/Qwen3-8B",
+  "dtype": "bfloat16",
+  "tasks_per_worker": 50,
+  "max_tokens": 400,
+  "rate_per_worker": 0.05,
+  "batch_size": 16,
+  "token_budget": 512,
+  "seed": 1234,
+  "clock_uncertainty_limit_ms": 100,
+  "bind_host": "127.0.0.1",
+  "port": 19675,
+  "server_url": "http://127.0.0.1:29675",
+  "network": "Framed-v2 authenticated reverse TCP over IB, hub19677, HTTP19675/29675, gRPC19676/29676",
+  "gpu_python": "/home/hdd/zhangh/envs/specedge/bin/python",
+  "gpu_result_root": "/home/hdd3/zhangh/workspace/fastsd/exp/config1_p20_n50_20261031",
+  "cpu_result_root": "/home/zhangh/workspace/fastsd/exp/config1_p20_n50_20261031",
+  "gpu_memory_fraction": 0.85,
+  "gpu_selection": "wait_for_fixed_gpu_free_of_foreign_compute_processes; no automatic GPU substitution",
+  "nodes": {
+    "node1": {
+      "ssh": "cpunode1",
+      "workers": 8,
+      "threads": 8,
+      "gamma": 4,
+      "python": "/home/zhangh/miniconda3/envs/fastsd/bin/python",
+      "model": "/mnt/nfs0/zhangh/models/Qwen3-0.6B",
+      "ib_address": "10.66.0.3",
+      "interop_threads": 1,
+      "result_root": "/home/zhangh/workspace/fastsd/exp/config1_p20_n50_20261031",
+      "tokenizer_model": "/mnt/nfs0/zhangh/models/Qwen3-0.6B"
+    },
+    "node2": {
+      "ssh": "cpunode2",
+      "workers": 8,
+      "threads": 8,
+      "gamma": 4,
+      "python": "/home/zhangh/venvs/fastsd_cpu/bin/python",
+      "model": "/vol1/zhangh/models/Qwen3-0.6B-Base",
+      "ib_address": "10.66.0.1",
+      "exclude_cpus": [
+        22,
+        70
+      ],
+      "interop_threads": 1,
+      "result_root": "/home/zhangh/workspace/fastsd/exp/config1_p20_n50_20261031",
+      "tokenizer_model": "/vol1/zhangh/models/Qwen3-0.6B"
+    },
+    "node3": {
+      "ssh": "cpunode3",
+      "workers": 16,
+      "threads": 8,
+      "gamma": 8,
+      "python": "/home/zhangh/envs/fastsd_cpu_py314/bin/python314_glibc",
+      "model": "/mnt/nfs0/zhangh/models/Qwen3-0.6B",
+      "ib_address": "10.66.0.2",
+      "result_root": "/mnt/nvme2/zhangh/fastsd/exp/config1_p20_n50_20261031",
+      "interop_threads": 1,
+      "tokenizer_model": "/mnt/nfs0/zhangh/models/Qwen3-0.6B"
+    }
+  },
+  "grpc_port": 19676,
+  "specedge_server_url": "127.0.0.1:29676",
+  "target_physical_gpu": 1,
+  "gpu_uuid": "GPU-422501a2-5189-7f5b-5ce6-95464276b27f",
+  "methods": [
+    "target_only",
+    "sd",
+    "specedge",
+    "fastsd"
+  ],
+  "official_specedge_sha": "1edcaf02ffc41a7b57726450c5357ed216a3b9bc",
+  "specedge_max_len": 2048,
+  "request_timeout": 21600,
+  "tree_budget": 8,
+  "num_clients": 32,
+  "campaign_timeout_s": 1814400,
+  "stage_timeout_s": 86400,
+  "dataset_scope": "50 frozen samples per client; MT-Bench first turn only",
+  "specedge_variant": "specedge_cpu_adapted_single_chain_included_g8_g4_g4",
+  "gamma_semantics": {
+    "sd": "single linear chain, node3 gamma8 and node1/node2 gamma4",
+    "specedge": "single linear chain, node3 gamma8 and node1/node2 gamma4",
+    "fastsd": "single linear chain, node3 gamma8 and node1/node2 gamma4"
+  },
+  "runtime_fixes": {
+    "sd_fastsd": "Collect completed cache transfer tickets after every execution phase; serialized official poll_completed, nonblocking event checks; no algorithm/parameter/allocator-quota change",
+    "specedge": "Isolated client corrections: int64 ancestry path counts prevent BF16 acceptance errors; proactive KV compaction retains all accepted and proactive nodes. Official source pristine; model/KV/wire stay BF16."
+  },
+  "relay_lifetime_s": 1818000,
+  "gpu_start_free_mib": {
+    "target_only": 43008,
+    "sd": 43008,
+    "specedge": 43008,
+    "fastsd": 43008
+  },
+  "gpu_start_wait_timeout_s": 86400,
+  "lifecycle_note": "User authorized launch; 50 requests per Draft, Poisson mean20s; no separate smoke; no automatic retry",
+  "specedge_correctness_fix": "int64_path_count_proactive_kv_v1",
+  "datasets": [
+    "humaneval",
+    "gsm8k",
+    "mgsm",
+    "mt_bench"
+  ],
+  "max_context_length": 2048,
+  "eos_token_ids": [
+    151645,
+    151643
+  ],
+  "pad_token_id": 151643,
+  "relay_channel_port": 19677,
+  "idle_baseline_s": 60,
+  "resource_interval_s": 5,
+  "power_interval_s": 1,
+  "progress_interval_s": 30,
+  "input_mode": "frozen_target_token_ids",
+  "require_gpu_compute_idle": true,
+  "stages": [
+    {
+      "order": 1,
+      "condition_id": "c1-humaneval-target_only-p20-n50-r01",
+      "dataset": "humaneval",
+      "method": "target_only",
+      "requests": 1600
+    },
+    {
+      "order": 2,
+      "condition_id": "c1-humaneval-sd-p20-n50-r01",
+      "dataset": "humaneval",
+      "method": "sd",
+      "requests": 1600
+    },
+    {
+      "order": 3,
+      "condition_id": "c1-humaneval-specedge-p20-n50-r01",
+      "dataset": "humaneval",
+      "method": "specedge",
+      "requests": 1600
+    },
+    {
+      "order": 4,
+      "condition_id": "c1-humaneval-fastsd-p20-n50-r01",
+      "dataset": "humaneval",
+      "method": "fastsd",
+      "requests": 1600
+    },
+    {
+      "order": 5,
+      "condition_id": "c1-gsm8k-sd-p20-n50-r01",
+      "dataset": "gsm8k",
+      "method": "sd",
+      "requests": 1600
+    },
+    {
+      "order": 6,
+      "condition_id": "c1-gsm8k-specedge-p20-n50-r01",
+      "dataset": "gsm8k",
+      "method": "specedge",
+      "requests": 1600
+    },
+    {
+      "order": 7,
+      "condition_id": "c1-gsm8k-fastsd-p20-n50-r01",
+      "dataset": "gsm8k",
+      "method": "fastsd",
+      "requests": 1600
+    },
+    {
+      "order": 8,
+      "condition_id": "c1-gsm8k-target_only-p20-n50-r01",
+      "dataset": "gsm8k",
+      "method": "target_only",
+      "requests": 1600
+    },
+    {
+      "order": 9,
+      "condition_id": "c1-mgsm-specedge-p20-n50-r01",
+      "dataset": "mgsm",
+      "method": "specedge",
+      "requests": 1600
+    },
+    {
+      "order": 10,
+      "condition_id": "c1-mgsm-fastsd-p20-n50-r01",
+      "dataset": "mgsm",
+      "method": "fastsd",
+      "requests": 1600
+    },
+    {
+      "order": 11,
+      "condition_id": "c1-mgsm-target_only-p20-n50-r01",
+      "dataset": "mgsm",
+      "method": "target_only",
+      "requests": 1600
+    },
+    {
+      "order": 12,
+      "condition_id": "c1-mgsm-sd-p20-n50-r01",
+      "dataset": "mgsm",
+      "method": "sd",
+      "requests": 1600
+    },
+    {
+      "order": 13,
+      "condition_id": "c1-mt_bench-fastsd-p20-n50-r01",
+      "dataset": "mt_bench",
+      "method": "fastsd",
+      "requests": 1600
+    },
+    {
+      "order": 14,
+      "condition_id": "c1-mt_bench-target_only-p20-n50-r01",
+      "dataset": "mt_bench",
+      "method": "target_only",
+      "requests": 1600
+    },
+    {
+      "order": 15,
+      "condition_id": "c1-mt_bench-sd-p20-n50-r01",
+      "dataset": "mt_bench",
+      "method": "sd",
+      "requests": 1600
+    },
+    {
+      "order": 16,
+      "condition_id": "c1-mt_bench-specedge-p20-n50-r01",
+      "dataset": "mt_bench",
+      "method": "specedge",
+      "requests": 1600
+    }
+  ]
+}

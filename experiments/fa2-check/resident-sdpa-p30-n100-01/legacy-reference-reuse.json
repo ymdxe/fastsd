@@ -1,0 +1,32 @@
+{
+  "source_candidate": "p30-n100-01",
+  "source_content_digest": "b91a75c6614d5b96f3e5e37cfd50c85f45dc09239b1d6bb4cc404544e8e2bc91",
+  "source_evidence": "D:\\zhangh\\projects\\fastsd\\实验\\config1-humaneval-fa2-p30-n100-20261031\\launch\\evidence\\p30-n100-01",
+  "files": {
+    "greedy-legacy.jsonl": "23d6fa5264001e50ddce994947beb09d72f263e7ab74b4fcfea1914336c9e488",
+    "greedy-legacy-summary.json": "75fba29e49c8883ef4c97873481b8d284f4c40f75d1280c1d8843d7a8afceb32",
+    "greedy-comparison.json": "b18865c1275d96c60b777fa2533a88c520479fbfd48120268b40009f9b3f4731",
+    "gpu-summary.json": "360a57db3d4f22ec665d6ec48e330eb28dc29dec55de1d575b9ca22814aa2594",
+    "dependency-runtime.json": "75a0cb492241472ceb48524184f7389e0fdfeb4be8e0053a776a596f02f1a0b7"
+  },
+  "generation_config": {
+    "source_sha": "ef6192d27c7de3c3da63c043ddfdf9b2702fd2bc",
+    "target_model": "/home/hdd/zhangh/models/Qwen3-8B",
+    "tokenizer_model": "/home/hdd/zhangh/models/Qwen3-8B",
+    "dtype": "bfloat16",
+    "max_tokens": 400,
+    "batch_size": 16,
+    "token_budget": 512,
+    "seed": 1234,
+    "max_context_length": 2048,
+    "eos_token_ids": [
+      151645,
+      151643
+    ],
+    "pad_token_id": 151643,
+    "gpu_python": "/home/hdd/zhangh/envs/fastsd_fa2_283_py314_20261031/bin/python",
+    "gpu_uuid": "GPU-422501a2-5189-7f5b-5ce6-95464276b27f"
+  },
+  "validation_input_sha256": "b8be28baf907a2160c4fa9c8cee518a3e0814813ed04af37884012c97350e4e3",
+  "note": "Legacy outputs are reused evidence from the completed independent legacy run; selected resident-SDPA will be rerun and compared without tolerance relaxation."
+}

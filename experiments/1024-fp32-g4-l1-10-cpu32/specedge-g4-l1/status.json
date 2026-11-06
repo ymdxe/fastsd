@@ -1,0 +1,14 @@
+{
+  "status": "failed",
+  "cell": {
+    "id": "specedge-g4-l1",
+    "method": "specedge",
+    "gamma": 4,
+    "rate": 1.0,
+    "cap": 1024,
+    "expected_requests": 1319
+  },
+  "error": "RuntimeError('GPU collision with other processes [2480101]')",
+  "traceback": "Traceback (most recent call last):\n  File \"/home/hdd3/zhangh/workspace/fastsd/experiments/1024-fp32-g4-l1-10-cpu32/campaign.py\", line 188, in main\n    run(cell,n,handle)\n  File \"/home/hdd3/zhangh/workspace/fastsd/experiments/1024-fp32-g4-l1-10-cpu32/campaign.py\", line 133, in run\n    if foreign:raise RuntimeError('GPU collision with other processes '+str(foreign))\nRuntimeError: GPU collision with other processes [2480101]\n",
+  "epoch": 1792914125.5400367
+}

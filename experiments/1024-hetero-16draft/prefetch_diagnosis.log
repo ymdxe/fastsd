@@ -1,0 +1,71 @@
+{
+  "current_source_matches_archive": true,
+  "cases": [
+    {
+      "name": "one_gamma100",
+      "current_count": 1,
+      "prefetch_targets": []
+    },
+    {
+      "name": "eight_gamma20",
+      "current_count": 8,
+      "prefetch_targets": []
+    },
+    {
+      "name": "four_gamma100_four_gamma20",
+      "current_count": 8,
+      "prefetch_targets": []
+    },
+    {
+      "name": "eight_gamma100_backlog",
+      "current_count": 6,
+      "prefetch_targets": [
+        "worker-6",
+        "worker-7"
+      ]
+    },
+    {
+      "name": "all_sixteen_backlog",
+      "current_count": 6,
+      "prefetch_targets": [
+        "worker-10",
+        "worker-11",
+        "worker-12",
+        "worker-13",
+        "worker-6",
+        "worker-7",
+        "worker-8",
+        "worker-9"
+      ]
+    }
+  ],
+  "ingress_visibility": {
+    "ingress_size": 1,
+    "submitted_before_ingress_drain": 0,
+    "targets_if_admitted_while_current_plan_reserved": [
+      "arrived_during_compute"
+    ],
+    "targets_after_next_current_plan_reservation": []
+  },
+  "finished_queue_reproduction": {
+    "queue_entries_after_three_empty_iterations": 1,
+    "prefetch_plans": 3,
+    "submitted": 0
+  },
+  "observed_rpc_evidence": {
+    "formal_verify_rpcs": 362,
+    "estimated_compute_batches": 297,
+    "estimated_batch_size_counts": {
+      "5": 1,
+      "4": 2,
+      "1": 247,
+      "2": 39,
+      "3": 8
+    },
+    "estimated_largest_batch": 5,
+    "peak_outstanding_verify_rpcs": 6,
+    "mean_compute_s": 4.875440830025226,
+    "mean_http_s": 6.42899080207417,
+    "note": "Batch grouping uses equal reported verify_ms plus corrected epoch finish times within 200ms. In-flight HTTP counts include execution, ingress waiting and transport; they are not scheduler-queue lengths."
+  }
+}

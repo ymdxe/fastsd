@@ -1,0 +1,14 @@
+{
+  "status": "failed",
+  "cell": {
+    "id": "fastsd-g4-l1",
+    "method": "fastsd",
+    "gamma": 4,
+    "rate": 1.0,
+    "cap": 1024,
+    "expected_requests": 1319
+  },
+  "error": "RuntimeError(\"CPU worker failure: RuntimeError('Worker failure [None, None, None, None, None, None, None, None, 1, None, None, None, None, None, None, None]')\")",
+  "traceback": "Traceback (most recent call last):\n  File \"/home/hdd3/zhangh/workspace/fastsd/experiments/1024-fp32-g4-l1-10-cpu32/campaign.py\", line 188, in main\n    run(cell,n,handle)\n  File \"/home/hdd3/zhangh/workspace/fastsd/experiments/1024-fp32-g4-l1-10-cpu32/campaign.py\", line 126, in run\n    if state['abort']:raise RuntimeError('CPU worker failure: '+str(state['abort']))\nRuntimeError: CPU worker failure: RuntimeError('Worker failure [None, None, None, None, None, None, None, None, 1, None, None, None, None, None, None, None]')\n",
+  "epoch": 1792834501.4189785
+}

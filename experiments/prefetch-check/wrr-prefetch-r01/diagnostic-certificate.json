@@ -1,0 +1,17 @@
+{
+  "scope": "paper_wrr_prefetch_repair",
+  "formal_output_equivalence": false,
+  "passed": true,
+  "gates": {
+    "cpu_contracts": true,
+    "trace_contracts": true,
+    "observer_contracts": true,
+    "gpu_event_transfer_probe": true,
+    "real_model_prefetch_overlap": true
+  },
+  "validated_content_sha256": "07c312e74e03d8f967175f40037d42fff60e7148d3468b194703875e92136894",
+  "parent_bundle_id": "fe53e7fc60996685d9b0b48a49d6cb6a9bb3b5fe944e4e789f3132ad5e2e9ff2",
+  "cpu_evidence_sha256": "542333cfc4128bfd6e33564b8f79c83097eda07a286883dce04891e9d1324e4f",
+  "gpu_evidence_sha256": "4a267a7d63bb181c396bb8610bf3733b5b8a34d28a1464fac3e7b20e7abaccd1",
+  "created_epoch_s": 1793537483.6928616
+}

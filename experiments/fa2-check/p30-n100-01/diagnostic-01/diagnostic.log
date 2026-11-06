@@ -1,0 +1,8 @@
+{"state": "waiting_for_fixed_gpu"}
+{"state": "loading_model"}
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading checkpoint shards:   0%|          | 0/5 [00:00<?, ?it/s]Loading checkpoint shards:  20%|██        | 1/5 [00:00<00:02,  1.67it/s]Loading checkpoint shards:  40%|████      | 2/5 [00:01<00:01,  1.66it/s]Loading checkpoint shards:  60%|██████    | 3/5 [00:01<00:01,  1.64it/s]Loading checkpoint shards:  80%|████████  | 4/5 [00:02<00:00,  1.78it/s]Loading checkpoint shards: 100%|██████████| 5/5 [00:02<00:00,  2.35it/s]Loading checkpoint shards: 100%|██████████| 5/5 [00:02<00:00,  2.00it/s]
+{"state": "replay", "source_id": "HumanEval/1", "same_argmax": true}
+{"state": "replay", "source_id": "HumanEval/39", "same_argmax": true}
+{"state": "replay", "source_id": "HumanEval/147", "same_argmax": false}
+{"state": "complete", "cases": 3, "formal_launch_allowed": false, "note": "Diagnostic only; no gate relaxation or change to frozen runtime. Replays use batch1; original full164 mismatch remains authoritative."}

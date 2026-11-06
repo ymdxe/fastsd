@@ -1,0 +1,38 @@
+{
+  "run": "standard-g4-l1",
+  "node": "node1",
+  "epoch": 1792870329.1738584,
+  "exit_codes": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "finished": true,
+  "failed": false,
+  "completed": 663,
+  "ready": 16,
+  "loadavg": [
+    2.17,
+    7.67,
+    16.65
+  ],
+  "clock_timing": {
+    "recalibrations": 2125,
+    "valid_pull_measurements": 43511,
+    "unreliable_pull_measurements": 0,
+    "upload_pre_admission_retries": 0
+  }
+}

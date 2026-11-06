@@ -1,0 +1,16 @@
+{
+  "uuid": "GPU-422501a2-5189-7f5b-5ce6-95464276b27f",
+  "memory": {
+    "total": 51527024640,
+    "used": 645201920,
+    "free": 50881822720
+  },
+  "compute_processes": [],
+  "graphics_processes": [
+    {
+      "pid": 4008,
+      "used": 4677632
+    }
+  ],
+  "power_w": 16.825
+}

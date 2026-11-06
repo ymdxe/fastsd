@@ -1,0 +1,16 @@
+[
+  {
+    "node": "node3",
+    "task_id": "gsm8k-0003",
+    "first_different_token_index": 24,
+    "standard_tokens": 152,
+    "candidate_tokens": 143,
+    "standard_source": "/home/hdd3/zhangh/workspace/fastsd/experiments/1024-hetero-16draft/standard/node3/run/edge_metrics_proc1.jsonl",
+    "candidate_source": "/home/hdd3/zhangh/workspace/fastsd/experiments/1024-hetero-16draft/specedge/node3/run/edge_metrics_proc1.jsonl",
+    "standard_text": "James runs:\n\n- **3 sprints per session**\n- **Each sprint is 60 meters**\n- **He does this 3 times a week**\n\n### Step 1: Calculate meters per session\n$$\n3 \\text{ sprints} \\times 60 \\text{ meters per sprint} = 180 \\text{ meters per session}\n$$\n\n### Step 2: Multiply by the number of sessions per week\n$$\n180 \\text{ meters per session} \\times 3 \\text{ sessions per week} = 540 \\text{ meters per week}\n$$\n\n### ✅ Final Answer:\n$$\n\\boxed{540} \\text{ meters per week}\n$$",
+    "specedge_text": "James runs:\n\n- **3 sprints per session**\n- **Each sprint is 60 meters**\n- **He runs 3 times a week**\n\n### Step 1: Calculate meters per session\n$$\n3 \\text{ sprints} \\times 60 \\text{ meters per sprint} = 180 \\text{ meters per session}\n$$\n\n### Step 2: Calculate total meters per week\n$$\n180 \\text{ meters per session} \\times 3 \\text{ sessions per week} = 540 \\text{ meters per week}\n$$\n\n### ✅ Final Answer:\n**James runs 540 meters a week.**",
+    "reference": "He sprints 3*3=<<3*3=9>>9 times\nSo he runs 9*60=<<9*60=540>>540 meters\n#### 540",
+    "root_cause": "not_established",
+    "manual_review": "gsm8k-0003: wording differs; both final answers are 540. This is not token-exact parity."
+  }
+]

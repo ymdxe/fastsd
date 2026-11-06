@@ -1,0 +1,9 @@
+{
+  "run": "fastsd-g200-l50",
+  "node": "node1",
+  "finished": true,
+  "failed": true,
+  "error": "RuntimeError('Controller aborted run')",
+  "traceback": "Traceback (most recent call last):\n  File \"/home/zhangh/workspace/fastsd/experiments/1024-poisson32-qwen06-17/node_agent.py\", line 139, in main\n    try:run(job)\n        ^^^^^^^^\n  File \"/home/zhangh/workspace/fastsd/experiments/1024-poisson32-qwen06-17/node_agent.py\", line 119, in run\n    if control('state',run=job['run']).get('abort'):raise RuntimeError('Controller aborted run')\n                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nRuntimeError: Controller aborted run\n",
+  "epoch": 1792827365.973857
+}

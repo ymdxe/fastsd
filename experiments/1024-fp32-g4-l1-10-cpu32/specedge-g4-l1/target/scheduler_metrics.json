@@ -1,0 +1,11 @@
+{
+  "batches": 91801,
+  "verify_requests": 100506,
+  "gamma_counts": {
+    "4": 100506
+  },
+  "client_states": 32,
+  "phase": "formal",
+  "token_budget": null,
+  "gpu_peak_memory_allocated_bytes": 13360571904
+}

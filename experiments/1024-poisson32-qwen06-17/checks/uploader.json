@@ -1,0 +1,7 @@
+{
+  "passed": true,
+  "explicit_run_without_parent_env": true,
+  "arrival_ttft_ms": 600.0,
+  "completion_epoch": 1050.0,
+  "harness_revision": 2
+}

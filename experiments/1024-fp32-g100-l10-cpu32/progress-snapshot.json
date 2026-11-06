@@ -1,0 +1,441 @@
+{
+  "epoch": 1792832729.0431755,
+  "state": {
+    "status": "running",
+    "cell": {
+      "id": "fastsd-g100-l10",
+      "method": "fastsd",
+      "gamma": 100,
+      "rate": 10.0,
+      "cap": 1024,
+      "expected_requests": 1319
+    },
+    "completed": 159,
+    "expected": 1319,
+    "workers_ready": 32,
+    "clock_ready": 32,
+    "release_epoch": 1792829211.2682168,
+    "epoch": 1792832727.7473044
+  },
+  "results": [
+    {
+      "id": "fastsd-g100-l10",
+      "method": "fastsd",
+      "gamma": 100,
+      "rate": 10.0,
+      "cap": 1024,
+      "expected_requests": 1319,
+      "completed_requests": 159,
+      "unique_samples": 159,
+      "output_tokens": 41284,
+      "status": "running",
+      "arrival_ttft_ms": {
+        "n": 159,
+        "mean": 1377259.5963964234,
+        "p50": 1306242.7999409032,
+        "p95": 3085863.6285592956,
+        "p99": 3329083.981263019
+      },
+      "service_ttft_ms": {
+        "n": 159,
+        "mean": 17928.02558573689,
+        "p50": 12977.774729020894,
+        "p95": 67857.79050439596,
+        "p99": 70202.91595371436
+      },
+      "tpot_ms": {
+        "n": 159,
+        "mean": 1702.1502153389752,
+        "p50": 1354.1269812337828,
+        "p95": 5074.006611616141,
+        "p99": 7556.593393960638
+      },
+      "arrival_request_e2e_ms": {
+        "n": 159,
+        "mean": 1822713.2361093226,
+        "p50": 1806103.7893111692,
+        "p95": 3402394.227468965,
+        "p99": 3475455.7466589883
+      },
+      "service_request_e2e_ms": {
+        "n": 159,
+        "mean": 463381.6652986362,
+        "p50": 329813.3771661669,
+        "p95": 1328092.777154827,
+        "p99": 2343764.91011403
+      },
+      "arrival_lag_ms": {
+        "n": 159,
+        "mean": 1359331.5708106866,
+        "p50": 1292664.4547389937,
+        "p95": 3072892.826887422,
+        "p99": 3315667.4194853622
+      },
+      "by_node": {
+        "node1": {
+          "arrival_ttft_ms": {
+            "n": 14,
+            "mean": 396270.1553752042,
+            "p50": 68504.18108118753,
+            "p95": 1611830.89425355,
+            "p99": 1776684.3452832869
+          },
+          "service_ttft_ms": {
+            "n": 14,
+            "mean": 68278.0610163297,
+            "p50": 68106.39375355095,
+            "p95": 72946.80247176439,
+            "p99": 74347.14933205396
+          },
+          "tpot_ms": {
+            "n": 14,
+            "mean": 5732.706608259086,
+            "p50": 5415.673757621609,
+            "p95": 8518.582895867241,
+            "p99": 9622.951098762742
+          },
+          "arrival_lag_ms": {
+            "n": 14,
+            "mean": 327992.09435887454,
+            "p50": 0.8475263376533926,
+            "p95": 1541085.073008256,
+            "p99": 1707808.206428459
+          }
+        },
+        "node3": {
+          "arrival_ttft_ms": {
+            "n": 145,
+            "mean": 1471975.8182881274,
+            "p50": 1450158.87076018,
+            "p95": 3119833.2678810162,
+            "p99": 3333190.681624103
+          },
+          "service_ttft_ms": {
+            "n": 145,
+            "mean": 13066.642854507241,
+            "p50": 12944.89551289007,
+            "p95": 14133.11628019437,
+            "p99": 14489.521951619536
+          },
+          "tpot_ms": {
+            "n": 145,
+            "mean": 1312.9930463673784,
+            "p50": 1334.5879827526041,
+            "p95": 2163.5471876893907,
+            "p99": 2460.210221568398
+          },
+          "arrival_lag_ms": {
+            "n": 145,
+            "mean": 1458909.17543362,
+            "p50": 1437346.5599001534,
+            "p95": 3107019.120889942,
+            "p99": 3319832.155523605
+          }
+        }
+      },
+      "scheduler": {
+        "iterations": 4579,
+        "used_tokens": 466368,
+        "plans": 4578,
+        "verify_slices": 4484,
+        "prefill_slices": 197,
+        "partial_verify": 0,
+        "partial_prefill": 7,
+        "prefetch_plans": 5446,
+        "prefetch_hits": 65,
+        "prefetch_misses": 828,
+        "prefetch_evictions": 0,
+        "prefetch_reserved_excluded": 0,
+        "prefetch_empty_desired": 4622,
+        "prefetch_no_verify_candidates": 192,
+        "prefetch_desired_unchanged": 3903,
+        "prefetch_intent_inflight": 6,
+        "prefetch_retry": 0,
+        "prefetch_retry_throttled": 0,
+        "prefetch_noop": 0,
+        "prefetch_async_submitted": 808,
+        "prefetch_async_dropped": 0,
+        "prefetch_async_completed": 806,
+        "prefetch_async_moved": 688,
+        "prefetch_async_failed": 0,
+        "prefetch_async_skipped_stale": 116,
+        "prefetch_async_superseded": 14,
+        "prefetch_async_missing_cache": 0,
+        "prefetch_pending_underflow": 0,
+        "prefetch_async_last_error": null,
+        "finished_work_items_removed": 4674,
+        "empty_plans": 3805,
+        "empty_plans_with_live_work": 0,
+        "idle_waits": 3805,
+        "incoming_during_forward": 863,
+        "shutdown_inflight_timeout": 0,
+        "shutdown_drained_plans": 0,
+        "shutdown_terminated_work_items": 0,
+        "timing_updates": 0,
+        "timing_ready_prefill_forwards": 197,
+        "prefill_cancels": 0,
+        "prefill_cancels_deferred": 0
+      },
+      "kv": {
+        "async_move_calls": 818,
+        "async_move_bytes": 38948732928,
+        "async_move_host_wall_ms": {
+          "n": 818,
+          "mean": 26.187041047436793,
+          "p50": 24.884508457034826,
+          "p95": 42.6269069314003,
+          "p99": 56.08793845400228
+        },
+        "verify_demand_requests": 4493,
+        "verify_prefetch_hits": 688,
+        "verify_prefetch_hit_rate": 0.15312708657912308
+      }
+    },
+    {
+      "id": "standard-g100-l10",
+      "method": "standard",
+      "gamma": 100,
+      "rate": 10.0,
+      "cap": 1024,
+      "expected_requests": 1319,
+      "completed_requests": 0,
+      "unique_samples": 0,
+      "output_tokens": 0,
+      "status": "pending",
+      "arrival_ttft_ms": {
+        "n": 0,
+        "mean": null,
+        "p50": null,
+        "p95": null,
+        "p99": null
+      },
+      "service_ttft_ms": {
+        "n": 0,
+        "mean": null,
+        "p50": null,
+        "p95": null,
+        "p99": null
+      },
+      "tpot_ms": {
+        "n": 0,
+        "mean": null,
+        "p50": null,
+        "p95": null,
+        "p99": null
+      },
+      "arrival_request_e2e_ms": {
+        "n": 0,
+        "mean": null,
+        "p50": null,
+        "p95": null,
+        "p99": null
+      },
+      "service_request_e2e_ms": {
+        "n": 0,
+        "mean": null,
+        "p50": null,
+        "p95": null,
+        "p99": null
+      },
+      "arrival_lag_ms": {
+        "n": 0,
+        "mean": null,
+        "p50": null,
+        "p95": null,
+        "p99": null
+      },
+      "by_node": {
+        "node1": {
+          "arrival_ttft_ms": {
+            "n": 0,
+            "mean": null,
+            "p50": null,
+            "p95": null,
+            "p99": null
+          },
+          "service_ttft_ms": {
+            "n": 0,
+            "mean": null,
+            "p50": null,
+            "p95": null,
+            "p99": null
+          },
+          "tpot_ms": {
+            "n": 0,
+            "mean": null,
+            "p50": null,
+            "p95": null,
+            "p99": null
+          },
+          "arrival_lag_ms": {
+            "n": 0,
+            "mean": null,
+            "p50": null,
+            "p95": null,
+            "p99": null
+          }
+        },
+        "node3": {
+          "arrival_ttft_ms": {
+            "n": 0,
+            "mean": null,
+            "p50": null,
+            "p95": null,
+            "p99": null
+          },
+          "service_ttft_ms": {
+            "n": 0,
+            "mean": null,
+            "p50": null,
+            "p95": null,
+            "p99": null
+          },
+          "tpot_ms": {
+            "n": 0,
+            "mean": null,
+            "p50": null,
+            "p95": null,
+            "p99": null
+          },
+          "arrival_lag_ms": {
+            "n": 0,
+            "mean": null,
+            "p50": null,
+            "p95": null,
+            "p99": null
+          }
+        }
+      }
+    },
+    {
+      "id": "specedge-g100-l10",
+      "method": "specedge",
+      "gamma": 100,
+      "rate": 10.0,
+      "cap": 1024,
+      "expected_requests": 1319,
+      "completed_requests": 0,
+      "unique_samples": 0,
+      "output_tokens": 0,
+      "status": "pending",
+      "arrival_ttft_ms": {
+        "n": 0,
+        "mean": null,
+        "p50": null,
+        "p95": null,
+        "p99": null
+      },
+      "service_ttft_ms": {
+        "n": 0,
+        "mean": null,
+        "p50": null,
+        "p95": null,
+        "p99": null
+      },
+      "tpot_ms": {
+        "n": 0,
+        "mean": null,
+        "p50": null,
+        "p95": null,
+        "p99": null
+      },
+      "arrival_request_e2e_ms": {
+        "n": 0,
+        "mean": null,
+        "p50": null,
+        "p95": null,
+        "p99": null
+      },
+      "service_request_e2e_ms": {
+        "n": 0,
+        "mean": null,
+        "p50": null,
+        "p95": null,
+        "p99": null
+      },
+      "arrival_lag_ms": {
+        "n": 0,
+        "mean": null,
+        "p50": null,
+        "p95": null,
+        "p99": null
+      },
+      "by_node": {
+        "node1": {
+          "arrival_ttft_ms": {
+            "n": 0,
+            "mean": null,
+            "p50": null,
+            "p95": null,
+            "p99": null
+          },
+          "service_ttft_ms": {
+            "n": 0,
+            "mean": null,
+            "p50": null,
+            "p95": null,
+            "p99": null
+          },
+          "tpot_ms": {
+            "n": 0,
+            "mean": null,
+            "p50": null,
+            "p95": null,
+            "p99": null
+          },
+          "arrival_lag_ms": {
+            "n": 0,
+            "mean": null,
+            "p50": null,
+            "p95": null,
+            "p99": null
+          }
+        },
+        "node3": {
+          "arrival_ttft_ms": {
+            "n": 0,
+            "mean": null,
+            "p50": null,
+            "p95": null,
+            "p99": null
+          },
+          "service_ttft_ms": {
+            "n": 0,
+            "mean": null,
+            "p50": null,
+            "p95": null,
+            "p99": null
+          },
+          "tpot_ms": {
+            "n": 0,
+            "mean": null,
+            "p50": null,
+            "p95": null,
+            "p99": null
+          },
+          "arrival_lag_ms": {
+            "n": 0,
+            "mean": null,
+            "p50": null,
+            "p95": null,
+            "p99": null
+          }
+        }
+      }
+    }
+  ],
+  "partial_energy": {
+    "partial": true,
+    "measurement": "physical GPU1 board power; model loading excluded; run still active",
+    "start_epoch": 1792829211.2682168,
+    "last_sample_epoch": 1792832728.8620784,
+    "duration_s": 3517.593861579895,
+    "covered_s": 3517.593861579895,
+    "energy_j": 300407.71245696995,
+    "energy_Wh": 83.44658679360276,
+    "mean_power_w": 85.40147733884338,
+    "mean_gpu_utilization_pct": 6.047548291233284,
+    "current_memory_GiB": 21.9603271484375,
+    "current_power_w": 87.024
+  }
+}

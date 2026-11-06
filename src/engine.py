@@ -19,6 +19,14 @@ from .kvcache_batching import KVCacheModel_batching
 from .kvcache_varlen import varlen_generate, supports_varlen_model, require_full_attention
 from .kvcache4RC import KVCacheModel as KVCache2Model
 from .cache_offload_policy import should_offload_target_cache
+from .cache_residency import (
+    CPU_RESIDENT,
+    EVICTION_PENDING,
+    GPU_RESIDENT,
+    PREFETCH_PENDING,
+    RESTORE_PENDING,
+    ResidencyManager,
+)
 from .session_lifecycle import SessionLifecycle
 from .cache_transfer import CacheTransferManager
 from .progress_control import AcceptanceProfile, BatchCostModel, GammaController, choose_gamma, draft_seconds_per_token
@@ -892,6 +900,7 @@ class Decoding(ABC):
         # The executor updates acceptance statistics while the control owner
         # may be planning a lookahead; the planner always reads a copy.
         accept_stats_lock = threading.Lock()
+        accept_stats_version = [0]
         committed_prefix_tokens = {}  # {proc_id: List[int]} for debug context display
         sampling_generators = {}  # session/proc id -> target-side rejection RNG
         gamma_control = self._gamma_controller()
@@ -900,6 +909,15 @@ class Decoding(ABC):
         batch_cost_lock = threading.RLock()
         length_classifier = TaskLengthClassifier()
         residency = CacheResidency()
+        # Explicit-budget placement policy.  budget_bytes == 0 keeps every
+        # cache on the GPU and never runs the transfer machinery at all.
+        residency_manager = ResidencyManager(
+            budget_bytes=int(getattr(self.args, "kv_residency_budget_mb", 0)) * 1024 ** 2,
+            high_ratio=float(getattr(self.args, "kv_residency_high_ratio", 0.90)),
+            low_ratio=float(getattr(self.args, "kv_residency_low_ratio", 0.75)),
+            headroom_bytes=int(float(getattr(self.args, "kv_headroom_mb", 512.0)) * 1024 ** 2),
+        )
+        plan_sequence = {"tick": 0}
         cache_lock = residency.lock
         preloaded_gpu_pids = residency.resident
         # pids whose cache is currently owned by the executing batch (forward +
@@ -926,6 +944,7 @@ class Decoding(ABC):
                 transfers.release_cache(owner=pid)
             if ticket is not None:
                 transfers.retire(ticket)
+            residency_manager.release(pid)
             with accept_stats_lock:
                 accept_stats.pop(pid, None)
             for store in (committed_prefix_tokens, sampling_generators, pending_prefill_timing):
@@ -942,7 +961,9 @@ class Decoding(ABC):
         )
 
         def flush_session_releases():
-            transfers.collect()
+            # BYPASS must not touch the transfer registry at all.
+            if residency_manager.active:
+                transfers.collect()
             lifecycle.sweep()
             scheduler_metrics["released_sessions"] = lifecycle.released
             scheduler_metrics["cache_sessions"] = len(kv_cache_manager._past_key_values)
@@ -1096,10 +1117,12 @@ class Decoding(ABC):
             adaptive_fallback=bool(getattr(self.args, "kv_overlap_auto_fallback", False)),
             rate_bytes_per_second=float(getattr(self.args, "kv_prefetch_rate_mb_s", 64)) * 1024 ** 2,
             idle_rate_bytes_per_second=float(getattr(self.args, "kv_prefetch_idle_rate_mb_s", 512)) * 1024 ** 2,
+            online_fraction=float(getattr(self.args, "kv_prefetch_online_fraction", 0.25)),
             event_pool_size=int(getattr(self.args, "kv_prefetch_event_pool_size", 256)),
+            warmup_pool=False,
         )
-        # Allocation and driver queries happen before either worker can forward.
-        transfers.warmup_prefetch_pool()
+        # The prefetch arena, pinned pool and copy streams are created only
+        # when the residency manager enters ACTIVE; BYPASS allocates nothing.
         calibration_path = getattr(self.args, "kv_prefetch_calibration", None)
         if calibration_path:
             gpu_uuid = (str(torch.cuda.get_device_properties(target_model.device).uuid)
@@ -1117,17 +1140,38 @@ class Decoding(ABC):
 
         def acquire_cache(req):
             pid = req["proc_id"]
+            if not residency_manager.enabled:
+                # Management off: the cache is always on the GPU.
+                with cache_lock:
+                    return kv_cache_manager._past_key_values[pid]
+            record = residency_manager.get(pid)
+            if record is None or record.state == GPU_RESIDENT:
+                # Resident fast path: one dict lookup, no ticket/event/lease.
+                residency_manager.note_used(pid, plan_sequence["tick"])
+                with cache_lock:
+                    return kv_cache_manager._past_key_values[pid]
             with cache_lock:
                 cache = kv_cache_manager._past_key_values[pid]
                 snapshot = residency.snapshot_locked(pid, cache)
                 ticket = req.pop("_cache_ticket", None)
+            record = residency_manager.get(pid)
             if ticket is not None and not ticket.matches(snapshot):
                 transfers.retire(ticket)
                 ticket = None
+            restored = record is not None and record.state != GPU_RESIDENT
             if ticket is None:
+                if record is not None and record.state == EVICTION_PENDING:
+                    # Planning must exclude these; never install a half-moved
+                    # cache into a forward.
+                    raise RuntimeError(f"session {pid!r} is being evicted")
                 ticket = transfers.submit_h2d(snapshot, purpose="demand")
-                if cache.to_legacy_cache() and cache.to_legacy_cache()[0][0].device != target_model.device:
-                    scheduler_metrics["prefetch_demand_miss"] = scheduler_metrics.get("prefetch_demand_miss", 0) + 1
+                if restored:
+                    scheduler_metrics["prefetch_demand_miss"] = (
+                        scheduler_metrics.get("prefetch_demand_miss", 0) + 1)
+            elif ticket.purpose == "prefetch":
+                residency_manager.counters["prefetch_claimed"] += 1
+            if record is not None and record.state in (CPU_RESIDENT, PREFETCH_PENDING):
+                residency_manager.transition(pid, RESTORE_PENDING)
             lease = transfers.bind_to_consumer(ticket, compute_stream=compute_stream)
             # Establish only this PID's dependency before any cache mutation.
             transfers.protect_source_write(lease.cache, producer_stream=compute_stream)
@@ -1135,16 +1179,24 @@ class Decoding(ABC):
             with cache_lock:
                 kv_cache_manager._past_key_values[pid] = lease.cache
                 transfers.retain_cache(lease.cache, owner=pid)
+            residency_manager.note_used(pid, plan_sequence["tick"])
+            if record is not None:
+                record.gpu_cache = lease.cache
+                if record.state in (RESTORE_PENDING,):
+                    residency_manager.transition(pid, GPU_RESIDENT)
+                    residency_manager.counters["restores"] += 1
             return lease.cache
 
         forward_measurements = []
         current_batch = []
 
+        measure_forward_gpu = bool(getattr(self.args, "measure_forward_gpu", False))
+
         def timed_forward(callback, *args, **kwargs):
             start = end = None
-            if compute_stream is not None:
-                # Host alignment gives plan-ready -> actual forward launch,
-                # including this batch's data wait. No unrelated copy waited.
+            if compute_stream is not None and measure_forward_gpu:
+                # Event timing requires a host/device rendezvous.  It is opt-in
+                # because the synchronize itself serializes the control loop.
                 compute_stream.synchronize()
                 start, end = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)
                 start.record(compute_stream)
@@ -1154,7 +1206,8 @@ class Decoding(ABC):
             for req in current_batch:
                 req["_batch_start_delay_ms"] = (launched - req.get("_plan_ready_at", launched)) * 1000.0
             spec_before = transfers.metrics["speculative_submitted_bytes"]
-            spec_active = transfers.speculative_inflight()
+            spec_active = (transfers.speculative_inflight()
+                           if residency_manager.active else False)
             result = callback(*args, **kwargs)
             if end is not None:
                 end.record(compute_stream)
@@ -1168,36 +1221,164 @@ class Decoding(ABC):
             DIAG.emit("forward_host_end", forward_id=diag_forward_id)
             return result
 
-        def cache_memory_pressure():
-            if target_model.device.type != "cuda":
+        residency_cache = {"bytes_per_token": 0}
+
+        def cache_bytes_per_token():
+            """O(1) size estimate, measured once from a live cache."""
+
+            if residency_cache["bytes_per_token"]:
+                return residency_cache["bytes_per_token"]
+            for cache in list(kv_cache_manager._past_key_values.values()):
+                try:
+                    length = int(cache.get_seq_length())
+                    legacy = cache.to_legacy_cache()
+                except Exception:
+                    continue
+                if legacy and length > 0:
+                    total = sum(t.numel() * t.element_size() for layer in legacy for t in layer)
+                    residency_cache["bytes_per_token"] = max(1, total // length)
+                    return residency_cache["bytes_per_token"]
+            return 0
+
+        def ensure_cache_management():
+            """One-time setup: seed live sessions, allocate the transfer pool.
+
+            Management is enabled by the budget, not by pressure, so this runs
+            on the first plan after start-up instead of on a high sample.
+            """
+
+            if not residency_manager.enabled:
                 return False
-            free, _ = torch.cuda.mem_get_info(target_model.device)
-            reserve = float(getattr(self.args, "kv_headroom_mb", 512.0)) * 1024 ** 2
-            return free < reserve
+            if not residency_manager.mark_started():
+                return False
+            per_token = cache_bytes_per_token()
+            for pid, cache in list(kv_cache_manager._past_key_values.items()):
+                try:
+                    length = int(cache.get_seq_length())
+                except Exception:
+                    continue
+                residency_manager.note_created(
+                    pid, valid_len=length, bytes_per_token=per_token,
+                    cache=cache, version=residency.version(pid),
+                    epoch=getattr(residency, "epochs", {}).get(pid, 0))
+            transfers.warmup_prefetch_pool()
+            prefetch_worker.start()
+            scheduler_metrics["kv_residency_activations"] = (
+                scheduler_metrics.get("kv_residency_activations", 0) + 1)
+            return True
+
+        def observe_memory():
+            """One budget sample per plan; never inside a per-request path."""
+
+            if not residency_manager.enabled:
+                return False
+            guard_free = None
+            if target_model.device.type == "cuda":
+                guard_free, _ = torch.cuda.mem_get_info(target_model.device)
+            return residency_manager.update_pressure(
+                residency_manager.used_bytes(), guard_free_bytes=guard_free)
 
         def finish_cache_phase(batch):
-            pressure = cache_memory_pressure()
+            if not residency_manager.active:
+                # Residency default: no events, no copies, no bookkeeping.
+                return
+            per_token = cache_bytes_per_token()
             for req in batch:
                 pid = req["proc_id"]
                 with cache_lock:
                     cache = kv_cache_manager._past_key_values[pid]
-                transfers.mark_computed(cache, producer_stream=compute_stream)
-                continuing = (not req.get("_prefill_final", True)
-                              if req["task_type"] == "prefill"
-                              else bool(req.get("_internal_chunk_nonfinal", False)))
-                offload = should_offload_target_cache(
-                    req["task_type"], pid=pid, pinned_gpu_pids=preloaded_gpu_pids,
-                    continuing=continuing, memory_pressure=pressure)
-                # Allocation and DMA submission are outside the registry lock.
-                moved = transfers.submit_d2h(cache).destination_cache if offload else cache
+                residency.bump_locked(pid)
+                try:
+                    length = int(cache.get_seq_length())
+                except Exception:
+                    length = 0
+                record = residency_manager.get(pid)
+                if record is None:
+                    residency_manager.note_created(
+                        pid, valid_len=length, bytes_per_token=per_token,
+                        cache=cache, version=residency.version(pid),
+                        epoch=getattr(residency, "epochs", {}).get(pid, 0))
+                else:
+                    residency_manager.note_mutated(
+                        pid, version=residency.version(pid), valid_len=length)
+                    record.gpu_cache = cache
+                    record.in_transfer = False
+                    if record.state == RESTORE_PENDING:
+                        residency_manager.transition(pid, GPU_RESIDENT)
+                if target_model.device.type == "cuda":
+                    preloaded_gpu_pids.add(pid)
+
+        def rebalance_cache_memory(batch_pids):
+            """Make room for this batch: pressure plus its own restores.
+
+            Runs at every batch boundary, with no sampling delay.  ``need`` is
+            the bytes this batch has to bring back from CPU, so a restore never
+            waits for the high watermark to be crossed first.
+            """
+
+            if not residency_manager.enabled:
+                return 0
+            restore_bytes = sum(
+                record.nbytes for record in (
+                    residency_manager.get(pid) for pid in batch_pids)
+                if record is not None and record.state != GPU_RESIDENT)
+            needed = residency_manager.deficit_bytes(restore_bytes)
+            if needed <= 0:
+                return 0
+            protected = set(batch_pids) | residency.protected_snapshot()
+            victims = residency_manager.select_victims(
+                needed, plan_sequence["tick"], exclude=protected)
+            evicted = 0
+            for pid in victims:
+                record = residency_manager.get(pid)
+                if record is None or record.state != GPU_RESIDENT:
+                    continue
+                if not should_offload_target_cache(
+                        "verify", pid=pid, memory_pressure=True, continuing=False):
+                    continue
+                with cache_lock:
+                    cache = kv_cache_manager._past_key_values.get(pid)
+                if cache is None:
+                    residency_manager.force_state(pid, CPU_RESIDENT)
+                    continue
+                try:
+                    residency_manager.transition(pid, EVICTION_PENDING)
+                except Exception:
+                    continue
+                try:
+                    # Record the producer event only when a copy actually
+                    # happens; a resident phase pays nothing.
+                    transfers.mark_computed(cache, producer_stream=compute_stream)
+                    ticket = transfers.submit_d2h(cache)
+                except BaseException as exc:
+                    # Staying over budget is recoverable; a half-moved cache
+                    # is not.  Restore the durable state and skip this victim.
+                    residency_manager.force_state(pid, GPU_RESIDENT)
+                    scheduler_metrics["kv_residency_eviction_errors"] = (
+                        scheduler_metrics.get("kv_residency_eviction_errors", 0) + 1)
+                    scheduler_metrics["kv_residency_last_error"] = str(exc)
+                    continue
+                moved = ticket.destination_cache
                 with cache_lock:
                     kv_cache_manager._past_key_values[pid] = moved
                     transfers.retain_cache(moved, owner=pid)
                     residency.bump_locked(pid)
-                    if offload:
-                        preloaded_gpu_pids.discard(pid)
-                    elif target_model.device.type == "cuda":
-                        preloaded_gpu_pids.add(pid)
+                record.cpu_cache = moved
+                record.gpu_cache = None
+                try:
+                    record.valid_len = int(moved.get_seq_length())
+                except Exception:
+                    pass
+                record.cpu_valid_len = record.valid_len
+                record.version = residency.version(pid)
+                residency_manager.transition(pid, CPU_RESIDENT)
+                preloaded_gpu_pids.discard(pid)
+                evicted += 1
+            if evicted:
+                residency_manager.counters["evictions"] += evicted
+                scheduler_metrics["kv_residency_evictions"] = (
+                    scheduler_metrics.get("kv_residency_evictions", 0) + evicted)
+            return evicted
 
         # --------------------- 批量处理（Prefill / Verify） ----------------
         def forward_shape(batch):
@@ -1218,12 +1399,16 @@ class Decoding(ABC):
             current_batch[:] = batch
             try:
                 started = time.perf_counter()
+                # Evict before touching this batch: victims are chosen outside
+                # the active/reserved set and never include a batch pid.
+                rebalance_cache_memory(proc_ids)
                 for req in batch:
                     with cache_lock:
                         existing = kv_cache_manager._past_key_values.get(req["proc_id"])
                         req["_cached_context"] = (int(existing.get_seq_length()) if existing is not None
                             and (req["task_type"] != "prefill" or req.get("_prefill_continuation", False)) else 0)
-                transfers.begin_execution(shape=forward_shape(batch))
+                if residency_manager.active:
+                    transfers.begin_execution(shape=forward_shape(batch))
                 with torch.cuda.stream(compute_stream) if compute_stream is not None else nullcontext():
                     result = _handle_request_batch_inner(batch, True, requested_kv_batch_mode, proc_ids)
                     stall = sum(lease.exposed_stall_ms() for lease in phase_leases)
@@ -1257,7 +1442,8 @@ class Decoding(ABC):
             finally:
                 for lease in phase_leases:
                     transfers.release_consumer(lease, compute_stream=compute_stream)
-                transfers.end_execution(compute_stream=compute_stream)
+                if residency_manager.active:
+                    transfers.end_execution(compute_stream=compute_stream)
                 residency.deactivate(proc_ids)
 
         def _handle_request_batch_inner(
@@ -1551,6 +1737,7 @@ class Decoding(ABC):
                 with accept_stats_lock:
                     accept_stats[pid][0] += accepted_len - prefix_len
                     accept_stats[pid][1] += req_gamma
+                    accept_stats_version[0] += 1
                 if pid in committed_prefix_tokens:
                     if tail_only:
                         req_tokens = x[0].tolist()
@@ -1789,32 +1976,50 @@ class Decoding(ABC):
             plan.ready_at = time.monotonic()
             plan._diag_id = DIAG.context.plan_id
             DIAG.emit("plan_built", plan_id=plan._diag_id, plan_kind=DIAG.context.plan_kind, duration_ms=value, queue_count=len(items), selected=plan.selected_work_ids, used_tokens=plan.used_tokens)
+            if diagnostic_kind != "lookahead":
+                # One budget sample per admitted plan, never per request.
+                ensure_cache_management()
+                observe_memory()
             return plan
 
         last_prediction = {"signature": None}
 
         def refresh_prefetch():
-            """Plan the complete projected next batch, then filter transfers."""
+            """Plan the projected next batch, but only while ACTIVE.
+
+            BYPASS must not build a lookahead plan, hash the queue or touch
+            the transfer registry: residency means there is nothing to move.
+            """
 
             if not prefetch_enabled or not getattr(self.args, "kv_prefetch", True):
                 return
+            if not residency_manager.enabled or residency_manager.cpu_resident_count() == 0:
+                # Nothing is offloaded, so there is nothing to prefetch.
+                return
             job = in_flight["job"]
+            # O(1) signature: queue version + acceptance version + plan tick.
             signature = (
-                scheduler_state["wrr_cursor"], scheduler_state["current_cycle"],
-                id(in_flight["plan"]), bool(job and job.verify_applied),
-                tuple((item.work_id, item.cursor, item.accepted_so_far,
-                       item.bridge_pending, item.finished, item.state,
-                       item.missed_cycles, id(item.request),
-                       bool(getattr(item, "cancel_pending", False)))
-                      for item in task_queues.iter_items()),
-                tuple(sorted(length_classifier.thresholds.items())),
-                tuple(sorted(accept_stats_snapshot().items(), key=lambda pair: str(pair[0]))),
+                task_queues.version,
+                accept_stats_version[0],
+                plan_sequence["tick"],
+                bool(job and job.verify_applied),
             )
             if signature == last_prediction["signature"]:
                 return
             lookahead = build_plan(projected_plan=in_flight["plan"], diagnostic_kind="lookahead")
             protected = residency.protected_snapshot()
-            safe_pids = [pid for pid in lookahead.verify_proc_ids if pid not in protected]
+            # Only a CPU-resident cache can be prefetched; issuing for a cache
+            # already on the GPU would mint an empty ticket every plan.
+            safe_pids = [
+                pid for pid in lookahead.verify_proc_ids
+                if pid not in protected
+                and residency_manager.state_of(pid) == CPU_RESIDENT
+            ]
+            on_gpu = sum(1 for pid in lookahead.verify_proc_ids
+                         if residency_manager.state_of(pid) == GPU_RESIDENT)
+            if on_gpu:
+                scheduler_metrics["prefetch_skipped_on_gpu"] = (
+                    scheduler_metrics.get("prefetch_skipped_on_gpu", 0) + on_gpu)
             DIAG.emit("prefetch_prediction", plan_id=getattr(lookahead, "_diag_id", None),
                       protected_proc_ids=sorted(protected), ordered_verify_pids=lookahead.verify_proc_ids,
                       transfer_proc_ids=safe_pids,
@@ -1823,7 +2028,11 @@ class Decoding(ABC):
                       policy=getattr(self.args, "scheduler_policy", "legacy"))
             if not lookahead.verify_proc_ids and not task_queues.has_live_task("verify"):
                 scheduler_metrics["prefetch_no_verify_candidates"] += 1
-            prefetch_coordinator.refresh(safe_pids)
+            # One intent covers this pid set; the worker decides how many
+            # tickets it can actually prepare.
+            if prefetch_coordinator.refresh(safe_pids):
+                scheduler_metrics["prefetch_intents_issued"] = (
+                    scheduler_metrics.get("prefetch_intents_issued", 0) + 1)
             last_prediction["signature"] = signature
             scheduler_metrics["prefetch_prediction_versions"] = scheduler_metrics.get("prefetch_prediction_versions", 0) + 1
 
@@ -1843,20 +2052,25 @@ class Decoding(ABC):
             ready_at = getattr(plan, "ready_at", time.monotonic())
             DIAG.emit("plan_submitted", plan_id=getattr(plan,"_diag_id",None), ready_at=ready_at, selected=[diag_req(r) for r in verify_batch+prefill_batch])
             reserve_admission_plan(plan)
-            transfers.admit()
+            plan_sequence["tick"] += 1
             tickets = {}
-            with cache_lock:
-                residency.reserve(reserved_pids)
+            if residency_manager.active:
+                transfers.admit()
+                with cache_lock:
+                    residency.reserve(reserved_pids)
+                    for req in verify_batch + prefill_batch:
+                        pid = req["proc_id"]
+                        req["_plan_ready_at"] = ready_at
+                        cache = kv_cache_manager._past_key_values.get(pid)
+                        if cache is not None:
+                            ticket = residency.claim_locked(pid, cache, id(plan))
+                            if ticket is not None:
+                                key = "prefetch_ready_hit" if ticket.ready() else "prefetch_pending_hit"
+                                scheduler_metrics[key] = scheduler_metrics.get(key, 0) + 1
+                                tickets[pid] = req["_cache_ticket"] = ticket
+            else:
                 for req in verify_batch + prefill_batch:
-                    pid = req["proc_id"]
                     req["_plan_ready_at"] = ready_at
-                    cache = kv_cache_manager._past_key_values.get(pid)
-                    if cache is not None:
-                        ticket = residency.claim_locked(pid, cache, id(plan))
-                        if ticket is not None:
-                            key = "prefetch_ready_hit" if ticket.ready() else "prefetch_pending_hit"
-                            scheduler_metrics[key] = scheduler_metrics.get(key, 0) + 1
-                            tickets[pid] = req["_cache_ticket"] = ticket
             job = _ExecutionJob(
                 plan=plan, item_by_id=item_by_id, verify_batch=verify_batch,
                 prefill_batch=prefill_batch, reserved_pids=reserved_pids,
@@ -1869,10 +2083,11 @@ class Decoding(ABC):
             except BaseException:
                 in_flight["plan"] = None
                 in_flight["job"] = None
-                residency.release(reserved_pids)
-                transfers.release_admission()
-                for ticket in tickets.values():
-                    transfers.retire(ticket)
+                if residency_manager.active:
+                    residency.release(reserved_pids)
+                    transfers.release_admission()
+                    for ticket in tickets.values():
+                        transfers.retire(ticket)
                 abort_admission_plan(plan)
                 raise
 
@@ -2063,9 +2278,10 @@ class Decoding(ABC):
                     in_flight["plan"] = None
                     in_flight["job"] = None
                     residency.release(job.reserved_pids)
-                    transfers.release_admission()
-                    for ticket in job.cache_tickets.values():
-                        transfers.retire(ticket)
+                    if residency_manager.active:
+                        transfers.release_admission()
+                        for ticket in job.cache_tickets.values():
+                            transfers.retire(ticket)
 
         # ---------------------- 主循环 -------------------------------
         sched_mode = getattr(self.args, "server_sched_mode", "fastsd")
@@ -2303,7 +2519,8 @@ class Decoding(ABC):
                 wake_event=wake_event,
             )
             executor.start()
-            prefetch_worker.start()
+            # The KV prefetch thread is started lazily by the residency
+            # manager, on the first BYPASS -> ACTIVE transition.
             runtime = TargetSchedulerRuntime(
                 executor=executor,
                 queues=task_queues,
@@ -2337,6 +2554,7 @@ class Decoding(ABC):
             flush_session_releases()
             transfers.close()
             scheduler_metrics["cache_transfers"] = dict(transfers.metrics)
+            scheduler_metrics["kv_residency"] = residency_manager.stats()
             scheduler_metrics["kv_overlap_controller"] = transfers.controller_status()
             scheduler_metrics["kv_prefetch_effective_mode"] = transfers.mode
             scheduler_metrics["batch_cost_profiles"] = {str(k): v for k, v in batch_cost.table.items()}

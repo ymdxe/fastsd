@@ -1,0 +1,35 @@
+{
+  "ok": true,
+  "epoch": 1792849830.749287,
+  "model_inference_smokes": 0,
+  "matrix_cells": 6,
+  "dataset_requests": 1319,
+  "total_requests": 7914,
+  "draft_dtype": "float32",
+  "target_dtype": "float32",
+  "tf32": false,
+  "cpu_allocation": {
+    "node1": {
+      "models": 16,
+      "threads_per_model": 2,
+      "physical_cores_used": 32,
+      "physical_cores_available": 40
+    },
+    "node3": {
+      "models": 16,
+      "threads_per_model": 4,
+      "physical_cores_used": 64,
+      "physical_cores_available": 96
+    }
+  },
+  "wire_mask_dtype": "float32",
+  "wire_roundtrip_exact": true,
+  "largest_grpc_body_bytes": 63614,
+  "prompt_parity_inherited_for_identical_tokenizers_and_workload": true,
+  "last_scheduled_arrival_s_by_rate": {
+    "1": 1297.8997972076475,
+    "10": 129.78997972076473
+  },
+  "specedge_single_chain": true,
+  "energy_integration_check": "600J for100W over6s"
+}

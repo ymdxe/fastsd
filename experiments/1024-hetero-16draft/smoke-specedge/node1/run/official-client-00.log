@@ -1,0 +1,27 @@
+2026-10-24T02:27:09.800+08:00 DEBUG   [selector_events.py:__init__:54] Using selector: EpollSelector
+2026-10-24T02:27:19.267+08:00 DEBUG   [specexec.py:__init__:27] Initializing SpecExecClient
+2026-10-24T02:27:19.279+08:00 DEBUG   [_channel.py:__init__:410] [_cygrpc] Loaded running loop: id(loop)=140168822214096
+2026-10-24T02:27:19.279+08:00 DEBUG   [_channel.py:__init__:411] Using AsyncIOEngine.POLLER as I/O engine
+2026-10-24T02:27:19.280+08:00 DEBUG   [_channel.py:__init__:411] [_cygrpc] Loaded running loop: id(loop)=140168822214096
+2026-10-24T02:27:19.281+08:00 DEBUG   [specexec.py:_grow_tree:168] Growing tree
+2026-10-24T02:27:19.281+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 0 / 2
+2026-10-24T02:27:19.281+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:27:35.012+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:27:35.023+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 1 / 2
+2026-10-24T02:27:35.023+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:27:35.412+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:27:35.413+08:00 DEBUG   [specexec.py:_grow_tree:221] Trimming tree
+2026-10-24T02:27:35.423+08:00 DEBUG   [specexec.py:_validate_tree:377] Validating tree
+2026-10-24T02:27:35.443+08:00 DEBUG   [_call.py:__init__:569] [_cygrpc] Loaded running loop: id(loop)=140168822214096
+2026-10-24T02:27:35.447+08:00 DEBUG   [proactive.py:_get_best_bonus_token_candidate:99] Getting best bonus token candidate...
+2026-10-24T02:27:35.893+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 1 / 2
+2026-10-24T02:27:36.318+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 2 / 2
+2026-10-24T02:27:45.985+08:00 DEBUG   [specexec.py:_validate_tree:475] Num of accepted tokens: 3
+2026-10-24T02:27:46.030+08:00 DEBUG   [specexec.py:_grow_tree:168] Growing tree
+2026-10-24T02:27:46.031+08:00 DEBUG   [specexec.py:_grow_tree:221] Trimming tree
+2026-10-24T02:27:46.040+08:00 DEBUG   [specexec.py:_validate_tree:377] Validating tree
+2026-10-24T02:27:46.041+08:00 DEBUG   [_call.py:__init__:569] [_cygrpc] Loaded running loop: id(loop)=140168822214096
+2026-10-24T02:27:46.042+08:00 DEBUG   [proactive.py:_get_best_bonus_token_candidate:99] Getting best bonus token candidate...
+2026-10-24T02:27:46.448+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 1 / 2
+2026-10-24T02:27:46.833+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 2 / 2
+2026-10-24T02:27:50.332+08:00 DEBUG   [specexec.py:_validate_tree:475] Num of accepted tokens: 3

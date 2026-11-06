@@ -1,0 +1,179 @@
+{
+  "ready": {
+    "node1-3": 1792823193.9613101,
+    "node1-15": 1792823193.962463,
+    "node1-7": 1792823193.9665546,
+    "node1-13": 1792823193.9671028,
+    "node1-9": 1792823193.9677608,
+    "node1-5": 1792823193.9686358,
+    "node1-1": 1792823193.9699972,
+    "node3-15": 1792823193.977774,
+    "node1-2": 1792823193.9796848,
+    "node1-12": 1792823193.9819448,
+    "node1-14": 1792823193.9833708,
+    "node1-11": 1792823193.9873316,
+    "node1-6": 1792823193.9883065,
+    "node1-0": 1792823193.9888868,
+    "node1-8": 1792823193.989506,
+    "node1-10": 1792823193.9903362,
+    "node1-4": 1792823193.9910283,
+    "node3-5": 1792823193.9918034,
+    "node3-12": 1792823194.0119526,
+    "node3-1": 1792823194.0266292,
+    "node3-4": 1792823194.0582933,
+    "node3-8": 1792823194.1037095,
+    "node3-3": 1792823194.1192367,
+    "node3-6": 1792823194.1282322,
+    "node3-11": 1792823194.13177,
+    "node3-0": 1792823194.1347885,
+    "node3-9": 1792823194.1496313,
+    "node3-7": 1792823194.1682985,
+    "node3-14": 1792823194.1919296,
+    "node3-10": 1792823194.193435,
+    "node3-13": 1792823194.2781947,
+    "node3-2": 1792823194.3162568
+  },
+  "clock": {
+    "node3-2": 1792823194.3751926,
+    "node3-9": 1792823194.4947448,
+    "node3-5": 1792823194.5280704,
+    "node3-8": 1792823194.5667963,
+    "node3-11": 1792823194.5983694,
+    "node1-3": 1792823194.6428149,
+    "node1-14": 1792823194.7193687,
+    "node3-1": 1792823194.7566702,
+    "node3-3": 1792823194.7974653,
+    "node1-15": 1792823194.850332,
+    "node3-15": 1792823194.8843935,
+    "node1-10": 1792823194.9368646,
+    "node3-0": 1792823195.0620341,
+    "node3-7": 1792823195.0955124,
+    "node1-6": 1792823195.1425145,
+    "node3-6": 1792823195.2191546,
+    "node1-13": 1792823195.275849,
+    "node3-12": 1792823195.3157094,
+    "node1-4": 1792823195.3477418,
+    "node1-7": 1792823195.4784567,
+    "node3-14": 1792823195.5799584,
+    "node1-9": 1792823195.695324,
+    "node3-13": 1792823195.8107297,
+    "node1-2": 1792823195.897668,
+    "node3-4": 1792823196.038187,
+    "node1-5": 1792823196.1238072,
+    "node1-1": 1792823196.3457804,
+    "node1-12": 1792823196.539978,
+    "node1-8": 1792823196.771618,
+    "node1-11": 1792823196.9707415,
+    "node1-0": 1792823197.1726606,
+    "node3-10": 1792823197.4176047
+  },
+  "done": {
+    "node3": {
+      "run": "fastsd-g200-l50",
+      "node": "node3",
+      "finished": true,
+      "failed": true,
+      "error": "RuntimeError('Controller aborted run')",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/zhangh/workspace/fastsd/experiments/1024-poisson32-qwen06-17/node_agent.py\", line 139, in main\n    try:run(job)\n  File \"/home/zhangh/workspace/fastsd/experiments/1024-poisson32-qwen06-17/node_agent.py\", line 119, in run\n    if control('state',run=job['run']).get('abort'):raise RuntimeError('Controller aborted run')\nRuntimeError: Controller aborted run\n",
+      "epoch": 1792827358.811017
+    },
+    "node1": {
+      "run": "fastsd-g200-l50",
+      "node": "node1",
+      "finished": true,
+      "failed": true,
+      "error": "RuntimeError('Controller aborted run')",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/zhangh/workspace/fastsd/experiments/1024-poisson32-qwen06-17/node_agent.py\", line 139, in main\n    try:run(job)\n        ^^^^^^^^\n  File \"/home/zhangh/workspace/fastsd/experiments/1024-poisson32-qwen06-17/node_agent.py\", line 119, in run\n    if control('state',run=job['run']).get('abort'):raise RuntimeError('Controller aborted run')\n                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nRuntimeError: Controller aborted run\n",
+      "epoch": 1792827365.973857
+    }
+  },
+  "results": {
+    "3": {
+      "node": "node1",
+      "completion_epoch": 1792823681.4460142
+    },
+    "14": {
+      "node": "node1",
+      "completion_epoch": 1792824501.7033825
+    },
+    "11": {
+      "node": "node1",
+      "completion_epoch": 1792824762.4845073
+    },
+    "24": {
+      "node": "node3",
+      "completion_epoch": 1792824787.470882
+    },
+    "1": {
+      "node": "node1",
+      "completion_epoch": 1792824811.9941752
+    },
+    "23": {
+      "node": "node3",
+      "completion_epoch": 1792824927.0029624
+    },
+    "22": {
+      "node": "node3",
+      "completion_epoch": 1792824956.9146209
+    },
+    "26": {
+      "node": "node3",
+      "completion_epoch": 1792825316.2836473
+    },
+    "10": {
+      "node": "node1",
+      "completion_epoch": 1792825385.4877708
+    },
+    "30": {
+      "node": "node3",
+      "completion_epoch": 1792825459.2926834
+    },
+    "29": {
+      "node": "node3",
+      "completion_epoch": 1792825799.2622104
+    },
+    "6": {
+      "node": "node1",
+      "completion_epoch": 1792825834.4267108
+    },
+    "35": {
+      "node": "node1",
+      "completion_epoch": 1792825843.180178
+    },
+    "9": {
+      "node": "node1",
+      "completion_epoch": 1792826046.7029831
+    },
+    "33": {
+      "node": "node1",
+      "completion_epoch": 1792826198.2563891
+    },
+    "4": {
+      "node": "node1",
+      "completion_epoch": 1792826607.2349527
+    },
+    "28": {
+      "node": "node3",
+      "completion_epoch": 1792826882.6657867
+    },
+    "16": {
+      "node": "node3",
+      "completion_epoch": 1792826967.1437752
+    },
+    "2": {
+      "node": "node1",
+      "completion_epoch": 1792827026.8338895
+    },
+    "13": {
+      "node": "node1",
+      "completion_epoch": 1792827038.6656733
+    },
+    "25": {
+      "node": "node3",
+      "completion_epoch": 1792827292.6797626
+    }
+  },
+  "clock_owner": null,
+  "release_epoch": 1792823202.4176085,
+  "abort": "RuntimeError('Controller aborted run')"
+}

@@ -1,0 +1,9 @@
+{
+  "ready": true,
+  "state": "model_loaded",
+  "pid": 2760669,
+  "model_path": "/home/hdd3/zhangh/workspace/fastsd/experiments/1024-hetero-16draft/model-view/Qwen3-32B",
+  "completed_epoch": 1792775403.8121119,
+  "configuration_file": "/home/hdd3/zhangh/workspace/fastsd/experiments/1024-hetero-16draft/fastsd/target/target_device_map.json",
+  "note": "Model load completed; validate the service with a real prefill/verify smoke request."
+}

@@ -1,0 +1,9 @@
+{
+  "variant": "resident_fa2",
+  "requests": 164,
+  "elapsed_s": 76.68470008099393,
+  "generated_tokens": 11926,
+  "kv_transfer_calls": 0,
+  "peak_allocated_bytes": 17382123520,
+  "peak_reserved_bytes": 17764974592
+}

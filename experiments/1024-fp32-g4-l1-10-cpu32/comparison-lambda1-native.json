@@ -1,0 +1,17 @@
+{
+  "epoch": 1792906099.6253526,
+  "gamma": 4,
+  "rate": 1,
+  "requests_per_method": 1319,
+  "output_parity": {
+    "identical": 1319,
+    "different_indices": []
+  },
+  "fastsd_change_pct_vs_standard": {
+    "service_ttft_ms": 11.75238021524676,
+    "arrival_ttft_ms": 19.374935191711607,
+    "tpot_ms": 11.966235372180334
+  },
+  "duration_change_pct": 29.849145722927737,
+  "energy_change_pct": -0.22009272806490232
+}

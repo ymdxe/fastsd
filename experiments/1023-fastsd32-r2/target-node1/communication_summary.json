@@ -1,0 +1,173 @@
+{
+  "status": "completed",
+  "method": "FastSD",
+  "clock_setup": "Serialized native five-probe clock calibration, followed by common barrier",
+  "first_attempt_completed_requests": 18,
+  "first_attempt_failed_requests": 14,
+  "profile": "custom",
+  "server_sched_mode": "fastsd",
+  "enable_pipeline": true,
+  "enable_proactive_draft": true,
+  "enable_latency_priority": true,
+  "pipeline_gamma_adapt": true,
+  "initial_gamma": 4,
+  "selected_samples": 32,
+  "dataset_total_samples": 1319,
+  "max_new_tokens": 16,
+  "dtype": "float16",
+  "target": "node1 Qwen3-1.7B CPU 8 threads",
+  "draft": "node3 32 independent Qwen3-1.7B CPU workers, 1 thread each",
+  "completed_requests": 32,
+  "failed_requests": 0,
+  "generated_tokens": 512,
+  "rpc_count": 288,
+  "rpc_counts": {
+    "/session/init": 32,
+    "/prefill/arrival": 32,
+    "/prefill": 32,
+    "/verify": 192
+  },
+  "accepted_tokens": 320,
+  "drafted_tokens": 320,
+  "acceptance_rate": 1.0,
+  "request_e2e_seconds": {
+    "count": 32,
+    "min": 101.37924605002627,
+    "mean": 175.41039598004136,
+    "p50": 179.5113278659992,
+    "p95": 238.17284519844688,
+    "max": 260.1009936919436
+  },
+  "ttft_seconds": {
+    "count": 32,
+    "min": 80.13384802406654,
+    "mean": 149.42056514391152,
+    "p50": 150.37216469668783,
+    "p95": 215.8922274124343,
+    "max": 238.64531504223123
+  },
+  "first_draft_seconds": {
+    "count": 32,
+    "min": 76.99017379293218,
+    "mean": 138.70583231914497,
+    "p50": 139.47292097075842,
+    "p95": 210.69623318216762,
+    "max": 233.08864911599085
+  },
+  "prefill_http_ms": {
+    "count": 32,
+    "min": 1137.3896510340273,
+    "mean": 6719.839413301088,
+    "p50": 3711.604503914714,
+    "p95": 16843.808909668587,
+    "max": 19699.678069911897
+  },
+  "verify_http_ms": {
+    "count": 192,
+    "min": 160.72824131697416,
+    "mean": 2034.7037234557017,
+    "p50": 508.7967545259744,
+    "p95": 7169.054173701443,
+    "max": 18342.754589859396
+  },
+  "verify_cloud_total_ms": {
+    "count": 192,
+    "min": 158.0967903137207,
+    "mean": 2031.7185148596764,
+    "p50": 506.27827644348145,
+    "p95": 7165.7503843307495,
+    "max": 18339.0896320343
+  },
+  "verify_compute_ms": {
+    "count": 192,
+    "min": 137.2058391571045,
+    "mean": 396.6553173959255,
+    "p50": 273.5722064971924,
+    "p95": 821.0294246673584,
+    "max": 830.573320388794
+  },
+  "verify_http_minus_cloud_ms": {
+    "count": 192,
+    "min": 1.9397502765059471,
+    "mean": 2.985208596025283,
+    "p50": 2.8902299236506224,
+    "p95": 4.1220445884391665,
+    "max": 6.594309117645025
+  },
+  "verify_rounds_per_request": {
+    "count": 32,
+    "min": 6.0,
+    "mean": 6.0,
+    "p50": 6.0,
+    "p95": 6.0,
+    "max": 6.0
+  },
+  "clock_uncertainty_ms": {
+    "count": 32,
+    "min": 0.57882,
+    "mean": 1.291404875,
+    "p50": 1.3263885,
+    "p95": 1.89373435,
+    "max": 2.263447
+  },
+  "application_request_bytes": 129172,
+  "application_response_bytes": 55827,
+  "proactive_reuse_hit_rounds": 192,
+  "proactive_reuse_miss_rounds": 0,
+  "estimated_barrier_to_completion_seconds": 260.63412323594093,
+  "estimated_aggregate_tokens_per_second": 1.9644396276404232,
+  "token_identical_requests": 32,
+  "token_differences": [],
+  "baseline_path": "/home/zhangh/workspace/fastsd/experiments/1023-32draft-comm",
+  "baseline_request_e2e_seconds": {
+    "count": 32,
+    "min": 118.42270541610196,
+    "mean": 201.45378674089443,
+    "p50": 202.89442529901862,
+    "p95": 259.66228603289926,
+    "max": 296.8317650780082
+  },
+  "baseline_verify_http_ms": {
+    "count": 128,
+    "min": 203.94514314830303,
+    "mean": 260.87620971520664,
+    "p50": 240.6905188690871,
+    "p95": 409.1570517979561,
+    "max": 740.6614487990737
+  },
+  "baseline_aggregate_tokens_per_second": 1.7246065270421886,
+  "request_e2e_median_ratio_baseline_over_fastsd": 1.130259731856445,
+  "limits": [
+    "单次前32题短输出通信测试，不是全量GSM8K准确率或正式速度评测",
+    "两侧同一1.7B模型，接受率不代表32B Target",
+    "CPU Target不衡量GPU KV搬运收益",
+    "历史基线与本轮背景负载不同，不能将单次耗时差全部归因于算法",
+    "FastSD自适应gamma开启，4是初始值；基线gamma固定4",
+    "HTTP减服务耗时包含网络与序列化等开销，并非纯网络RTT",
+    "公共窗口由session/init开始时间加请求E2E估算，排除模型加载但包含校准与prefill",
+    "node1 PyTorch2.6、node3 PyTorch2.2；无warmup"
+  ],
+  "target_scheduler": {
+    "iterations": 9013,
+    "used_tokens": 2751,
+    "plans": 111,
+    "verify_slices": 192,
+    "prefill_slices": 33,
+    "partial_verify": 0,
+    "partial_prefill": 1,
+    "prefetch_plans": 9013,
+    "prefetch_hits": 13,
+    "prefetch_misses": 19,
+    "prefetch_evictions": 19,
+    "prefetch_async_submitted": 11,
+    "prefetch_async_dropped": 0,
+    "prefetch_async_completed": 11,
+    "prefetch_async_moved": 26,
+    "prefetch_async_failed": 0,
+    "timing_updates": 0,
+    "timing_ready_prefill_forwards": 33,
+    "prefill_cancels": 0,
+    "prefetch_async_last_error": null
+  },
+  "target_service_stopped": true
+}

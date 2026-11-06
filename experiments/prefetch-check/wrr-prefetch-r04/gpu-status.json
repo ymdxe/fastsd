@@ -1,0 +1,18 @@
+{
+  "state": "passed",
+  "started_epoch_s": 1793546433.9739878,
+  "scope": "paper_wrr_prefetch_repair",
+  "formal_output_equivalence": false,
+  "gates": {
+    "cpu_contracts": true,
+    "trace_contracts": true,
+    "observer_contracts": true,
+    "gpu_event_transfer_probe": true,
+    "real_model_prefetch_overlap": true
+  },
+  "diagnostic_launch_allowed": true,
+  "formal_launch_allowed": false,
+  "tests_run": 9,
+  "validated_content_sha256": "230cc00b5f8b7a6d8564d589432ad13766462dbe9b16265bfe6882523173ccea",
+  "finished_epoch_s": 1793546442.967675
+}

@@ -1,0 +1,8 @@
+{
+  "worker_id": 6,
+  "node": "node3",
+  "success": true,
+  "error": null,
+  "completed_epoch": 1792783564.4388845,
+  "completed_monotonic": 2466005.107457472
+}

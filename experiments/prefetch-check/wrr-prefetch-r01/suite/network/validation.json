@@ -1,0 +1,55 @@
+{
+  "relay_sha256": "7c142f8314bfead0cbcaa741c607a675a59af02827b096c56cff0fb186c9cfdc",
+  "linux": {
+    "host": "gpunode2",
+    "exit_code": 0,
+    "reports": [
+      {
+        "tests_run": 12,
+        "failures": 0,
+        "errors": 0,
+        "passed": true,
+        "source_sha256": "7c142f8314bfead0cbcaa741c607a675a59af02827b096c56cff0fb186c9cfdc",
+        "protocol_version": 2,
+        "max_frame_bytes": 262144,
+        "buffer_limit_bytes": 4194304,
+        "models_loaded": 0,
+        "private_auth_read": false,
+        "public_fixture": true,
+        "network_scope": "localhost ephemeral socket pairs/ports only; cleaned in finally"
+      },
+      {
+        "tests_run": 6,
+        "failures": 0,
+        "errors": 0,
+        "passed": true,
+        "network_listeners_started": 0,
+        "auth_files_created": 0,
+        "secrets_generated": 0,
+        "fixture": "public in-memory constant"
+      }
+    ],
+    "remote_directory": "/home/hdd3/zhangh/tmp/fastsd-8b-full-poisson15-20261030/framed-v2-validation",
+    "old_smoke_ports_untouched": true,
+    "private_auth_read": false
+  },
+  "four_node_probe": {
+    "passed": true,
+    "all_probe_processes_exited": true,
+    "requests_total": 24,
+    "test_pool": {
+      "model": 2,
+      "coordinator": 4
+    },
+    "evidence": "../../framed-v2-four-node-probe.json"
+  },
+  "independent_review": "REVIEW.md",
+  "production_model_run_started": false,
+  "production_b_processes_modified": false,
+  "secrets_generated": false,
+  "private_auth_read_in_tests": false,
+  "limitations": [
+    "Cross-node probe used smaller2/4 pools; not a32/64 production load benchmark.",
+    "Historical cross-node FIN state mismatch underlying cause remains unproven; framing removes logical EOF dependence on it."
+  ]
+}

@@ -1,7 +1,7 @@
 """Freeze a versioned runtime and run the second-review ablation matrix.
 
 Prepare: python scripts/round2_experiment.py prepare /absolute/new/package
-Run:     python /package/runtime/scripts/round2_experiment.py run /package protect_forward cloud -- [model/options]
+Run:     python /package/runtime/scripts/round2_experiment.py run /package overlap cloud -- [model/options]
 Run Edge in a second process with the same variant and common options.
 """
 import argparse
@@ -21,12 +21,11 @@ COMMON = ['--server_sched_mode', 'fastsd', '--kv_batch_mode', 'varlen', '--gamma
           '--prefill_chunk_quantum', '128', '--seed', '1234']
 MATRIX = {
     'off': ['--no-kv_prefetch', '--no-enable_proactive_draft', '--no-pipeline_gamma_adapt', '--scheduler_policy', 'fcfs'],
-    'protect_forward': ['--kv_prefetch', '--kv_prefetch_mode', 'protect_forward', '--no-enable_proactive_draft', '--no-pipeline_gamma_adapt', '--scheduler_policy', 'fcfs'],
     'overlap': ['--kv_prefetch', '--kv_prefetch_mode', 'overlap', '--no-enable_proactive_draft', '--no-pipeline_gamma_adapt', '--scheduler_policy', 'fcfs'],
     'cpu_prepare': ['--kv_prefetch', '--kv_prefetch_mode', 'cpu_prepare', '--no-enable_proactive_draft', '--no-pipeline_gamma_adapt', '--scheduler_policy', 'fcfs'],
-    'ahead': ['--kv_prefetch', '--kv_prefetch_mode', 'protect_forward', '--enable_proactive_draft', '--no-pipeline_gamma_adapt', '--scheduler_policy', 'fcfs'],
-    'gamma': ['--kv_prefetch', '--kv_prefetch_mode', 'protect_forward', '--enable_proactive_draft', '--pipeline_gamma_adapt', '--gamma_policy', 'progress', '--scheduler_policy', 'fcfs'],
-    'progress': ['--kv_prefetch', '--kv_prefetch_mode', 'protect_forward', '--enable_proactive_draft', '--pipeline_gamma_adapt', '--gamma_policy', 'progress', '--scheduler_policy', 'progress'],
+    'ahead': ['--kv_prefetch', '--kv_prefetch_mode', 'overlap', '--enable_proactive_draft', '--no-pipeline_gamma_adapt', '--scheduler_policy', 'fcfs'],
+    'gamma': ['--kv_prefetch', '--kv_prefetch_mode', 'overlap', '--enable_proactive_draft', '--pipeline_gamma_adapt', '--gamma_policy', 'progress', '--scheduler_policy', 'fcfs'],
+    'progress': ['--kv_prefetch', '--kv_prefetch_mode', 'overlap', '--enable_proactive_draft', '--pipeline_gamma_adapt', '--gamma_policy', 'progress', '--scheduler_policy', 'progress'],
 }
 
 

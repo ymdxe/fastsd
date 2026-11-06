@@ -1,0 +1,9 @@
+{
+  "ready": {},
+  "clock": {},
+  "done": {},
+  "results": {},
+  "clock_owner": null,
+  "release_epoch": null,
+  "abort": "KeyboardInterrupt()"
+}

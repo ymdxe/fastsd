@@ -360,10 +360,24 @@ def parse_arguments():
     parser.add_argument("--kv_transfer_gbps", type=float, default=10.0,
                         help="initial exposed-transfer cost estimate; calibrate for the host")
     parser.add_argument("--kv_prefetch", action=argparse.BooleanOptionalAction, default=True)
-    parser.add_argument("--kv_prefetch_mode", choices=("protect_forward", "overlap", "cpu_prepare"),
-                        default="overlap", help="paper FastSD overlaps predicted KV copies with Target computation")
-    parser.add_argument("--kv_overlap_auto_fallback", action=argparse.BooleanOptionalAction, default=False,
-                        help="explicitly allow measured disturbance to disable overlap; off for paper FastSD")
+    parser.add_argument("--kv_prefetch_mode", choices=("overlap", "cpu_prepare"),
+                        default="overlap",
+                        help="overlap: predicted copies may run during Target compute; "
+                             "cpu_prepare: prediction only, no speculative GPU DMA")
+    parser.add_argument("--kv_residency_budget_mb", type=int, default=0,
+                        help="explicit GPU budget for target KV caches in MiB. 0 keeps every "
+                             "cache on the GPU and never runs offload/prefetch machinery")
+    parser.add_argument("--kv_residency_high_ratio", type=float, default=0.90,
+                        help="enter cache management when used/budget exceeds this ratio")
+    parser.add_argument("--kv_residency_low_ratio", type=float, default=0.75,
+                        help="stop evicting once used/budget falls below this ratio")
+    parser.add_argument("--measure_forward_gpu", action=argparse.BooleanOptionalAction, default=False,
+                        help="record forward GPU events; requires a stream synchronize per batch")
+    parser.add_argument("--kv_overlap_auto_fallback", action=argparse.BooleanOptionalAction, default=True,
+                        help="let measured forward disturbance throttle or disable overlap (default on)")
+    parser.add_argument("--kv_prefetch_online_fraction", type=float, default=0.25,
+                        help="without a calibration file, speculative compute-window DMA runs at this "
+                             "fraction of the idle rate; 0 restores the strict uncalibrated gate")
     parser.add_argument("--kv_overlap_max_slowdown", type=float, default=0.1,
                         help="fall back after three overlap forwards exceed a measured same-shape baseline")
     parser.add_argument("--kv_prefetch_mb", type=int, default=64)
@@ -410,6 +424,12 @@ def parse_arguments():
         parser.error("prefetch rates must be finite and positive; event pool must contain at least two events")
     if args.pinned_pool_mb < 0 or args.kv_transfer_gbps == 0 or args.scheduler_max_wait_s == 0:
         parser.error("pinned pool must be non-negative; transfer bandwidth and maximum wait must be positive")
+    if args.kv_residency_budget_mb < 0:
+        parser.error("residency budget must be non-negative")
+    if not (0.0 <= args.kv_residency_low_ratio < args.kv_residency_high_ratio <= 1.0):
+        parser.error("--kv_residency_low_ratio must be < --kv_residency_high_ratio, both within [0, 1]")
+    if not (0.0 <= args.kv_prefetch_online_fraction <= 1.0):
+        parser.error("--kv_prefetch_online_fraction must be within [0, 1]")
     if args.pipeline_gamma_min < 1:
         parser.error("--pipeline_gamma_min must be positive")
     if args.pipeline_gamma_max < args.pipeline_gamma_min:

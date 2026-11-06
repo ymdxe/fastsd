@@ -1,0 +1,14 @@
+{
+  "status": "failed",
+  "cell": {
+    "id": "fastsd-g20-l1",
+    "method": "fastsd",
+    "gamma": 20,
+    "rate": 1.0,
+    "cap": 1024,
+    "expected_requests": 1319
+  },
+  "error": "RuntimeError(\"CPU worker failure: KeyError('EXP_RUN')\")",
+  "traceback": "Traceback (most recent call last):\n  File \"/home/hdd3/zhangh/workspace/fastsd/experiments/1024-poisson32-qwen06-17/campaign.py\", line 181, in main\n    run(cell,n,handle)\n  File \"/home/hdd3/zhangh/workspace/fastsd/experiments/1024-poisson32-qwen06-17/campaign.py\", line 126, in run\n    if state['abort']:raise RuntimeError('CPU worker failure: '+str(state['abort']))\nRuntimeError: CPU worker failure: KeyError('EXP_RUN')\n",
+  "epoch": 1792817126.9562404
+}

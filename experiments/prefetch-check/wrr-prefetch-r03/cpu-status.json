@@ -1,0 +1,57 @@
+{
+  "state": "passed",
+  "started_epoch_s": 1793541333.885152,
+  "bundle_id": "0e2960453accd20f94618d249776be977c5fed174977b07ab2e47aeb245330d5",
+  "validated_content_sha256": "0e2960453accd20f94618d249776be977c5fed174977b07ab2e47aeb245330d5",
+  "tests_run": 145,
+  "failures": 0,
+  "errors": 0,
+  "skipped": [
+    [
+      "test_budget_and_cpu_prepare_skip_speculation_but_demand_works (test_round2_cache.TransferIsolationTests.test_budget_and_cpu_prepare_skip_speculation_but_demand_works)",
+      "requires CUDA"
+    ],
+    [
+      "test_collector_cannot_drop_a_demand_before_its_first_submission (test_round2_cache.TransferIsolationTests.test_collector_cannot_drop_a_demand_before_its_first_submission)",
+      "requires CUDA"
+    ],
+    [
+      "test_measured_overlap_disturbance_falls_back_after_three_observations (test_round2_cache.TransferIsolationTests.test_measured_overlap_disturbance_falls_back_after_three_observations)",
+      "requires CUDA"
+    ],
+    [
+      "test_partial_ticket_is_claimed_once_and_cancelled_storage_drains (test_round2_cache.TransferIsolationTests.test_partial_ticket_is_claimed_once_and_cancelled_storage_drains)",
+      "requires CUDA"
+    ],
+    [
+      "test_prefetch_b_does_not_add_dependency_to_compute_a (test_round2_cache.TransferIsolationTests.test_prefetch_b_does_not_add_dependency_to_compute_a)",
+      "requires CUDA"
+    ],
+    [
+      "test_protect_forward_drains_only_submitted_chunk_and_blocks_more_dma (test_round2_cache.TransferIsolationTests.test_protect_forward_drains_only_submitted_chunk_and_blocks_more_dma)",
+      "requires CUDA"
+    ],
+    [
+      "test_cuda_worker_with_async_offload_and_reload (test_review_engine.ReviewEngineTests.test_cuda_worker_with_async_offload_and_reload)",
+      "requires CUDA"
+    ],
+    [
+      "test_flash_attention_sd_and_fastsd_preserve_worker_lifecycle (test_review_engine.ReviewEngineTests.test_flash_attention_sd_and_fastsd_preserve_worker_lifecycle)",
+      "requires CUDA"
+    ],
+    [
+      "test_chunk_budget_coalesces_small_layers_without_exceeding_bytes (test_paper_prefetch.PaperTransferTests.test_chunk_budget_coalesces_small_layers_without_exceeding_bytes)",
+      "requires CUDA"
+    ],
+    [
+      "test_new_candidate_can_prepare_after_admission_and_execution (test_paper_prefetch.PaperTransferTests.test_new_candidate_can_prepare_after_admission_and_execution)",
+      "requires CUDA"
+    ],
+    [
+      "test_paper_overlap_never_silently_changes_method (test_paper_prefetch.PaperTransferTests.test_paper_overlap_never_silently_changes_method)",
+      "requires CUDA"
+    ]
+  ],
+  "torch": "2.9.0+cu128",
+  "finished_epoch_s": 1793541345.7931576
+}

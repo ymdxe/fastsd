@@ -1,0 +1,29 @@
+{
+  "platform": "Windows-11-10.0.22000-SP0",
+  "python": "3.12.7",
+  "tests_run": 6,
+  "failures": 0,
+  "errors": 0,
+  "passed": true,
+  "duration_s": 0.067,
+  "network_listeners_started": 0,
+  "auth_files_created": 0,
+  "secrets_generated": 0,
+  "fixture": "public in-memory constant",
+  "posix_auth_file_tests": "mocked metadata/UID; deployment must verify real POSIX file mode",
+  "thread_reap_check": {
+    "concurrent_short_threads": 256,
+    "live_thread_retained_then_reaped": 1,
+    "final_active_threads": 0,
+    "final_threads_reaped": 257
+  },
+  "limits": {
+    "lifetime_seconds": 172800,
+    "control_pool_default": 64,
+    "control_pool_max": 64,
+    "model_pool_default": 32,
+    "model_pool_max": 64
+  },
+  "formal_end_to_end_validation": "not started; parent owns deployment and smoke",
+  "command": "python -X utf8 -B E:\\Codex\\artifacts\\fastsd-8b-full-poisson15-20261030\\suite\\network\\validate_relay.py"
+}

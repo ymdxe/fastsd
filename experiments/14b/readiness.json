@@ -1,0 +1,122 @@
+{
+  "state": "complete",
+  "source_sha": "c167b90cacc12c05e6a87baa63616ad7b4809044",
+  "bundle_id": "3c5d403589c68c5a5aa83506e2436653c45309a10ecceaa4ae75417ccf3f5789",
+  "started_epoch_s": 1793707241.7061968,
+  "pid": 2775036,
+  "formal_output_equivalence": false,
+  "cuda_tests": {
+    "run": 3,
+    "skipped": 0,
+    "passed": true
+  },
+  "real_model": {
+    "model": "/mnt/nfs0/zhangh/models/Qwen3-14B",
+    "dtype": "bfloat16",
+    "backend": "sdpa_per_sequence",
+    "exact_probability_and_kv_match": true,
+    "prefix_tokens": 128,
+    "continuation_tokens": 8,
+    "peak_allocated_bytes": 29739676160,
+    "scope": "Single functional KV offload/reload and continuation; no performance or corpus equivalence claim"
+  },
+  "specedge_capacity": {
+    "passed": true,
+    "model": "/mnt/nfs0/zhangh/models/Qwen3-14B",
+    "gpu_memory_fraction": 0.98,
+    "num_clients": 32,
+    "max_batch_size": 16,
+    "max_len": 2048,
+    "prefix_tokens": 1631,
+    "ready_memory": {
+      "allocated_bytes": 45713423872,
+      "reserved_bytes": 46550482944,
+      "peak_allocated_bytes": 45713423872,
+      "peak_reserved_bytes": 46550482944,
+      "device_free_bytes": 3945398272,
+      "device_total_bytes": 50897289216
+    },
+    "batches": [
+      {
+        "first_client": 0,
+        "prefill": true,
+        "rows": 16,
+        "prefills": 16,
+        "decode_event_ms": 166.0037078857422,
+        "wall_s": 9.230535548005719,
+        "memory": {
+          "allocated_bytes": 45721943552,
+          "reserved_bytes": 47565504512,
+          "peak_allocated_bytes": 46576207360,
+          "peak_reserved_bytes": 47565504512,
+          "device_free_bytes": 2930376704,
+          "device_total_bytes": 50897289216
+        }
+      },
+      {
+        "first_client": 0,
+        "prefill": false,
+        "rows": 16,
+        "prefills": 0,
+        "decode_event_ms": 159.47059631347656,
+        "wall_s": 0.20934201905038208,
+        "memory": {
+          "allocated_bytes": 45721943552,
+          "reserved_bytes": 47565504512,
+          "peak_allocated_bytes": 46576207360,
+          "peak_reserved_bytes": 47565504512,
+          "device_free_bytes": 2930376704,
+          "device_total_bytes": 50897289216
+        }
+      },
+      {
+        "first_client": 16,
+        "prefill": true,
+        "rows": 16,
+        "prefills": 16,
+        "decode_event_ms": 162.89605712890625,
+        "wall_s": 9.171530306979548,
+        "memory": {
+          "allocated_bytes": 45721943552,
+          "reserved_bytes": 47565504512,
+          "peak_allocated_bytes": 46576207360,
+          "peak_reserved_bytes": 47565504512,
+          "device_free_bytes": 2930376704,
+          "device_total_bytes": 50897289216
+        }
+      },
+      {
+        "first_client": 16,
+        "prefill": false,
+        "rows": 16,
+        "prefills": 0,
+        "decode_event_ms": 159.63136291503906,
+        "wall_s": 0.20844143198337406,
+        "memory": {
+          "allocated_bytes": 45721943552,
+          "reserved_bytes": 47565504512,
+          "peak_allocated_bytes": 46576207360,
+          "peak_reserved_bytes": 47565504512,
+          "device_free_bytes": 2930376704,
+          "device_total_bytes": 50897289216
+        }
+      }
+    ],
+    "memory": {
+      "allocated_bytes": 45721943552,
+      "reserved_bytes": 47565504512,
+      "peak_allocated_bytes": 46576207360,
+      "peak_reserved_bytes": 47565504512,
+      "device_free_bytes": 2930376704,
+      "device_total_bytes": 50897289216
+    },
+    "elapsed_s": 27.104986231017392,
+    "provenance": {
+      "upstream_commit": "1edcaf02ffc41a7b57726450c5357ed216a3b9bc",
+      "compatibility": []
+    },
+    "scope": "Actual official graph and resident KV capacity; synthetic candidate tokens, no output-equivalence/performance claim"
+  },
+  "passed": true,
+  "finished_epoch_s": 1793707281.5756688
+}

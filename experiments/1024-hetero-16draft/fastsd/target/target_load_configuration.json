@@ -1,0 +1,18 @@
+{
+  "pid": 2760669,
+  "model_path": "/home/hdd3/zhangh/workspace/fastsd/experiments/1024-hetero-16draft/model-view/Qwen3-32B",
+  "physical_gpu": 3,
+  "cuda_visible_devices": "3",
+  "execution_device": "cuda:0",
+  "dtype": "float16",
+  "kv_batch_mode": "padded",
+  "attention_implementation": "sdpa",
+  "max_memory": {
+    "0": "34GiB",
+    "cpu": "96GiB"
+  },
+  "load_started_epoch": 1792775385.9222898,
+  "torch_version": "2.2.1+cu121",
+  "gpu_name": "NVIDIA RTX A6000",
+  "source_directory": "/home/hdd3/zhangh/workspace/fastsd/experiments/1024-hetero-16draft/source"
+}

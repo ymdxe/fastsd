@@ -1,0 +1,532 @@
+{
+  "archived_counters": {
+    "iterations": 135528,
+    "used_tokens": 22162,
+    "plans": 308,
+    "verify_slices": 364,
+    "prefill_slices": 18,
+    "partial_verify": 0,
+    "partial_prefill": 1,
+    "prefetch_plans": 135528,
+    "prefetch_hits": 0,
+    "prefetch_misses": 0,
+    "prefetch_evictions": 0,
+    "prefetch_async_submitted": 0,
+    "prefetch_async_dropped": 0,
+    "prefetch_async_completed": 0,
+    "prefetch_async_moved": 0,
+    "prefetch_async_failed": 0,
+    "timing_updates": 0,
+    "timing_ready_prefill_forwards": 18,
+    "prefill_cancels": 0,
+    "prefetch_async_last_error": null
+  },
+  "source_hashes": {
+    "source/src/engine.py": "9714ca30e5959d381d9b77e248fdc72c478ea1363041601387fa4975a75e2b45",
+    "source/src/fastsd_scheduler.py": "ea3628b4affd60229ba749c915c67b44e7ecbe494d7fdd2436d4d1ab48bee0e3"
+  },
+  "current_source_matches_archive": true,
+  "submit_path_cases": [
+    {
+      "name": "one_gamma100",
+      "queued_gammas": [
+        100
+      ],
+      "current_selected": [
+        "worker-0"
+      ],
+      "current_forward_tokens": 101,
+      "current_slices": [
+        {
+          "work_id": "worker-0",
+          "proc_id": "worker-0",
+          "task_type": "verify",
+          "category": "short",
+          "offset": 0,
+          "draft_token_count": 100,
+          "forward_token_count": 101,
+          "includes_bridge": true
+        }
+      ],
+      "prefetch_targets": [],
+      "counters": {
+        "prefetch_plans": 1,
+        "prefetch_evictions": 0,
+        "prefetch_hits": 0,
+        "prefetch_misses": 0,
+        "prefetch_async_submitted": 0,
+        "prefetch_async_dropped": 0
+      }
+    },
+    {
+      "name": "eight_gamma20",
+      "queued_gammas": [
+        20,
+        20,
+        20,
+        20,
+        20,
+        20,
+        20,
+        20
+      ],
+      "current_selected": [
+        "worker-0",
+        "worker-1",
+        "worker-2",
+        "worker-3",
+        "worker-4",
+        "worker-5",
+        "worker-6",
+        "worker-7"
+      ],
+      "current_forward_tokens": 168,
+      "current_slices": [
+        {
+          "work_id": "worker-0",
+          "proc_id": "worker-0",
+          "task_type": "verify",
+          "category": "short",
+          "offset": 0,
+          "draft_token_count": 20,
+          "forward_token_count": 21,
+          "includes_bridge": true
+        },
+        {
+          "work_id": "worker-1",
+          "proc_id": "worker-1",
+          "task_type": "verify",
+          "category": "short",
+          "offset": 0,
+          "draft_token_count": 20,
+          "forward_token_count": 21,
+          "includes_bridge": true
+        },
+        {
+          "work_id": "worker-2",
+          "proc_id": "worker-2",
+          "task_type": "verify",
+          "category": "short",
+          "offset": 0,
+          "draft_token_count": 20,
+          "forward_token_count": 21,
+          "includes_bridge": true
+        },
+        {
+          "work_id": "worker-3",
+          "proc_id": "worker-3",
+          "task_type": "verify",
+          "category": "short",
+          "offset": 0,
+          "draft_token_count": 20,
+          "forward_token_count": 21,
+          "includes_bridge": true
+        },
+        {
+          "work_id": "worker-4",
+          "proc_id": "worker-4",
+          "task_type": "verify",
+          "category": "short",
+          "offset": 0,
+          "draft_token_count": 20,
+          "forward_token_count": 21,
+          "includes_bridge": true
+        },
+        {
+          "work_id": "worker-5",
+          "proc_id": "worker-5",
+          "task_type": "verify",
+          "category": "short",
+          "offset": 0,
+          "draft_token_count": 20,
+          "forward_token_count": 21,
+          "includes_bridge": true
+        },
+        {
+          "work_id": "worker-6",
+          "proc_id": "worker-6",
+          "task_type": "verify",
+          "category": "short",
+          "offset": 0,
+          "draft_token_count": 20,
+          "forward_token_count": 21,
+          "includes_bridge": true
+        },
+        {
+          "work_id": "worker-7",
+          "proc_id": "worker-7",
+          "task_type": "verify",
+          "category": "short",
+          "offset": 0,
+          "draft_token_count": 20,
+          "forward_token_count": 21,
+          "includes_bridge": true
+        }
+      ],
+      "prefetch_targets": [],
+      "counters": {
+        "prefetch_plans": 1,
+        "prefetch_evictions": 0,
+        "prefetch_hits": 0,
+        "prefetch_misses": 0,
+        "prefetch_async_submitted": 0,
+        "prefetch_async_dropped": 0
+      }
+    },
+    {
+      "name": "four_gamma100_four_gamma20",
+      "queued_gammas": [
+        100,
+        100,
+        100,
+        100,
+        20,
+        20,
+        20,
+        20
+      ],
+      "current_selected": [
+        "worker-0",
+        "worker-1",
+        "worker-2",
+        "worker-3",
+        "worker-4",
+        "worker-5",
+        "worker-6",
+        "worker-7"
+      ],
+      "current_forward_tokens": 488,
+      "current_slices": [
+        {
+          "work_id": "worker-0",
+          "proc_id": "worker-0",
+          "task_type": "verify",
+          "category": "short",
+          "offset": 0,
+          "draft_token_count": 100,
+          "forward_token_count": 101,
+          "includes_bridge": true
+        },
+        {
+          "work_id": "worker-1",
+          "proc_id": "worker-1",
+          "task_type": "verify",
+          "category": "short",
+          "offset": 0,
+          "draft_token_count": 100,
+          "forward_token_count": 101,
+          "includes_bridge": true
+        },
+        {
+          "work_id": "worker-2",
+          "proc_id": "worker-2",
+          "task_type": "verify",
+          "category": "short",
+          "offset": 0,
+          "draft_token_count": 100,
+          "forward_token_count": 101,
+          "includes_bridge": true
+        },
+        {
+          "work_id": "worker-3",
+          "proc_id": "worker-3",
+          "task_type": "verify",
+          "category": "short",
+          "offset": 0,
+          "draft_token_count": 100,
+          "forward_token_count": 101,
+          "includes_bridge": true
+        },
+        {
+          "work_id": "worker-4",
+          "proc_id": "worker-4",
+          "task_type": "verify",
+          "category": "short",
+          "offset": 0,
+          "draft_token_count": 20,
+          "forward_token_count": 21,
+          "includes_bridge": true
+        },
+        {
+          "work_id": "worker-5",
+          "proc_id": "worker-5",
+          "task_type": "verify",
+          "category": "short",
+          "offset": 0,
+          "draft_token_count": 20,
+          "forward_token_count": 21,
+          "includes_bridge": true
+        },
+        {
+          "work_id": "worker-6",
+          "proc_id": "worker-6",
+          "task_type": "verify",
+          "category": "short",
+          "offset": 0,
+          "draft_token_count": 20,
+          "forward_token_count": 21,
+          "includes_bridge": true
+        },
+        {
+          "work_id": "worker-7",
+          "proc_id": "worker-7",
+          "task_type": "verify",
+          "category": "short",
+          "offset": 0,
+          "draft_token_count": 20,
+          "forward_token_count": 21,
+          "includes_bridge": true
+        }
+      ],
+      "prefetch_targets": [],
+      "counters": {
+        "prefetch_plans": 1,
+        "prefetch_evictions": 0,
+        "prefetch_hits": 0,
+        "prefetch_misses": 0,
+        "prefetch_async_submitted": 0,
+        "prefetch_async_dropped": 0
+      }
+    },
+    {
+      "name": "eight_gamma100_backlog",
+      "queued_gammas": [
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100
+      ],
+      "current_selected": [
+        "worker-0",
+        "worker-1",
+        "worker-2",
+        "worker-3",
+        "worker-4",
+        "worker-5"
+      ],
+      "current_forward_tokens": 512,
+      "current_slices": [
+        {
+          "work_id": "worker-0",
+          "proc_id": "worker-0",
+          "task_type": "verify",
+          "category": "short",
+          "offset": 0,
+          "draft_token_count": 100,
+          "forward_token_count": 101,
+          "includes_bridge": true
+        },
+        {
+          "work_id": "worker-1",
+          "proc_id": "worker-1",
+          "task_type": "verify",
+          "category": "short",
+          "offset": 0,
+          "draft_token_count": 100,
+          "forward_token_count": 101,
+          "includes_bridge": true
+        },
+        {
+          "work_id": "worker-2",
+          "proc_id": "worker-2",
+          "task_type": "verify",
+          "category": "short",
+          "offset": 0,
+          "draft_token_count": 100,
+          "forward_token_count": 101,
+          "includes_bridge": true
+        },
+        {
+          "work_id": "worker-3",
+          "proc_id": "worker-3",
+          "task_type": "verify",
+          "category": "short",
+          "offset": 0,
+          "draft_token_count": 100,
+          "forward_token_count": 101,
+          "includes_bridge": true
+        },
+        {
+          "work_id": "worker-4",
+          "proc_id": "worker-4",
+          "task_type": "verify",
+          "category": "short",
+          "offset": 0,
+          "draft_token_count": 100,
+          "forward_token_count": 101,
+          "includes_bridge": true
+        },
+        {
+          "work_id": "worker-5",
+          "proc_id": "worker-5",
+          "task_type": "verify",
+          "category": "short",
+          "offset": 0,
+          "draft_token_count": 6,
+          "forward_token_count": 7,
+          "includes_bridge": true
+        }
+      ],
+      "prefetch_targets": [
+        "worker-6",
+        "worker-7"
+      ],
+      "counters": {
+        "prefetch_plans": 1,
+        "prefetch_evictions": 0,
+        "prefetch_hits": 0,
+        "prefetch_misses": 2,
+        "prefetch_async_submitted": 1,
+        "prefetch_async_dropped": 0
+      }
+    },
+    {
+      "name": "all_sixteen_backlog",
+      "queued_gammas": [
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        20,
+        20,
+        20,
+        20,
+        20,
+        20,
+        20,
+        20
+      ],
+      "current_selected": [
+        "worker-0",
+        "worker-1",
+        "worker-2",
+        "worker-3",
+        "worker-4",
+        "worker-5"
+      ],
+      "current_forward_tokens": 512,
+      "current_slices": [
+        {
+          "work_id": "worker-0",
+          "proc_id": "worker-0",
+          "task_type": "verify",
+          "category": "short",
+          "offset": 0,
+          "draft_token_count": 100,
+          "forward_token_count": 101,
+          "includes_bridge": true
+        },
+        {
+          "work_id": "worker-1",
+          "proc_id": "worker-1",
+          "task_type": "verify",
+          "category": "short",
+          "offset": 0,
+          "draft_token_count": 100,
+          "forward_token_count": 101,
+          "includes_bridge": true
+        },
+        {
+          "work_id": "worker-2",
+          "proc_id": "worker-2",
+          "task_type": "verify",
+          "category": "short",
+          "offset": 0,
+          "draft_token_count": 100,
+          "forward_token_count": 101,
+          "includes_bridge": true
+        },
+        {
+          "work_id": "worker-3",
+          "proc_id": "worker-3",
+          "task_type": "verify",
+          "category": "short",
+          "offset": 0,
+          "draft_token_count": 100,
+          "forward_token_count": 101,
+          "includes_bridge": true
+        },
+        {
+          "work_id": "worker-4",
+          "proc_id": "worker-4",
+          "task_type": "verify",
+          "category": "short",
+          "offset": 0,
+          "draft_token_count": 100,
+          "forward_token_count": 101,
+          "includes_bridge": true
+        },
+        {
+          "work_id": "worker-5",
+          "proc_id": "worker-5",
+          "task_type": "verify",
+          "category": "short",
+          "offset": 0,
+          "draft_token_count": 6,
+          "forward_token_count": 7,
+          "includes_bridge": true
+        }
+      ],
+      "prefetch_targets": [
+        "worker-10",
+        "worker-11",
+        "worker-12",
+        "worker-13",
+        "worker-6",
+        "worker-7",
+        "worker-8",
+        "worker-9"
+      ],
+      "counters": {
+        "prefetch_plans": 1,
+        "prefetch_evictions": 0,
+        "prefetch_hits": 0,
+        "prefetch_misses": 8,
+        "prefetch_async_submitted": 1,
+        "prefetch_async_dropped": 0
+      }
+    }
+  ],
+  "ingress_visibility": {
+    "ingress_size": 1,
+    "submitted_before_ingress_drain": 0,
+    "targets_if_admitted_while_current_plan_reserved": [
+      "arrived_during_compute"
+    ],
+    "targets_after_next_current_plan_reservation": []
+  },
+  "finished_queue_reproduction": {
+    "queue_entries_after_three_empty_iterations": 1,
+    "prefetch_plans": 3,
+    "submitted": 0
+  },
+  "observed_rpc_evidence": {
+    "formal_verify_rpcs": 362,
+    "estimated_compute_batches": 297,
+    "estimated_batch_size_counts": {
+      "5": 1,
+      "4": 2,
+      "1": 247,
+      "2": 39,
+      "3": 8
+    },
+    "estimated_largest_batch": 5,
+    "peak_outstanding_verify_rpcs": 6,
+    "mean_compute_s": 4.875440830025226,
+    "mean_http_s": 6.42899080207417,
+    "note": "Batch grouping uses equal reported verify_ms plus corrected epoch finish times within 200ms. In-flight HTTP counts include execution, ingress waiting and transport; they are not scheduler-queue lengths."
+  },
+  "limitations": [
+    "No model or CUDA allocation; this checks scheduling/submission, not GPU cache-transfer correctness or overlap speedup.",
+    "The original experiment did not log per-iteration live queue snapshots, so its exact queue trajectory cannot be replayed.",
+    "Synthetic backlogged workloads are positive controls, not measurements from the completed experiment."
+  ]
+}

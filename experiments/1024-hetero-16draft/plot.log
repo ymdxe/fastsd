@@ -1,0 +1,12 @@
+{
+  "files": [
+    "/home/hdd3/zhangh/workspace/fastsd/experiments/1024-hetero-16draft/latency_comparison.png",
+    "/home/hdd3/zhangh/workspace/fastsd/experiments/1024-hetero-16draft/latency_comparison.pdf",
+    "/home/hdd3/zhangh/workspace/fastsd/experiments/1024-hetero-16draft/host_load.png"
+  ],
+  "requests_per_method": {
+    "standard": 16,
+    "fastsd": 16,
+    "specedge": 16
+  }
+}

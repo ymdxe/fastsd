@@ -1,0 +1,7 @@
+[
+  {
+    "run": "fastsd-g20-l1",
+    "status": "excluded_partial",
+    "reason": "Result uploader missing EXP_RUN; inference exited cleanly; no final performance claim."
+  }
+]

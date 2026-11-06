@@ -1,0 +1,55 @@
+{
+  "origin": "gpunode2:/home/hdd3/zhangh/workspace/fastsd-update/multi-cpu-suite-20261027/network/reverse_relay.py",
+  "source_local_copy": "E:\\Codex\\temp\\fastsd-8b-full-poisson15-20261030\\network\\reverse_relay.previous.py",
+  "source_sha256": "3872b6b2a699409bb1d603e861ff43ad371c8e1d4c66dc9b29b47dcb30d5966b",
+  "relay_sha256": "7c142f8314bfead0cbcaa741c607a675a59af02827b096c56cff0fb186c9cfdc",
+  "source_remote_hash_verified_previously": true,
+  "preserved_ast_sha256": {
+    "recv_line": "1aebe58cfe3ef1113eb8fd0e0db993e94087943e7c7ca6c72d82b82dbb38bd0e",
+    "Hub.usable": "36186d80668eebf20ccccf8da46844c9bf87c7f93d6561d9e5e6f6aa36aa24ab",
+    "Hub.serve_client": "69194c08b11af28fceb297aa7e7b6768c13b374d06aa8896b972c9356f3e7582"
+  },
+  "changes": [
+    "Fixed task ports: CPU IB 19661, CPU loopback HTTP 29659/gRPC 29660, GPU loopback HTTP 19659/gRPC 19660",
+    "Private --auth-file with bounded regular-file, POSIX ownership/mode/symlink checks",
+    "Configurable 30..172800 second lifetime; default 48 hours",
+    "Thread-safe reaping of exited Runtime thread references on spawn/status; snapshot thread counters",
+    "Startup PID/lifetime metadata; no authentication content is logged",
+    "Bounded HTTP/control pool raised from 32 maximum/8 default to 64 maximum/default; model maximum remains 64/default32 and Hub per-service queues remain128",
+    "Framed protocol v2: bounded DATA/EOF, version-bound HMAC, logical half-close independent of TCP FIN; Agent raw/channel orientation updated",
+    "Reject non-object authentication JSON without losing Agent slots; report shutdown errors except explicit already-disconnected raw sockets",
+    "Explicit campaign lifetime ceiling 1818000s (21 days + 1 hour), default remains48h; parent owns completion/failure cleanup"
+  ],
+  "formal_relay_started": false,
+  "secret_generated": false,
+  "previous_task_raw_sha256": "8d8508b03e084ee91882cb21b9686f35d5e99a6b8389845def266ef848b79206",
+  "protocol_version": 2,
+  "preserved_source_sha256": {
+    "recv_line": "c17eeeb5149a1064831cc01acf2af4a0165ccbbf28706998dbd85929d7e52560",
+    "Hub.usable": "7f80f0f6d66ec4fec8c9a6bbb869bc92d68911de18544ff29f40c4a25eff8dbd",
+    "Hub.serve_client": "9bbd8bc3af31821b543337ce7e5caaceb856ead9d13101be92541dde59ccfda7"
+  },
+  "ast_fingerprint_note": "Historical AST fingerprints are Python-schema dependent; portable validation uses exact source-segment fingerprints.",
+  "current_configuration": {
+    "protocol_version": 2,
+    "lifetime_default_s": 172800,
+    "lifetime_max_s": 1818000,
+    "channel_port": 19661,
+    "local_ports": {
+      "model": 29660,
+      "coordinator": 29659
+    },
+    "backend_ports": {
+      "model": 19660,
+      "coordinator": 19659
+    },
+    "default_pools": {
+      "model": 32,
+      "coordinator": 64
+    },
+    "max_pool_per_service": 64,
+    "hub_queue_max_per_service": 128,
+    "max_frame_payload_bytes": 262144,
+    "buffer_limit_per_direction_bytes": 4194304
+  }
+}

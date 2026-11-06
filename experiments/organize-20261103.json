@@ -1,0 +1,960 @@
+{
+  "id": "organize-20261103",
+  "host": "gpu",
+  "root": "/home/hdd3/zhangh/workspace/fastsd",
+  "created_utc": "2026-11-03T12:58:18.140653+00:00",
+  "disk_free_bytes_before": 681749696512,
+  "rows": [
+    {
+      "old": "bf16-32-suite-20261029",
+      "short": "bf16-32",
+      "source": "/home/hdd3/zhangh/workspace/fastsd/bf16-32-suite-20261029",
+      "destination": "/home/hdd3/zhangh/workspace/fastsd/experiments/bf16-32",
+      "manifests": {
+        "manifest.json": "eb08395555822b919ab737000b7b2e65539de8003197082e93980d356c507404"
+      },
+      "tracked_files": 0,
+      "physical": "/home/hdd3/zhangh/workspace/fastsd/experiments/bf16-32",
+      "before": {
+        "device": 66305,
+        "inode": 109717049,
+        "metadata_sha256": "f3ff20611a34ffd9be425b651d06b2c32daa707b7f97a5cc3d0f5ec5754a2a53",
+        "files": 122,
+        "bytes": 2517490
+      },
+      "processes_before": [],
+      "compatibility_link": false,
+      "state": "verified"
+    },
+    {
+      "old": "config1-14b-full4-p60-1103T104120Z",
+      "short": "14b-old1",
+      "source": "/home/hdd3/zhangh/workspace/fastsd/config1-14b-full4-p60-1103T104120Z",
+      "destination": "/home/hdd3/zhangh/workspace/fastsd/experiments/14b-old1",
+      "manifests": {
+        "manifest.json": "41c1f8275b8639dec512b9d1da06d59265b9946927f0d40a7cabc61d400240e4"
+      },
+      "tracked_files": 0,
+      "physical": "/home/hdd3/zhangh/workspace/fastsd/experiments/14b-old1",
+      "before": {
+        "device": 66305,
+        "inode": 109842146,
+        "metadata_sha256": "8f366a5e8bfc9abcf10bd267c0ca13bf379fdd056a207a22ad161b2534789035",
+        "files": 221,
+        "bytes": 15505115
+      },
+      "processes_before": [],
+      "compatibility_link": false,
+      "state": "verified"
+    },
+    {
+      "old": "config1-14b-full4-p60-1103T113438Z",
+      "short": "14b-old2",
+      "source": "/home/hdd3/zhangh/workspace/fastsd/config1-14b-full4-p60-1103T113438Z",
+      "destination": "/home/hdd3/zhangh/workspace/fastsd/experiments/14b-old2",
+      "manifests": {
+        "manifest.json": "e72e6ae82c0e885900d943f6f42e652f5ab8074cfdc5b27a3700f8810e6d1a8e"
+      },
+      "tracked_files": 0,
+      "physical": "/home/hdd3/zhangh/workspace/fastsd/experiments/14b-old2",
+      "before": {
+        "device": 66305,
+        "inode": 109842574,
+        "metadata_sha256": "790dae34bda04103ccd3e3b32e0612255b060f55194ef1d27ef22b1448efcaa4",
+        "files": 221,
+        "bytes": 15510712
+      },
+      "processes_before": [
+        {
+          "pid": 2655493,
+          "uid": 1074,
+          "start_ticks": 35242208,
+          "argv": [
+            "/home/hdd/zhangh/envs/fastsd_fa2_283_py314_20261031/bin/python",
+            "-B",
+            "-u",
+            "/home/hdd3/zhangh/workspace/fastsd/config1-14b-full4-p60-1103T113438Z/specedge_server.py",
+            "--config",
+            "/home/hdd3/zhangh/workspace/fastsd/exp/config1_14b_full4_p60_20261103_recovery1/c1-14b-humaneval-specedge-p60-1103T113438Z/config.json",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            "29716"
+          ],
+          "cwd": "/home/hdd3/zhangh/workspace/fastsd/config1-14b-full4-p60-1103T113438Z"
+        },
+        {
+          "pid": 2656091,
+          "uid": 1074,
+          "start_ticks": 35242618,
+          "argv": [
+            "/home/hdd/zhangh/envs/fastsd_fa2_283_py314_20261031/bin/python",
+            "-B",
+            "-c",
+            "from multiprocessing.resource_tracker import main;main(19)"
+          ],
+          "cwd": "/home/hdd3/zhangh/workspace/fastsd/config1-14b-full4-p60-1103T113438Z"
+        }
+      ],
+      "compatibility_link": true,
+      "state": "verified"
+    },
+    {
+      "old": "config1-14b-full4-p60-1103T115837Z",
+      "short": "14b",
+      "source": "/home/hdd3/zhangh/workspace/fastsd/config1-14b-full4-p60-1103T115837Z",
+      "destination": "/home/hdd3/zhangh/workspace/fastsd/experiments/14b",
+      "manifests": {
+        "manifest.json": "386663cd322c01caa3694f5b755887e3c7b10420dd4b00ded871ed76e7fd1049"
+      },
+      "tracked_files": 0,
+      "physical": "/home/hdd3/zhangh/workspace/fastsd/experiments/14b",
+      "before": {
+        "device": 66305,
+        "inode": 109842882,
+        "metadata_sha256": "979f9c084c32bcc6c03aca57a6f02fe75f35cc587b69fe7658ef94149fd9180d",
+        "files": 222,
+        "bytes": 15523387
+      },
+      "processes_before": [
+        {
+          "pid": 2785885,
+          "uid": 1074,
+          "start_ticks": 35383969,
+          "argv": [
+            "/home/hdd/zhangh/envs/fastsd_fa2_283_py314_20261031/bin/python",
+            "-B",
+            "-u",
+            "/home/hdd3/zhangh/workspace/fastsd/config1-14b-full4-p60-1103T115837Z/network/reverse_relay.py",
+            "agent",
+            "--hub",
+            "10.66.0.3",
+            "--channels",
+            "32",
+            "--control-channels",
+            "64",
+            "--auth-file",
+            "/home/hdd3/zhangh/workspace/fastsd/exp/config1_14b_full4_p60_20261103_recovery2/_control_1103T115837Z/relay.auth",
+            "--status-file",
+            "/home/hdd3/zhangh/workspace/fastsd/exp/config1_14b_full4_p60_20261103_recovery2/_control_1103T115837Z/agent-node1-status.json",
+            "--lifetime",
+            "174000",
+            "--idle-timeout",
+            "900"
+          ],
+          "cwd": "/home/hdd3/zhangh/workspace/fastsd/exp/config1_14b_full4_p60_20261103_recovery2/_control_1103T115837Z"
+        },
+        {
+          "pid": 2786003,
+          "uid": 1074,
+          "start_ticks": 35384019,
+          "argv": [
+            "/home/hdd/zhangh/envs/fastsd_fa2_283_py314_20261031/bin/python",
+            "-B",
+            "-u",
+            "/home/hdd3/zhangh/workspace/fastsd/config1-14b-full4-p60-1103T115837Z/network/reverse_relay.py",
+            "agent",
+            "--hub",
+            "10.66.0.1",
+            "--channels",
+            "32",
+            "--control-channels",
+            "64",
+            "--auth-file",
+            "/home/hdd3/zhangh/workspace/fastsd/exp/config1_14b_full4_p60_20261103_recovery2/_control_1103T115837Z/relay.auth",
+            "--status-file",
+            "/home/hdd3/zhangh/workspace/fastsd/exp/config1_14b_full4_p60_20261103_recovery2/_control_1103T115837Z/agent-node2-status.json",
+            "--lifetime",
+            "174000",
+            "--idle-timeout",
+            "900"
+          ],
+          "cwd": "/home/hdd3/zhangh/workspace/fastsd/exp/config1_14b_full4_p60_20261103_recovery2/_control_1103T115837Z"
+        },
+        {
+          "pid": 2786100,
+          "uid": 1074,
+          "start_ticks": 35384069,
+          "argv": [
+            "/home/hdd/zhangh/envs/fastsd_fa2_283_py314_20261031/bin/python",
+            "-B",
+            "-u",
+            "/home/hdd3/zhangh/workspace/fastsd/config1-14b-full4-p60-1103T115837Z/network/reverse_relay.py",
+            "agent",
+            "--hub",
+            "10.66.0.2",
+            "--channels",
+            "32",
+            "--control-channels",
+            "64",
+            "--auth-file",
+            "/home/hdd3/zhangh/workspace/fastsd/exp/config1_14b_full4_p60_20261103_recovery2/_control_1103T115837Z/relay.auth",
+            "--status-file",
+            "/home/hdd3/zhangh/workspace/fastsd/exp/config1_14b_full4_p60_20261103_recovery2/_control_1103T115837Z/agent-node3-status.json",
+            "--lifetime",
+            "174000",
+            "--idle-timeout",
+            "900"
+          ],
+          "cwd": "/home/hdd3/zhangh/workspace/fastsd/exp/config1_14b_full4_p60_20261103_recovery2/_control_1103T115837Z"
+        },
+        {
+          "pid": 2786480,
+          "uid": 1074,
+          "start_ticks": 35384172,
+          "argv": [
+            "/home/hdd/zhangh/envs/fastsd_fa2_283_py314_20261031/bin/python",
+            "-B",
+            "-u",
+            "/home/hdd3/zhangh/workspace/fastsd/config1-14b-full4-p60-1103T115837Z/campaign.py",
+            "--role",
+            "gpu",
+            "--trace",
+            "config1",
+            "--suffix",
+            "1103T115837Z"
+          ],
+          "cwd": "/home/hdd3/zhangh/workspace/fastsd/exp/config1_14b_full4_p60_20261103_recovery2/_control_1103T115837Z"
+        },
+        {
+          "pid": 2786505,
+          "uid": 1074,
+          "start_ticks": 35384222,
+          "argv": [
+            "/home/hdd/zhangh/envs/fastsd_fa2_283_py314_20261031/bin/python",
+            "-B",
+            "-u",
+            "/home/hdd3/zhangh/workspace/fastsd/config1-14b-full4-p60-1103T115837Z/relay_watchdog.py",
+            "--campaign-record",
+            "/home/hdd3/zhangh/workspace/fastsd/exp/config1_14b_full4_p60_20261103_recovery2/_control_1103T115837Z/campaign.launch.json",
+            "--campaign-status",
+            "/home/hdd3/zhangh/workspace/fastsd/exp/config1_14b_full4_p60_20261103_recovery2/_campaign_config1_1103T115837Z/status.json",
+            "--output",
+            "/home/hdd3/zhangh/workspace/fastsd/exp/config1_14b_full4_p60_20261103_recovery2/_control_1103T115837Z/relay-watchdog.json",
+            "--relay-record",
+            "/home/hdd3/zhangh/workspace/fastsd/exp/config1_14b_full4_p60_20261103_recovery2/_control_1103T115837Z/agent-node1.launch.json",
+            "--relay-record",
+            "/home/hdd3/zhangh/workspace/fastsd/exp/config1_14b_full4_p60_20261103_recovery2/_control_1103T115837Z/agent-node2.launch.json",
+            "--relay-record",
+            "/home/hdd3/zhangh/workspace/fastsd/exp/config1_14b_full4_p60_20261103_recovery2/_control_1103T115837Z/agent-node3.launch.json"
+          ],
+          "cwd": "/home/hdd3/zhangh/workspace/fastsd/exp/config1_14b_full4_p60_20261103_recovery2/_control_1103T115837Z"
+        },
+        {
+          "pid": 2928714,
+          "uid": 1074,
+          "start_ticks": 35534169,
+          "argv": [
+            "/home/hdd/zhangh/envs/fastsd_fa2_283_py314_20261031/bin/python",
+            "-B",
+            "-u",
+            "/home/hdd3/zhangh/workspace/fastsd/config1-14b-full4-p60-1103T115837Z/suite.py",
+            "server",
+            "target_only",
+            "gsm8k",
+            "c1-14b-gsm8k-target_only-p60-1103T115837Z"
+          ],
+          "cwd": "/home/hdd3/zhangh/workspace/fastsd/config1-14b-full4-p60-1103T115837Z"
+        },
+        {
+          "pid": 2929039,
+          "uid": 1074,
+          "start_ticks": 35534709,
+          "argv": [
+            "/home/hdd/zhangh/envs/fastsd_fa2_283_py314_20261031/bin/python",
+            "-B",
+            "-c",
+            "from multiprocessing.resource_tracker import main;main(55)"
+          ],
+          "cwd": "/home/hdd3/zhangh/workspace/fastsd/config1-14b-full4-p60-1103T115837Z"
+        }
+      ],
+      "compatibility_link": true,
+      "state": "verified"
+    },
+    {
+      "old": "config1-ablation-p25-n30-1103T040303Z",
+      "short": "ablation-1",
+      "source": "/home/hdd3/zhangh/workspace/fastsd/config1-ablation-p25-n30-1103T040303Z",
+      "destination": "/home/hdd3/zhangh/workspace/fastsd/experiments/ablation-1",
+      "manifests": {
+        "manifest.json": "6d82fea89446b941b46b131a738da1d622e36177ac5f9caebd46789363e7cf9d"
+      },
+      "tracked_files": 0,
+      "physical": "/home/hdd3/zhangh/workspace/fastsd/experiments/ablation-1",
+      "before": {
+        "device": 66305,
+        "inode": 109840836,
+        "metadata_sha256": "ec357ae44ad469207963e1721523a06db8270d9fa25ba0e64d8918845fd825db",
+        "files": 215,
+        "bytes": 5162730
+      },
+      "processes_before": [],
+      "compatibility_link": false,
+      "state": "verified"
+    },
+    {
+      "old": "config1-ablation-p25-n30-1103T041405Z",
+      "short": "ablation-2",
+      "source": "/home/hdd3/zhangh/workspace/fastsd/config1-ablation-p25-n30-1103T041405Z",
+      "destination": "/home/hdd3/zhangh/workspace/fastsd/experiments/ablation-2",
+      "manifests": {
+        "manifest.json": "65e5c169ba09d41de17afe90ec82be1f9a61b93d3b08286e41240d5c9c785e98"
+      },
+      "tracked_files": 0,
+      "physical": "/home/hdd3/zhangh/workspace/fastsd/experiments/ablation-2",
+      "before": {
+        "device": 66305,
+        "inode": 109841104,
+        "metadata_sha256": "83d1f62e49ef898ca031d980a28afb539aabb0f3711b202a52512e5baf81467e",
+        "files": 215,
+        "bytes": 5164659
+      },
+      "processes_before": [],
+      "compatibility_link": false,
+      "state": "verified"
+    },
+    {
+      "old": "config1-ablation-p25-n30-1103T042006Z",
+      "short": "ablation-3",
+      "source": "/home/hdd3/zhangh/workspace/fastsd/config1-ablation-p25-n30-1103T042006Z",
+      "destination": "/home/hdd3/zhangh/workspace/fastsd/experiments/ablation-3",
+      "manifests": {
+        "manifest.json": "8fd10ab9bcbd168de38b44b61a178aa3f11a641d987dfa5b8577eafe539b2787"
+      },
+      "tracked_files": 0,
+      "physical": "/home/hdd3/zhangh/workspace/fastsd/experiments/ablation-3",
+      "before": {
+        "device": 66305,
+        "inode": 109841356,
+        "metadata_sha256": "2d9a85ebf1072c04eb51751d389c551ab9b21ec2c4b5522c8f6c7fc243ede6f4",
+        "files": 215,
+        "bytes": 5164665
+      },
+      "processes_before": [],
+      "compatibility_link": false,
+      "state": "verified"
+    },
+    {
+      "old": "config1-ablation-p25-n30-1103T043258Z",
+      "short": "ablation-4",
+      "source": "/home/hdd3/zhangh/workspace/fastsd/config1-ablation-p25-n30-1103T043258Z",
+      "destination": "/home/hdd3/zhangh/workspace/fastsd/experiments/ablation-4",
+      "manifests": {
+        "manifest.json": "d2c15dd7b75509ee6491249e5035002bbd28ad78e0c581ddcca9bcda22985077"
+      },
+      "tracked_files": 0,
+      "physical": "/home/hdd3/zhangh/workspace/fastsd/experiments/ablation-4",
+      "before": {
+        "device": 66305,
+        "inode": 109841608,
+        "metadata_sha256": "64e61f9ad8d0da63f2f2ac6342ea2d2c68a6f2b66c20331c25b6dc155bbe7614",
+        "files": 216,
+        "bytes": 5165507
+      },
+      "processes_before": [],
+      "compatibility_link": false,
+      "state": "verified"
+    },
+    {
+      "old": "config1-chain-contract-20261031",
+      "short": "chain-check",
+      "source": "/home/hdd3/zhangh/workspace/fastsd/config1-chain-contract-20261031",
+      "destination": "/home/hdd3/zhangh/workspace/fastsd/experiments/chain-check",
+      "manifests": {},
+      "tracked_files": 0,
+      "physical": "/home/hdd3/zhangh/workspace/fastsd/experiments/chain-check",
+      "before": {
+        "device": 66305,
+        "inode": 109725507,
+        "metadata_sha256": "a7860d4a1ee108d9e6e0fa8e5661011dfa85d44439f2f463f3456759a747b321",
+        "files": 8,
+        "bytes": 79402
+      },
+      "processes_before": [],
+      "compatibility_link": false,
+      "state": "verified"
+    },
+    {
+      "old": "config1-diagnostic-validation-20261101",
+      "short": "diagnostic-check",
+      "source": "/home/hdd3/zhangh/workspace/fastsd/config1-diagnostic-validation-20261101",
+      "destination": "/home/hdd3/zhangh/workspace/fastsd/experiments/diagnostic-check",
+      "manifests": {
+        "diag30-r01/suite/manifest.json": "d2b15d03d5133ad45b92209027f84b6c9c8c745cb5deff62699e2412c33faaca"
+      },
+      "tracked_files": 0,
+      "physical": "/home/hdd3/zhangh/workspace/fastsd/experiments/diagnostic-check",
+      "before": {
+        "device": 66305,
+        "inode": 109738184,
+        "metadata_sha256": "1f1cde301551df27d11f70cabfdd101f2499bc8b19648be58fd73b2c017ab7ab",
+        "files": 1278,
+        "bytes": 38680331
+      },
+      "processes_before": [],
+      "compatibility_link": false,
+      "state": "verified"
+    },
+    {
+      "old": "config1-diagnostics-p30-n30-1101T084737Z",
+      "short": "diagnostic",
+      "source": "/home/hdd3/zhangh/workspace/fastsd/config1-diagnostics-p30-n30-1101T084737Z",
+      "destination": "/home/hdd3/zhangh/workspace/fastsd/experiments/diagnostic",
+      "manifests": {
+        "manifest.json": "9809e6f9573f047d27c54f5efe44e515bcd169b5b4e79836b7841d703a85e896"
+      },
+      "tracked_files": 0,
+      "physical": "/home/hdd3/zhangh/workspace/fastsd/experiments/diagnostic",
+      "before": {
+        "device": 66305,
+        "inode": 109739742,
+        "metadata_sha256": "1c7ab8b0262b82d5558340c6d9c220d0da24c0f2c8648990836e2728ed7098e6",
+        "files": 1266,
+        "bytes": 38634777
+      },
+      "processes_before": [],
+      "compatibility_link": false,
+      "state": "verified"
+    },
+    {
+      "old": "config1-fa2-validation-20261031",
+      "short": "fa2-check",
+      "source": "/home/hdd3/zhangh/workspace/fastsd/config1-fa2-validation-20261031",
+      "destination": "/home/hdd3/zhangh/workspace/fastsd/experiments/fa2-check",
+      "manifests": {
+        "candidate-01/suite/manifest.json": "a86ce59d53ce56aa9fbd93e36e214c10b46b654fbe4cd0bbaee946bac072ac96",
+        "p30-n100-01/suite/manifest.json": "f17bcbfbc3a2d2fce4361f2d5a9a17fcae637a670e4948d4b40ad48ac9dd17d5",
+        "resident-sdpa-p30-n100-01/suite/manifest.json": "336fbc9b7ce0ceee447f73755b8b6e4830395a36d5c3a697c197e0d47578520a",
+        "candidate-02/suite/manifest.json": "fe57544105f3589c49968fe8e74458a5c358bad404cdb549beecd43e3fa6e1bb"
+      },
+      "tracked_files": 0,
+      "physical": "/home/hdd3/zhangh/workspace/fastsd/experiments/fa2-check",
+      "before": {
+        "device": 66305,
+        "inode": 109730268,
+        "metadata_sha256": "58f6877a74759c654597d429f2e20aade9d4982f8c4b2ad3d07bb43450894207",
+        "files": 5099,
+        "bytes": 185715279
+      },
+      "processes_before": [],
+      "compatibility_link": false,
+      "state": "verified"
+    },
+    {
+      "old": "config1-humaneval-full-p20-1031T144115Z",
+      "short": "humaneval-full",
+      "source": "/home/hdd3/zhangh/workspace/fastsd/config1-humaneval-full-p20-1031T144115Z",
+      "destination": "/home/hdd3/zhangh/workspace/fastsd/experiments/humaneval-full",
+      "manifests": {
+        "manifest.json": "34df1158851e17549daffa8de55bd96f27928d0ddd57a65b8655bc0906a2e45f"
+      },
+      "tracked_files": 0,
+      "physical": "/home/hdd3/zhangh/workspace/fastsd/experiments/humaneval-full",
+      "before": {
+        "device": 66305,
+        "inode": 109728740,
+        "metadata_sha256": "0f6916b297d1c7b64f63f9ed118af3c0a95e27baf673193638bed1d3052d6dd4",
+        "files": 1250,
+        "bytes": 48529029
+      },
+      "processes_before": [],
+      "compatibility_link": false,
+      "state": "verified"
+    },
+    {
+      "old": "config1-humaneval-resident-sdpa-p30-n100-1101T010346Z",
+      "short": "humaneval-100",
+      "source": "/home/hdd3/zhangh/workspace/fastsd/config1-humaneval-resident-sdpa-p30-n100-1101T010346Z",
+      "destination": "/home/hdd3/zhangh/workspace/fastsd/experiments/humaneval-100",
+      "manifests": {
+        "manifest.json": "9a92bd01e1896c8a8925d32422feebd29cf55f4be954ee95ee2bd4254afcf144"
+      },
+      "tracked_files": 0,
+      "physical": "/home/hdd3/zhangh/workspace/fastsd/experiments/humaneval-100",
+      "before": {
+        "device": 66305,
+        "inode": 109736442,
+        "metadata_sha256": "894e345e5fa636c2ce7558c472b0e95f581365d367369f00afe48d3dcfc2794e",
+        "files": 1263,
+        "bytes": 43962329
+      },
+      "processes_before": [],
+      "compatibility_link": false,
+      "state": "verified"
+    },
+    {
+      "old": "config1-p20-n50-1031T092354Z",
+      "short": "humaneval-50-1",
+      "source": "/home/hdd3/zhangh/workspace/fastsd/config1-p20-n50-1031T092354Z",
+      "destination": "/home/hdd3/zhangh/workspace/fastsd/experiments/humaneval-50-1",
+      "manifests": {
+        "manifest.json": "73419d4b9c38459d54f353ed15ac5c4f13c297baa036ab3543862ecd31a08f30"
+      },
+      "tracked_files": 0,
+      "physical": "/home/hdd3/zhangh/workspace/fastsd/experiments/humaneval-50-1",
+      "before": {
+        "device": 66305,
+        "inode": 109725539,
+        "metadata_sha256": "bb7f506ec7e42f2789b14440e002843340c1982b063cf95e95d6068e3f67d415",
+        "files": 1250,
+        "bytes": 39126487
+      },
+      "processes_before": [],
+      "compatibility_link": false,
+      "state": "verified"
+    },
+    {
+      "old": "config1-p20-n50-1031T093637Z",
+      "short": "humaneval-50-2",
+      "source": "/home/hdd3/zhangh/workspace/fastsd/config1-p20-n50-1031T093637Z",
+      "destination": "/home/hdd3/zhangh/workspace/fastsd/experiments/humaneval-50-2",
+      "manifests": {
+        "manifest.json": "4d674a27a4b703f0f195e85e18a3301e44c98b363c86c585a22e9068ec0e66bd"
+      },
+      "tracked_files": 0,
+      "physical": "/home/hdd3/zhangh/workspace/fastsd/experiments/humaneval-50-2",
+      "before": {
+        "device": 66305,
+        "inode": 109727072,
+        "metadata_sha256": "7412c46357a720eb598fc08055facc65bec2377175e0202d9d5d48bcc27ac35b",
+        "files": 1250,
+        "bytes": 39127820
+      },
+      "processes_before": [],
+      "compatibility_link": false,
+      "state": "verified"
+    },
+    {
+      "old": "config1-round3-p25-n30-total-1102T142614Z",
+      "short": "round3",
+      "source": "/home/hdd3/zhangh/workspace/fastsd/config1-round3-p25-n30-total-1102T142614Z",
+      "destination": "/home/hdd3/zhangh/workspace/fastsd/experiments/round3",
+      "manifests": {
+        "manifest.json": "3026b21ef4f180a2a24c217b3a4d71941ac43456edde2dc852a3d74d615743a5"
+      },
+      "tracked_files": 0,
+      "physical": "/home/hdd3/zhangh/workspace/fastsd/experiments/round3",
+      "before": {
+        "device": 66305,
+        "inode": 109840577,
+        "metadata_sha256": "8e83692cd02f5b210e4fd4f643e3c5fc3d05d379bbfd5f61260e7cd5ab28e0e1",
+        "files": 137,
+        "bytes": 1629238
+      },
+      "processes_before": [],
+      "compatibility_link": false,
+      "state": "verified"
+    },
+    {
+      "old": "formal-compare-8b-20261025",
+      "short": "compare-8b",
+      "source": "/home/hdd3/zhangh/workspace/fastsd/formal-compare-8b-20261025",
+      "destination": "/home/hdd3/zhangh/workspace/fastsd/experiments/compare-8b",
+      "manifests": {},
+      "tracked_files": 21,
+      "physical": "/home/hdd3/zhangh/workspace/fastsd/experiments/compare-8b",
+      "before": {
+        "device": 66305,
+        "inode": 109710548,
+        "metadata_sha256": "ff22d8770f40b242758fdb767b14f8bf8f3043564bd358b204846fee83ca622a",
+        "files": 21,
+        "bytes": 1914878
+      },
+      "processes_before": [],
+      "compatibility_link": false,
+      "state": "verified"
+    },
+    {
+      "old": "four-method-suite",
+      "short": "four-method",
+      "source": "/home/hdd3/zhangh/workspace/fastsd/four-method-suite",
+      "destination": "/home/hdd3/zhangh/workspace/fastsd/experiments/four-method",
+      "manifests": {
+        "manifest.json": "30325ee23d34e84e1a80064f66c074617217537bea54d8cbde9a36c9c9f985be",
+        "tmp/resume-clock-recovery-20261027-bf7d/backup/manifest.json": "1ef5c3a71c972d3e52fb94ffa7291180269783ce93d9c5520c1ec56437885372",
+        "tmp/resume-http422-observability-20261026-a734/manifest.json": "671752304bfcd6489685a05148d5e7e834dd3e785b7dbf9cdae5612f53b991ac",
+        "tmp/resume-queue-compat-20261026-9e2c/manifest.json": "647ba74c99065c4089010560eaa66d6fd82eda0bee06593498d0d2fa4eadab99"
+      },
+      "tracked_files": 120,
+      "physical": "/home/hdd3/zhangh/workspace/fastsd/experiments/four-method",
+      "before": {
+        "device": 66305,
+        "inode": 109710643,
+        "metadata_sha256": "1596dd9bb9e6c53e773b6dd9b5f4411a6c83a5019defdb0f85330d0cc1a22517",
+        "files": 183,
+        "bytes": 4095580
+      },
+      "processes_before": [],
+      "compatibility_link": false,
+      "state": "verified"
+    },
+    {
+      "old": "four16-p30-n30-1101T165951Z",
+      "short": "four16",
+      "source": "/home/hdd3/zhangh/workspace/fastsd/four16-p30-n30-1101T165951Z",
+      "destination": "/home/hdd3/zhangh/workspace/fastsd/experiments/four16",
+      "manifests": {
+        "manifest.json": "1f9644e061b8495b813a37b4dd3b69664e44e3116447af38bd7a96c1d45dd0e5"
+      },
+      "tracked_files": 0,
+      "physical": "/home/hdd3/zhangh/workspace/fastsd/experiments/four16",
+      "before": {
+        "device": 66305,
+        "inode": 109840119,
+        "metadata_sha256": "b407eef9be799add890c51f0ccbef48a9fadf5cc7284d8100b42e93745d98d98",
+        "files": 242,
+        "bytes": 16154647
+      },
+      "processes_before": [],
+      "compatibility_link": false,
+      "state": "verified"
+    },
+    {
+      "old": "four16-validation-20261101",
+      "short": "four16-check",
+      "source": "/home/hdd3/zhangh/workspace/fastsd/four16-validation-20261101",
+      "destination": "/home/hdd3/zhangh/workspace/fastsd/experiments/four16-check",
+      "manifests": {
+        "four16-r01/suite/manifest.json": "95cf8f6c17b84a79c4f284e92bbe85075031e42f700d506bd8366f74e9ed9a56"
+      },
+      "tracked_files": 0,
+      "physical": "/home/hdd3/zhangh/workspace/fastsd/experiments/four16-check",
+      "before": {
+        "device": 66305,
+        "inode": 109839820,
+        "metadata_sha256": "9c8892aa14b7c93cfa87ec5ba438eb8db45ec5e61c7b0295fe235237e0729231",
+        "files": 254,
+        "bytes": 16215452
+      },
+      "processes_before": [],
+      "compatibility_link": false,
+      "state": "verified"
+    },
+    {
+      "old": "manual-compare-20261026",
+      "short": "compare",
+      "source": "/home/hdd3/zhangh/workspace/fastsd/manual-compare-20261026",
+      "destination": "/home/hdd3/zhangh/workspace/fastsd/experiments/compare",
+      "manifests": {
+        "manifest.json": "d0c40e5fbdbeb2364c88b2298d3ffd824db0ccf3d7a5d2e140fa639f3b662886"
+      },
+      "tracked_files": 58,
+      "physical": "/home/hdd3/zhangh/workspace/fastsd/experiments/compare",
+      "before": {
+        "device": 66305,
+        "inode": 109710571,
+        "metadata_sha256": "e8480a8dd9b0f32eaebc68956a355bd727f7710c62292476fcf1eb5f2b951dd5",
+        "files": 58,
+        "bytes": 2472906
+      },
+      "processes_before": [],
+      "compatibility_link": false,
+      "state": "verified"
+    },
+    {
+      "old": "manual-hetero16-20261025",
+      "short": "hetero16",
+      "source": "/home/hdd3/zhangh/workspace/fastsd/manual-hetero16-20261025",
+      "destination": "/home/hdd3/zhangh/workspace/fastsd/experiments/hetero16",
+      "manifests": {},
+      "tracked_files": 2,
+      "physical": "/home/hdd3/zhangh/workspace/fastsd/experiments/hetero16",
+      "before": {
+        "device": 66305,
+        "inode": 109710537,
+        "metadata_sha256": "fc7ba4d08ee0444a2faf5b8f97e2ae0458a7c6e78a20582d5dc821980bc7e213",
+        "files": 2,
+        "bytes": 13697
+      },
+      "processes_before": [],
+      "compatibility_link": false,
+      "state": "verified"
+    },
+    {
+      "old": "node3-pair-20261027",
+      "short": "cpu-pair",
+      "source": "/home/hdd3/zhangh/workspace/fastsd/node3-pair-20261027",
+      "destination": "/home/hdd3/zhangh/workspace/fastsd/experiments/cpu-pair",
+      "manifests": {
+        "manifest.json": "fc867af53062a5fbcd4ffc0cfae21afa3dada08770a31191a842f5618fead469",
+        "source-backup-20261027_184232/manifest.json": "c55806eb71a28fde8c1e14e5635039831f8516d9b6436993a4ace9b33bb141d4",
+        "source-backup-20261027_210241/manifest.json": "fd63dd1447429271aa738e6e0e236bf2f2d62784aa2f650cb71a080eee394f4b",
+        "source-backup-20261027_184419/manifest.json": "9920d0c7585fefd8f4089b3b6d35ca1a95928cbfe843434cd0c1dab2214b9cfa",
+        "source-backup-20261027_185727/manifest.json": "2f7ae0600d0a87aa7951a8df7c2fa9808500b84c50712e52f6f9f239c713188c"
+      },
+      "tracked_files": 137,
+      "physical": "/home/hdd3/zhangh/workspace/fastsd/experiments/cpu-pair",
+      "before": {
+        "device": 66305,
+        "inode": 109711512,
+        "metadata_sha256": "475119188315f8d07bd08a5ae6e4a0c16904b17e15d3a2feb32d7f94323471a3",
+        "files": 149,
+        "bytes": 3611837
+      },
+      "processes_before": [],
+      "compatibility_link": false,
+      "state": "verified"
+    },
+    {
+      "old": "specedge-cpu-gpu-20261026",
+      "short": "specedge",
+      "source": "/home/hdd3/zhangh/workspace/fastsd/specedge-cpu-gpu-20261026",
+      "destination": "/home/hdd3/zhangh/workspace/fastsd/experiments/specedge",
+      "manifests": {
+        "manifest.json": "8a09adbfa1aa299645641e018cd743c362f659c959f67a0d8af9d9fcd3a07889"
+      },
+      "tracked_files": 64,
+      "physical": "/home/hdd3/zhangh/workspace/fastsd/experiments/specedge",
+      "before": {
+        "device": 66305,
+        "inode": 109711233,
+        "metadata_sha256": "c9e137e10cf3cb66e8d3551a7c81c7a0e0d7c76d336ed307d0a4e63c99a0cece",
+        "files": 64,
+        "bytes": 406199
+      },
+      "processes_before": [],
+      "compatibility_link": false,
+      "state": "verified"
+    },
+    {
+      "old": "tri32-8b-p15-28417f158abc",
+      "short": "draft32-1",
+      "source": "/home/hdd3/zhangh/workspace/fastsd/tri32-8b-p15-28417f158abc",
+      "destination": "/home/hdd3/zhangh/workspace/fastsd/experiments/draft32-1",
+      "manifests": {
+        "manifest.json": "5313a8b906a89be32435925f657d5329cc633a589f4953b00af47dd418305bf2"
+      },
+      "tracked_files": 0,
+      "physical": "/home/hdd3/zhangh/workspace/fastsd/experiments/draft32-1",
+      "before": {
+        "device": 66305,
+        "inode": 109718929,
+        "metadata_sha256": "872d71a402a713b270035705b86bbc819f5cc8b0b77dcb720d260c6c9217926b",
+        "files": 1230,
+        "bytes": 27097356
+      },
+      "processes_before": [],
+      "compatibility_link": false,
+      "state": "verified"
+    },
+    {
+      "old": "tri32-8b-p15-4be26e618a1e",
+      "short": "draft32-2",
+      "source": "/home/hdd3/zhangh/workspace/fastsd/tri32-8b-p15-4be26e618a1e",
+      "destination": "/home/hdd3/zhangh/workspace/fastsd/experiments/draft32-2",
+      "manifests": {
+        "manifest.json": "3ca9e499fc893b01ef494fc34ce0ef2ade3acef0046c04c520d85efb62a1faf9"
+      },
+      "tracked_files": 0,
+      "physical": "/home/hdd3/zhangh/workspace/fastsd/experiments/draft32-2",
+      "before": {
+        "device": 66305,
+        "inode": 109722200,
+        "metadata_sha256": "7506af99113b4d88408003f8bfdf950d3d2b1be702534bd398aa4dd2647fe257",
+        "files": 1235,
+        "bytes": 27161570
+      },
+      "processes_before": [],
+      "compatibility_link": false,
+      "state": "verified"
+    },
+    {
+      "old": "tri32-8b-p15-97c6ab3760e7",
+      "short": "draft32-3",
+      "source": "/home/hdd3/zhangh/workspace/fastsd/tri32-8b-p15-97c6ab3760e7",
+      "destination": "/home/hdd3/zhangh/workspace/fastsd/experiments/draft32-3",
+      "manifests": {
+        "manifest.json": "b01add04ee510080a12e701e095a30bcb6b8264b781e8c2a2da2a2d848e2bc24"
+      },
+      "tracked_files": 0,
+      "physical": "/home/hdd3/zhangh/workspace/fastsd/experiments/draft32-3",
+      "before": {
+        "device": 66305,
+        "inode": 109720557,
+        "metadata_sha256": "90e2d7b55c0866cb6bd6903e021e6a245a9253533ff32fd777916b42a1966f57",
+        "files": 1234,
+        "bytes": 27147887
+      },
+      "processes_before": [],
+      "compatibility_link": false,
+      "state": "verified"
+    },
+    {
+      "old": "tri32-8b-p15-9a624c5ff5ea",
+      "short": "draft32-4",
+      "source": "/home/hdd3/zhangh/workspace/fastsd/tri32-8b-p15-9a624c5ff5ea",
+      "destination": "/home/hdd3/zhangh/workspace/fastsd/experiments/draft32-4",
+      "manifests": {
+        "manifest.json": "14a2ba74e7721c928b0792b8e3238563beb8ad93eeeff9324a5e45ae383b0281"
+      },
+      "tracked_files": 0,
+      "physical": "/home/hdd3/zhangh/workspace/fastsd/experiments/draft32-4",
+      "before": {
+        "device": 66305,
+        "inode": 109717407,
+        "metadata_sha256": "7c8acd8435334b15515db902a5d42a6e163bebe849c3627dcbbe68030b98872b",
+        "files": 1229,
+        "bytes": 27090449
+      },
+      "processes_before": [],
+      "compatibility_link": false,
+      "state": "verified"
+    },
+    {
+      "old": "tri32-8b-p15-9a7144a0e788",
+      "short": "draft32-5",
+      "source": "/home/hdd3/zhangh/workspace/fastsd/tri32-8b-p15-9a7144a0e788",
+      "destination": "/home/hdd3/zhangh/workspace/fastsd/experiments/draft32-5",
+      "manifests": {
+        "manifest.json": "deb5436e8c338bfc923f10dee9843801d9194ee2502a06dc05f465003a8205b4"
+      },
+      "tracked_files": 0,
+      "physical": "/home/hdd3/zhangh/workspace/fastsd/experiments/draft32-5",
+      "before": {
+        "device": 66305,
+        "inode": 109723839,
+        "metadata_sha256": "f534acdffa70ff9b0b1bcf4c91ceadec918862f9e9f48367d57401b11176a641",
+        "files": 1258,
+        "bytes": 27404800
+      },
+      "processes_before": [],
+      "compatibility_link": false,
+      "state": "verified"
+    },
+    {
+      "old": "wrr-prefetch-p30-n30-1101T125456Z",
+      "short": "prefetch-1",
+      "source": "/home/hdd3/zhangh/workspace/fastsd/wrr-prefetch-p30-n30-1101T125456Z",
+      "destination": "/home/hdd3/zhangh/workspace/fastsd/experiments/prefetch-1",
+      "manifests": {
+        "manifest.json": "def51852e29c754e76a14f18721470ca0cffd0470138b7fb06bf049eda619ccd"
+      },
+      "tracked_files": 0,
+      "physical": "/home/hdd3/zhangh/workspace/fastsd/experiments/prefetch-1",
+      "before": {
+        "device": 66305,
+        "inode": 109741757,
+        "metadata_sha256": "93172f3e53ea6444706c81b018a5a96bd83da3dd6b1e963413a2bbc519eae906",
+        "files": 238,
+        "bytes": 17488473
+      },
+      "processes_before": [],
+      "compatibility_link": false,
+      "state": "verified"
+    },
+    {
+      "old": "wrr-prefetch-p30-n30-1101T134617Z",
+      "short": "prefetch-2",
+      "source": "/home/hdd3/zhangh/workspace/fastsd/wrr-prefetch-p30-n30-1101T134617Z",
+      "destination": "/home/hdd3/zhangh/workspace/fastsd/experiments/prefetch-2",
+      "manifests": {
+        "manifest.json": "27973aeb2b670982446f6363adff62ed7818fc3b1bbcda266583b92630dd6f60"
+      },
+      "tracked_files": 0,
+      "physical": "/home/hdd3/zhangh/workspace/fastsd/experiments/prefetch-2",
+      "before": {
+        "device": 66305,
+        "inode": 109742671,
+        "metadata_sha256": "57c56d59dde38c46a6589e088a4e2ba69c5c3e99d0090aef8adf8edac13aa066",
+        "files": 238,
+        "bytes": 17490123
+      },
+      "processes_before": [],
+      "compatibility_link": false,
+      "state": "verified"
+    },
+    {
+      "old": "wrr-prefetch-p30-n30-1101T140124Z",
+      "short": "prefetch-3",
+      "source": "/home/hdd3/zhangh/workspace/fastsd/wrr-prefetch-p30-n30-1101T140124Z",
+      "destination": "/home/hdd3/zhangh/workspace/fastsd/experiments/prefetch-3",
+      "manifests": {
+        "manifest.json": "bff309a98a700def79ae809ed7a7ae95a5f37b0b344a39e5eb26c9608ac6ace4"
+      },
+      "tracked_files": 0,
+      "physical": "/home/hdd3/zhangh/workspace/fastsd/experiments/prefetch-3",
+      "before": {
+        "device": 66305,
+        "inode": 109743538,
+        "metadata_sha256": "b51b3eb0a7dd21e56be2b2ea98ac2da61541c0155a68b608a49e5617fdb8ccad",
+        "files": 240,
+        "bytes": 17492277
+      },
+      "processes_before": [],
+      "compatibility_link": false,
+      "state": "verified"
+    },
+    {
+      "old": "wrr-prefetch-p30-n30-1101T152459Z",
+      "short": "prefetch-4",
+      "source": "/home/hdd3/zhangh/workspace/fastsd/wrr-prefetch-p30-n30-1101T152459Z",
+      "destination": "/home/hdd3/zhangh/workspace/fastsd/experiments/prefetch-4",
+      "manifests": {
+        "manifest.json": "bb61f54ca79e4b1d95c87efbaae5284af91c3c4121f9f8351263f17cd4a2ca3d"
+      },
+      "tracked_files": 0,
+      "physical": "/home/hdd3/zhangh/workspace/fastsd/experiments/prefetch-4",
+      "before": {
+        "device": 66305,
+        "inode": 109838593,
+        "metadata_sha256": "69e63c87da81cb7d736528d21613b78ca3a6a592219333e21cfcfa62101e46f9",
+        "files": 240,
+        "bytes": 17495745
+      },
+      "processes_before": [],
+      "compatibility_link": false,
+      "state": "verified"
+    },
+    {
+      "old": "wrr-prefetch-p30-n30-1101T161044Z",
+      "short": "prefetch-5",
+      "source": "/home/hdd3/zhangh/workspace/fastsd/wrr-prefetch-p30-n30-1101T161044Z",
+      "destination": "/home/hdd3/zhangh/workspace/fastsd/experiments/prefetch-5",
+      "manifests": {
+        "manifest.json": "f39f1e170862415f597d8fd9690a0556b5aac8e62ac42687c3bdb0a7dd03876d"
+      },
+      "tracked_files": 0,
+      "physical": "/home/hdd3/zhangh/workspace/fastsd/experiments/prefetch-5",
+      "before": {
+        "device": 66305,
+        "inode": 109839464,
+        "metadata_sha256": "1d37da3a1a1901e3f7be2f16f02f95e22585fd3f50ad81899724e22cfe8347d4",
+        "files": 240,
+        "bytes": 17498376
+      },
+      "processes_before": [],
+      "compatibility_link": false,
+      "state": "verified"
+    },
+    {
+      "old": "wrr-prefetch-validation-20261101",
+      "short": "prefetch-check",
+      "source": "/home/hdd3/zhangh/workspace/fastsd/wrr-prefetch-validation-20261101",
+      "destination": "/home/hdd3/zhangh/workspace/fastsd/experiments/prefetch-check",
+      "manifests": {
+        "wrr-prefetch-r01/suite/manifest.json": "ffc46521aa96f8b38dfc1642b0c6a2be793e578304b2d9715cfd172ccc4489ca",
+        "wrr-prefetch-r05/suite/manifest.json": "a3bd838a720c851c20dd2488105388797fbbba1ca3fa59624dd522007a74faf2",
+        "wrr-prefetch-r04/suite/manifest.json": "8ef49cc25796b1cdc51743dfb3abd2bcf972e4dfdf3dae55c2d540e775193d2c",
+        "wrr-prefetch-r02/suite/manifest.json": "56ff13f9530d569a0e2312a6237cbfa725dff79caa466b19e77802d1c48ecba5",
+        "wrr-prefetch-r03/suite/manifest.json": "47424f4f2275500703671fd5b818589423988f641a0ed6d7e0615f6ca4becab5"
+      },
+      "tracked_files": 0,
+      "physical": "/home/hdd3/zhangh/workspace/fastsd/experiments/prefetch-check",
+      "before": {
+        "device": 66305,
+        "inode": 109741456,
+        "metadata_sha256": "81b851ee0adb32a234a8ad6a0d43f610ae0932b9476d64395e00b2be866a7121",
+        "files": 1256,
+        "bytes": 87757691
+      },
+      "processes_before": [],
+      "compatibility_link": false,
+      "state": "verified"
+    }
+  ],
+  "state": "complete",
+  "disk_free_bytes_after": 681749639168,
+  "finished_utc": "2026-11-03T12:58:20.017386+00:00",
+  "worklog": "/home/zhangh/WORKLOG.md"
+}

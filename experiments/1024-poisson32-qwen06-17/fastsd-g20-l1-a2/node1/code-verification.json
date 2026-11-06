@@ -1,0 +1,10 @@
+{
+  "harness_revision": 2,
+  "hashes": {
+    "source/src/engine.py": "80acc1264039b40a91b2522e6f3a2cdb2f2ff768bd68191e41200ca7c1ac330d",
+    "source/src/scheduler_runtime.py": "5b2f58a0e162f2f609755782c5f43502beb1811eb49152080c9eff1fb080daa6",
+    "source/cloud/cloud_service.py": "96a6dee26f34ec26b32eedae8ee33b6ab30b64ac707270dcf962a198d9d6d5a3",
+    "node_agent.py": "6b9aa15d3af6a847fbac2a8e09b8ddd5d5d17ac66b563a67683d390b16792cfb",
+    "common.py": "e95d3a91b448f89d248460d401a15f2578bc62d781c3d48d209c7533c330200a"
+  }
+}

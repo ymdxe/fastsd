@@ -1,0 +1,45 @@
+{
+  "source": "/mnt/nfs0/zhangh/models/Qwen3-32B",
+  "destination": "/home/hdd3/zhangh/workspace/fastsd/experiments/1024-hetero-16draft/model-view/Qwen3-32B",
+  "created_epoch": 1792771994.4805188,
+  "model_type": "qwen3",
+  "architectures": [
+    "Qwen3ForCausalLM"
+  ],
+  "shard_count": 17,
+  "indexed_tensor_count": 707,
+  "weight_bytes": 65524328560,
+  "linked_file_sizes": {
+    "config.json": 728,
+    "model.safetensors.index.json": 58330,
+    "model-00001-of-00017.safetensors": 3957109648,
+    "model-00002-of-00017.safetensors": 3900791760,
+    "model-00003-of-00017.safetensors": 3900791760,
+    "model-00004-of-00017.safetensors": 3900791800,
+    "model-00005-of-00017.safetensors": 3900791800,
+    "model-00006-of-00017.safetensors": 3900791800,
+    "model-00007-of-00017.safetensors": 3900791800,
+    "model-00008-of-00017.safetensors": 3900791800,
+    "model-00009-of-00017.safetensors": 3900791800,
+    "model-00010-of-00017.safetensors": 3900791800,
+    "model-00011-of-00017.safetensors": 3900791800,
+    "model-00012-of-00017.safetensors": 3900791800,
+    "model-00013-of-00017.safetensors": 3900791800,
+    "model-00014-of-00017.safetensors": 3900791800,
+    "model-00015-of-00017.safetensors": 3900791800,
+    "model-00016-of-00017.safetensors": 3900791800,
+    "model-00017-of-00017.safetensors": 3055341992,
+    "generation_config.json": 239,
+    "tokenizer_config.json": 9732,
+    "tokenizer.json": 11422654,
+    "vocab.json": 2776833,
+    "merges.txt": 1671853
+  },
+  "skipped_optional_files": {
+    "special_tokens_map.json": "FileNotFoundError",
+    "added_tokens.json": "FileNotFoundError",
+    "chat_template.jinja": "FileNotFoundError",
+    "tokenizer.model": "FileNotFoundError"
+  },
+  "source_directory_enumerated": false
+}

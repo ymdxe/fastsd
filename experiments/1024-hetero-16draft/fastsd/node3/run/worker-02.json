@@ -1,0 +1,1 @@
+{"worker_id": 2, "pid": 80350, "node": "node3", "cpu_affinity": [24], "threads": 1, "dtype": "float16", "device": "cpu", "load_seconds": 7.511091748718172, "numa_policies": ["bind:1"], "barrier_release_monotonic": 2458245.634774807, "barrier_release_epoch": 1792775804.9662032}

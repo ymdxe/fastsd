@@ -1,0 +1,130 @@
+{
+  "worker-00": {
+    "pid": 202760,
+    "threads": 1,
+    "affinity": [
+      0
+    ],
+    "epoch": 1792823193.9817045
+  },
+  "worker-01": {
+    "pid": 202761,
+    "threads": 1,
+    "affinity": [
+      1
+    ],
+    "epoch": 1792823193.9603405
+  },
+  "worker-02": {
+    "pid": 202762,
+    "threads": 1,
+    "affinity": [
+      4
+    ],
+    "epoch": 1792823193.975398
+  },
+  "worker-03": {
+    "pid": 202763,
+    "threads": 1,
+    "affinity": [
+      3
+    ],
+    "epoch": 1792823193.9557772
+  },
+  "worker-04": {
+    "pid": 202764,
+    "threads": 1,
+    "affinity": [
+      8
+    ],
+    "epoch": 1792823193.982182
+  },
+  "worker-05": {
+    "pid": 202765,
+    "threads": 1,
+    "affinity": [
+      5
+    ],
+    "epoch": 1792823193.959478
+  },
+  "worker-06": {
+    "pid": 202766,
+    "threads": 1,
+    "affinity": [
+      12
+    ],
+    "epoch": 1792823193.9811327
+  },
+  "worker-07": {
+    "pid": 202767,
+    "threads": 1,
+    "affinity": [
+      7
+    ],
+    "epoch": 1792823193.9559498
+  },
+  "worker-08": {
+    "pid": 202768,
+    "threads": 1,
+    "affinity": [
+      16
+    ],
+    "epoch": 1792823193.9819555
+  },
+  "worker-09": {
+    "pid": 202769,
+    "threads": 1,
+    "affinity": [
+      9
+    ],
+    "epoch": 1792823193.959197
+  },
+  "worker-10": {
+    "pid": 202770,
+    "threads": 1,
+    "affinity": [
+      18
+    ],
+    "epoch": 1792823193.9816651
+  },
+  "worker-11": {
+    "pid": 202771,
+    "threads": 1,
+    "affinity": [
+      11
+    ],
+    "epoch": 1792823193.9778845
+  },
+  "worker-12": {
+    "pid": 202772,
+    "threads": 1,
+    "affinity": [
+      26
+    ],
+    "epoch": 1792823193.9758282
+  },
+  "worker-13": {
+    "pid": 202773,
+    "threads": 1,
+    "affinity": [
+      13
+    ],
+    "epoch": 1792823193.9592113
+  },
+  "worker-14": {
+    "pid": 202774,
+    "threads": 1,
+    "affinity": [
+      28
+    ],
+    "epoch": 1792823193.9765866
+  },
+  "worker-15": {
+    "pid": 202775,
+    "threads": 1,
+    "affinity": [
+      15
+    ],
+    "epoch": 1792823193.9560602
+  }
+}

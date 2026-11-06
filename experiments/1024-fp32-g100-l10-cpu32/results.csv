@@ -1,0 +1,4 @@
+run,status,completed,tokens,arrival_ttft_mean_s,service_ttft_mean_s,tpot_mean_ms,energy_J,J_per_token,kv_prefetch_moved,kv_prefetch_failed,kv_demand_hit_rate
+fastsd-g100-l10,interrupted_by_user,195,51127,1712.3803724731802,18.445350490885378,1781.6298178685774,,,826,0,0.15228613569321534
+standard-g100-l10,pending,0,0,,,,,,,,
+specedge-g100-l10,pending,0,0,,,,,,,,

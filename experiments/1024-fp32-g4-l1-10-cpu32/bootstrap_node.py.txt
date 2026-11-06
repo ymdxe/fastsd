@@ -1,0 +1,26 @@
+import hashlib,io,json,os,pathlib,socket,sys,tarfile,urllib.request
+root=pathlib.Path('/home/zhangh/workspace/fastsd/experiments/1024-fp32-g4-l1-10-cpu32')
+old=pathlib.Path('/home/zhangh/workspace/fastsd/experiments/1024-fp32-g100-l10-cpu32')
+node=NODE_NAME
+assert node in socket.gethostname()
+assert not root.exists(),'Refusing an existing run directory'
+token=(old/'.control-token').read_text().strip()
+request=urllib.request.Request('http://127.0.0.1:28634/bundle',headers={'Authorization':'Bearer '+token})
+with urllib.request.build_opener(urllib.request.ProxyHandler({})).open(request,timeout=120) as response:data=response.read()
+assert hashlib.sha256(data).hexdigest()==EXPECTED_DIGEST
+root.mkdir(parents=True)
+with tarfile.open(fileobj=io.BytesIO(data),mode='r:gz') as archive:
+ for entry in archive.getmembers():
+  p=pathlib.PurePosixPath(entry.name)
+  assert not p.is_absolute() and '..' not in p.parts and entry.isfile()
+ archive.extractall(root)
+manifest=json.loads((root/'manifest.json').read_text())
+for name,digest in manifest['hashes'].items():assert hashlib.sha256((root/name).read_bytes()).hexdigest()==digest,name
+fd=os.open(root/'.control-token',os.O_CREAT|os.O_EXCL|os.O_WRONLY,0o600)
+with os.fdopen(fd,'w') as f:f.write(token)
+mapping=json.loads((root/(node+'-worker-map.json')).read_text())
+cpus=[cpu for p in mapping for cpu in p['cpus']]
+assert len(mapping)==16 and len(cpus)==len(set(cpus)) and set(cpus)<=os.sched_getaffinity(0)
+print('FP32_BOOTSTRAP_OK',node,'workers',len(mapping),'threads/model',mapping[0]['threads'],'physical cores',len(cpus),flush=True)
+os.chdir(root)
+os.execv(sys.executable,[sys.executable,'-u',str(root/'node_agent.py'),node])

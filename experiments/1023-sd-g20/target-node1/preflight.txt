@@ -1,0 +1,30 @@
+$ hostname
+node1
+$ df -h /home/zhangh/workspace/fastsd/experiments/1023-sd-g20 /
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda4       3.7T  3.1T  612G  84% /home
+/dev/nvme0n1p5  976G  569G  407G  59% /
+$ uptime
+ 19:55:36 up 69 days,  7:39,  5 users,  load average: 0.16, 0.38, 0.63
+$ free -h
+              total        used        free      shared  buff/cache   available
+Mem:           125G        3.4G        8.9G        4.1G        112G        117G
+Swap:            0B          0B          0B
+$ numactl --hardware
+available: 2 nodes (0-1)
+node 0 cpus: 0 2 4 6 8 10 12 14 16 18 20 22 24 26 28 30 32 34 36 38 40 42 44 46 48 50 52 54 56 58 60 62 64 66 68 70 72 74 76 78
+node 0 size: 63732 MB
+node 0 free: 6356 MB
+node 1 cpus: 1 3 5 7 9 11 13 15 17 19 21 23 25 27 29 31 33 35 37 39 41 43 45 47 49 51 53 55 57 59 61 63 65 67 69 71 73 75 77 79
+node 1 size: 64488 MB
+node 1 free: 2712 MB
+node distances:
+node   0   1 
+  0:  10  21 
+  1:  21  10 
+$ git status --short
+fatal: Not a git repository (or any parent up to mount point /home)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+$ git rev-parse HEAD
+fatal: Not a git repository (or any parent up to mount point /home)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).

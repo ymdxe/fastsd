@@ -1,0 +1,20 @@
+{"status": "completed", "report": "/home/hdd3/zhangh/workspace/fastsd/experiments/1024-hetero-16draft/RESULTS.zh.md", "output_review": "/home/hdd3/zhangh/workspace/fastsd/experiments/1024-hetero-16draft/output_review.json"}
+{
+  "status": "completed",
+  "files": [
+    "/home/hdd3/zhangh/workspace/fastsd/experiments/1024-hetero-16draft/results.json",
+    "/home/hdd3/zhangh/workspace/fastsd/experiments/1024-hetero-16draft/results.csv",
+    "/home/hdd3/zhangh/workspace/fastsd/experiments/1024-hetero-16draft/RESULTS.md"
+  ],
+  "output_comparisons": {
+    "fastsd": {
+      "paired_requests": 16,
+      "identical_output_requests": 16
+    },
+    "specedge": {
+      "paired_requests": 16,
+      "identical_output_requests": 15
+    }
+  },
+  "issue_count": 0
+}

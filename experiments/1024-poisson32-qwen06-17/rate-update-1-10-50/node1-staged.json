@@ -1,0 +1,31 @@
+{
+  "node": "node1",
+  "rates": [
+    1,
+    10,
+    50
+  ],
+  "bundle_sha256": "5775622cda31e19fa65a2f7dd3904be84226a2a2bd3de0c47347997d6a07cec1",
+  "inference_unchanged": true,
+  "files_changed": [
+    "README.zh.md",
+    "bundle.py",
+    "campaign.py",
+    "coordinator.py",
+    "finalize.py",
+    "finish_monitor.py",
+    "manifest.json",
+    "matrix.json",
+    "prepare.py",
+    "rate_handoff.py",
+    "report.py",
+    "start_finish_monitor.py",
+    "start_rate_handoff.py",
+    "update_rates.py",
+    "validate.py",
+    "validation.json",
+    "workloads/lambda-10.jsonl",
+    "workloads/lambda-50.jsonl"
+  ],
+  "lambda1_sha256": "178fc4b37c309eb8bf7d2026d9733cd169599cf9838024157f28fb468d9ad27b"
+}

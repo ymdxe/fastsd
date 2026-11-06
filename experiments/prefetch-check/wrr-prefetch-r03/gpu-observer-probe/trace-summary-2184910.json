@@ -1,0 +1,13 @@
+{
+  "emitted": 55,
+  "written": 71,
+  "dropped": 0,
+  "emit_host_ns": 1420472,
+  "writer_cpu_ns": 36606463,
+  "writer_errors": 0,
+  "writer_error": null,
+  "writer_alive_at_close": false,
+  "unresolved_cuda_spans": 0,
+  "cuda_limit_drops": 0,
+  "scope": "Observer overhead is recorded, not subtracted from experiment latency."
+}

@@ -1,0 +1,8 @@
+{
+  "pid": 3862515,
+  "pgid": 3862515,
+  "start_ticks": 11484797,
+  "uid": 1074,
+  "started_epoch_s": 1793468370.349138,
+  "script": "/home/hdd3/zhangh/workspace/fastsd/config1-fa2-validation-20261031/p30-n100-01/validate_gpu.py"
+}

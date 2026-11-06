@@ -1,0 +1,16 @@
+{
+  "ok": true,
+  "matrix_cells": 27,
+  "requests_per_cell": 1319,
+  "lambda1_byte_hash_unchanged": "178fc4b37c309eb8bf7d2026d9733cd169599cf9838024157f28fb468d9ad27b",
+  "all_non_rate_settings_unchanged": true,
+  "same_samples_and_scaled_poisson_intervals": true,
+  "no_model_smokes": true,
+  "boundary_guard_verified_before_gpu_or_dispatch": true,
+  "inference_files_unchanged": 73,
+  "cpu_nodes_staged": [
+    "node1",
+    "node3"
+  ],
+  "runtime_check_passed": true
+}

@@ -1,0 +1,79 @@
+{
+  "ok": true,
+  "epoch": 1792829560.5622706,
+  "validation": "Observed formal run; no model smoke",
+  "nodes": {
+    "node1": {
+      "models": 16,
+      "observed_dtype": "torch.float32",
+      "intraop_threads_per_model": 2,
+      "observed_distinct_cpus": 32,
+      "all_affinities_match_placement": true,
+      "source_verification": {
+        "hashes": {
+          "source/src/engine.py": "80acc1264039b40a91b2522e6f3a2cdb2f2ff768bd68191e41200ca7c1ac330d",
+          "source/src/scheduler_runtime.py": "5b2f58a0e162f2f609755782c5f43502beb1811eb49152080c9eff1fb080daa6",
+          "source/cloud/cloud_service.py": "96a6dee26f34ec26b32eedae8ee33b6ab30b64ac707270dcf962a198d9d6d5a3",
+          "node_agent.py": "70f9fd4b8e21add08a5a4530e483b35e869f3f70158af8d017d46550cb81dc8c",
+          "common.py": "e95d3a91b448f89d248460d401a15f2578bc62d781c3d48d209c7533c330200a"
+        }
+      }
+    },
+    "node3": {
+      "models": 16,
+      "observed_dtype": "torch.float32",
+      "intraop_threads_per_model": 4,
+      "observed_distinct_cpus": 64,
+      "all_affinities_match_placement": true,
+      "source_verification": {
+        "hashes": {
+          "source/src/engine.py": "80acc1264039b40a91b2522e6f3a2cdb2f2ff768bd68191e41200ca7c1ac330d",
+          "source/src/scheduler_runtime.py": "5b2f58a0e162f2f609755782c5f43502beb1811eb49152080c9eff1fb080daa6",
+          "source/cloud/cloud_service.py": "96a6dee26f34ec26b32eedae8ee33b6ab30b64ac707270dcf962a198d9d6d5a3",
+          "node_agent.py": "70f9fd4b8e21add08a5a4530e483b35e869f3f70158af8d017d46550cb81dc8c",
+          "common.py": "e95d3a91b448f89d248460d401a15f2578bc62d781c3d48d209c7533c330200a"
+        }
+      }
+    }
+  },
+  "target": {
+    "ready": true,
+    "pid": 3202954,
+    "epoch": 1792829192.77659,
+    "model": "/mnt/nfs0/zhangh/models/Qwen3-1.7B",
+    "dtype": "torch.float32",
+    "physical_gpu": 1,
+    "gpu_name": "NVIDIA RTX A6000",
+    "memory_allocated_bytes": 6882300416,
+    "weight_offload": false
+  },
+  "prefetch_observation": {
+    "prefetch_async_submitted": 126,
+    "prefetch_async_completed": 125,
+    "prefetch_async_moved": 117,
+    "prefetch_async_failed": 0
+  },
+  "progress": {
+    "status": "running",
+    "cell": {
+      "id": "fastsd-g100-l10",
+      "method": "fastsd",
+      "gamma": 100,
+      "rate": 10.0,
+      "cap": 1024,
+      "expected_requests": 1319
+    },
+    "completed": 9,
+    "expected": 1319,
+    "workers_ready": 32,
+    "clock_ready": 32,
+    "release_epoch": 1792829211.2682168,
+    "epoch": 1792829560.3582134
+  },
+  "power_sample": {
+    "epoch": 1792829560.5981925,
+    "power_w": 70.313,
+    "memory_used_bytes": 15874785280,
+    "gpu_utilization_pct": 0
+  }
+}

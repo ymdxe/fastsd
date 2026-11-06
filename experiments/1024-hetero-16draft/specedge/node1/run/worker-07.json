@@ -1,0 +1,20 @@
+{
+  "worker_id": 7,
+  "client_idx": 7,
+  "pid": 255617,
+  "node": "node1",
+  "gamma": 100,
+  "dtype": "float16",
+  "device": "cpu",
+  "threads": 1,
+  "cpu_affinity": [
+    7
+  ],
+  "numa_policies": [
+    "bind:1"
+  ],
+  "load_seconds": 5.525486191734672,
+  "max_len": 768,
+  "barrier_release_monotonic": 6012742.776054699,
+  "barrier_release_epoch": 1792780089.9779534
+}

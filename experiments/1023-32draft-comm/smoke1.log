@@ -1,0 +1,18 @@
+CUDA extension not installed.
+CUDA extension not installed.
+Detected kernel version 3.10.0, which is below the recommended minimum of 5.5.0; this can cause the process to hang. It is recommended to upgrade the kernel to the minimum version or higher.
+[93mLoading tokenizer of /mnt/nfs0/zhangh/models/Qwen3-1.7B...[0m
+CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 0] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:07<00:07,  7.63s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:08<00:00,  3.93s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:08<00:00,  4.49s/it]
+WORKER_READY rank=0 pid=97289 cpus=[0]
+[92m[Edge 0] task gsm8k-0000 reuse stats: hit=0 miss=0 skip_not_full_accept=0 hit_rate=0.000[0m
+[92m[Edge 0] finished task gsm8k-0000, generated 4 tokens[0m
+[92m[Edge 0] task gsm8k-0000 output:
+Let's break down[0m
+[92m[METRICS] wrote summary: /home/zhangh/workspace/fastsd/experiments/1023-32draft-comm/smoke1/edge_metrics_summary.json[0m

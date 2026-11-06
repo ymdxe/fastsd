@@ -1,0 +1,18 @@
+{
+  "status": "running",
+  "cell": {
+    "id": "fastsd-g20-l1-a2",
+    "method": "fastsd",
+    "gamma": 20,
+    "rate": 1.0,
+    "cap": 1024,
+    "expected_requests": 1319,
+    "retry_of": "fastsd-g20-l1"
+  },
+  "completed": 356,
+  "expected": 1319,
+  "workers_ready": 32,
+  "clock_ready": 32,
+  "release_epoch": 1792817593.5118978,
+  "epoch": 1792822658.0978367
+}

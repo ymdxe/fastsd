@@ -1,0 +1,175 @@
+{
+  "source_sha": "16198d2e55d3e1e29214701ab32a53ffe98d9798",
+  "source_branch": "fix/wrr-kv-prefetch-20261101",
+  "dataset": "humaneval",
+  "target_model": "/home/hdd/zhangh/models/Qwen3-8B",
+  "tokenizer_model": "/home/hdd/zhangh/models/Qwen3-8B",
+  "dtype": "bfloat16",
+  "tasks_per_worker": 30,
+  "max_tokens": 400,
+  "rate_per_worker": 0.03333333333333333,
+  "batch_size": 16,
+  "token_budget": 512,
+  "seed": 1234,
+  "clock_uncertainty_limit_ms": 100,
+  "bind_host": "127.0.0.1",
+  "port": 27775,
+  "server_url": "http://127.0.0.1:37775",
+  "network": "Framed-v2 authenticated reverse TCP over IB; hub27777, HTTP27775/37775, gRPC27776/37776",
+  "gpu_python": "/home/hdd/zhangh/envs/fastsd_fa2_283_py314_20261031/bin/python",
+  "gpu_result_root": "/home/hdd3/zhangh/workspace/fastsd/exp/wrr_prefetch_repair_20261101",
+  "cpu_result_root": "/home/zhangh/workspace/fastsd/exp/wrr_prefetch_repair_20261101",
+  "gpu_memory_fraction": 0.85,
+  "gpu_selection": "wait_for_fixed_gpu_free_of_foreign_compute_processes; no automatic GPU substitution",
+  "nodes": {
+    "node1": {
+      "ssh": "cpunode1",
+      "workers": 8,
+      "threads": 8,
+      "gamma": 4,
+      "python": "/home/zhangh/miniconda3/envs/fastsd/bin/python",
+      "model": "/mnt/nfs0/zhangh/models/Qwen3-0.6B",
+      "ib_address": "10.66.0.3",
+      "interop_threads": 1,
+      "result_root": "/home/zhangh/workspace/fastsd/exp/wrr_prefetch_repair_20261101",
+      "tokenizer_model": "/mnt/nfs0/zhangh/models/Qwen3-0.6B"
+    },
+    "node2": {
+      "ssh": "cpunode2",
+      "workers": 8,
+      "threads": 8,
+      "gamma": 4,
+      "python": "/home/zhangh/venvs/fastsd_cpu/bin/python",
+      "model": "/vol1/zhangh/models/Qwen3-0.6B-Base",
+      "ib_address": "10.66.0.1",
+      "exclude_cpus": [
+        22,
+        70
+      ],
+      "interop_threads": 1,
+      "result_root": "/home/zhangh/workspace/fastsd/exp/wrr_prefetch_repair_20261101",
+      "tokenizer_model": "/vol1/zhangh/models/Qwen3-0.6B"
+    },
+    "node3": {
+      "ssh": "cpunode3",
+      "workers": 16,
+      "threads": 8,
+      "gamma": 8,
+      "python": "/home/zhangh/envs/fastsd_cpu_py314/bin/python314_glibc",
+      "model": "/mnt/nfs0/zhangh/models/Qwen3-0.6B",
+      "ib_address": "10.66.0.2",
+      "result_root": "/mnt/nvme2/zhangh/fastsd/exp/wrr_prefetch_repair_20261101",
+      "interop_threads": 1,
+      "tokenizer_model": "/mnt/nfs0/zhangh/models/Qwen3-0.6B"
+    }
+  },
+  "grpc_port": 27776,
+  "specedge_server_url": "127.0.0.1:37776",
+  "target_physical_gpu": 1,
+  "gpu_uuid": "GPU-422501a2-5189-7f5b-5ce6-95464276b27f",
+  "methods": [
+    "fastsd"
+  ],
+  "official_specedge_sha": "1edcaf02ffc41a7b57726450c5357ed216a3b9bc",
+  "specedge_max_len": 2048,
+  "request_timeout": 21600,
+  "tree_budget": 8,
+  "num_clients": 32,
+  "campaign_timeout_s": 604800,
+  "stage_timeout_s": 86400,
+  "dataset_scope": "Same 30 selected HumanEval tasks per Draft; independent exponential inter-arrival mean 30 s",
+  "specedge_variant": "specedge_cpu_adapted_single_chain_included_g8_g4_g4",
+  "gamma_semantics": {
+    "sd": "single linear chain, node3 gamma8 and node1/node2 gamma4",
+    "specedge": "single linear chain, node3 gamma8 and node1/node2 gamma4",
+    "fastsd": "single linear chain, node3 gamma8 and node1/node2 gamma4"
+  },
+  "runtime_fixes": {
+    "sd_fastsd": "Collect completed cache transfer tickets after every execution phase; serialized official poll_completed, nonblocking event checks; no algorithm/parameter/allocator-quota change",
+    "specedge": "Isolated client corrections: int64 ancestry path counts prevent BF16 acceptance errors; proactive KV compaction retains all accepted and proactive nodes. Official source pristine; model/KV/wire stay BF16."
+  },
+  "relay_lifetime_s": 1818000,
+  "gpu_start_free_mib": {
+    "target_only": 43008,
+    "sd": 43008,
+    "specedge": 43008,
+    "fastsd": 43008
+  },
+  "gpu_start_wait_timeout_s": 86400,
+  "lifecycle_note": "User-authorized paper priority+WRR prefetch repair, only this method is run.",
+  "specedge_correctness_fix": "int64_path_count_proactive_kv_v1",
+  "datasets": [
+    "humaneval"
+  ],
+  "max_context_length": 2048,
+  "eos_token_ids": [
+    151645,
+    151643
+  ],
+  "pad_token_id": 151643,
+  "relay_channel_port": 27777,
+  "idle_baseline_s": 60,
+  "resource_interval_s": 5,
+  "power_interval_s": 1,
+  "progress_interval_s": 30,
+  "input_mode": "frozen_target_token_ids",
+  "require_gpu_compute_idle": true,
+  "stages": [
+    {
+      "order": 1,
+      "condition_id": "c1-wrr-prefetch-p30-r02",
+      "dataset": "humaneval",
+      "method": "fastsd",
+      "scheduler_policy": "legacy",
+      "requests": 960
+    }
+  ],
+  "retry_authorized_by_user": true,
+  "trace_schema_version": 2,
+  "trace_global_index": "unique0..959 assigned once after sorting frozen arrivals",
+  "target_attention_backend": "sdpa_per_sequence",
+  "target_only_kv_policy": "gpu_resident",
+  "require_validation_certificate": true,
+  "attention_dependency": {
+    "package": "flash-attn",
+    "version": "2.8.3",
+    "cuda_home": "/usr/local/cuda-12.8",
+    "torch": "2.9.0+cu128",
+    "transformers": "4.57.1",
+    "required_for_selected_backend": false
+  },
+  "profiling_enabled": true,
+  "metadata_polling_note": "Original full experiment/info polling retained; its cost is reported separately and excluded from forward microbenchmark attribution.",
+  "mean_arrival_interval_s": 30,
+  "subset_seed": 20261101,
+  "subset_selection": "Seeded 30-task subset of the completed 100-task campaign; independent per-worker orders and arrivals",
+  "correctness_validation_scope": "Diagnostic instrumentation/transfer contracts; inherited numeric kernels unchanged; known cross-method differences retained",
+  "selected_strategy": "resident_kv_original_sdpa",
+  "strategy_authorization": "User requests KV prefetch repair and tests only paper multi-queue priority+WRR; backup GitHub first and sync four servers.",
+  "diagnostic_only": true,
+  "diagnostic_scope": "Paper priority+WRR prefetch repair with local-budget rejection before CUDA memory queries; r01 preserved",
+  "profiling_note": "Buffered CPU events and per-copy/per-forward CUDA events; observer overhead logged; no additional per-forward synchronization",
+  "parent_bundle_id": "2e8956b8007a30ec84cb2067f9dd1dd40a9187189e5ef1e60a93f0f28b0ba317",
+  "cpu_labels": {
+    "CPU1": {
+      "node": "node3",
+      "model": "Intel Xeon Platinum 8360H",
+      "instances": 16,
+      "gamma": 8
+    },
+    "CPU2": {
+      "node": "node1",
+      "model": "Intel Xeon Gold 5218R",
+      "instances": 8,
+      "gamma": 4
+    },
+    "CPU3": {
+      "node": "node2",
+      "model": "Intel Xeon Gold 6248R",
+      "instances": 8,
+      "gamma": 4
+    }
+  },
+  "kv_prefetch_mode": "overlap",
+  "kv_overlap_auto_fallback": false
+}

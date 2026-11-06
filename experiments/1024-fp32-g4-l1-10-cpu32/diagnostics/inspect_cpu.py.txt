@@ -1,0 +1,17 @@
+import json,os,socket
+from pathlib import Path
+root=Path('/home/zhangh/workspace/fastsd/experiments/1024-fp32-g4-l1-10-cpu32')
+node='node3' if 'node3' in socket.gethostname() else 'node1'
+out=root/'fastsd-g4-l1'/node
+errors={};summaries=[]
+for p in sorted(out.glob('worker-*/run.log'),key=lambda p:p.stat().st_mtime):
+    text=p.read_text(errors='replace')
+    if 'Traceback' in text or 'Error' in text:
+        summaries.append({'worker':p.parent.name,'mtime':p.stat().st_mtime,'last_line':text.splitlines()[-1]})
+        if len(errors)<2:errors[p.parent.name]=text[-11000:]
+agent=json.loads((root/(node+'-agent.json')).read_text())['pid']
+path=Path(f'/proc/{agent}/cmdline')
+rpc=out/'worker-08/rpc.jsonl'
+recent=[json.loads(line) for line in rpc.read_text().splitlines()[-4:]] if rpc.exists() else []
+data={'node':node,'agent_stopped':not path.exists() or str(root).encode() not in path.read_bytes(),'worker_errors':errors,'error_summaries':summaries,'worker08_last_rpc':recent,'worker08_log_mtime':(out/'worker-08/run.log').stat().st_mtime,'loadavg':os.getloadavg()}
+print('EXPERIMENT_DIAGNOSTIC '+json.dumps(data),flush=True)

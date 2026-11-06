@@ -1,0 +1,10 @@
+{
+  "failed_partial_attempt": true,
+  "included_in_formal_comparison": false,
+  "epoch": 1792849775.0448773,
+  "duration_s": 804.7388927936554,
+  "energy_j": 80377.1766615204,
+  "energy_Wh": 22.326993517088997,
+  "mean_power_w": 99.87982112122181,
+  "mean_gpu_utilization_pct": 26.41044869391326
+}

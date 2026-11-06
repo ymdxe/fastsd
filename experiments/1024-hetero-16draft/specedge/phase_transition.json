@@ -1,0 +1,10 @@
+{
+  "ok": true,
+  "phase": "formal",
+  "gammas": {
+    "node1": 100,
+    "node3": 20
+  },
+  "client_kv_cleared": true,
+  "model_reloaded": false
+}

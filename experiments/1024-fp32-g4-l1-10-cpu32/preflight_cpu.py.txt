@@ -1,0 +1,42 @@
+"""Inspect resources after the preceding FP32 task has exited."""
+import json,os
+from pathlib import Path
+import socket,subprocess,time
+OLD=Path('/home/zhangh/workspace/fastsd/experiments/1024-fp32-g100-l10-cpu32')
+node='node3' if 'node3' in socket.gethostname() else 'node1'
+agent=json.loads((OLD/(node+'-agent.json')).read_text())['pid']
+for item in [{'pid':agent},*json.loads((OLD/'fastsd-g100-l10'/node/'launch.json').read_text())['workers']]:
+    path=Path(f'/proc/{item["pid"]}/cmdline')
+    assert not path.exists() or str(OLD).encode() not in path.read_bytes(),'Old task still running'
+def read_cpu():
+    return {int(a[0][3:]):list(map(int,a[1:9])) for line in Path('/proc/stat').read_text().splitlines() if (a:=line.split()) and a[0].startswith('cpu') and a[0][3:].isdigit()}
+before=read_cpu();time.sleep(1);after=read_cpu();busy={}
+for cpu in before:
+    d=[b-a for a,b in zip(before[cpu],after[cpu])];busy[cpu]=1-(d[3]+d[4])/max(1,sum(d))
+allowed=sorted(os.sched_getaffinity(0));topology=[]
+for line in subprocess.check_output(['lscpu','-p=CPU,CORE,SOCKET,NODE'],text=True).splitlines():
+    if line.startswith('#'):continue
+    cpu,core,sock,numa=map(int,line.split(','))
+    if cpu in allowed:topology.append({'cpu':cpu,'core':core,'socket':sock,'numa':numa,'busy':busy[cpu]})
+quota=[]
+for line in Path('/proc/self/cgroup').read_text().splitlines():
+    ident,controllers,relative=line.split(':',2)
+    base=Path('/sys/fs/cgroup') if ident=='0' else Path('/sys/fs/cgroup/cpu')
+    p=base/relative.lstrip('/')
+    while p.is_relative_to(base):
+        f=p/'cpu.max'
+        if f.exists():
+            q,period=f.read_text().split()
+            if q!='max':quota.append(int(q)/int(period))
+        f=p/'cpu.cfs_quota_us';period=p/'cpu.cfs_period_us'
+        if f.exists() and period.exists() and int(f.read_text())>0:quota.append(int(f.read_text())/int(period.read_text()))
+        if p==base:break
+        p=p.parent
+mem={a.strip():int(b.split()[0]) for line in Path('/proc/meminfo').read_text().splitlines() if ':' in line for a,b in [line.split(':',1)]}
+cpuinfo=Path('/proc/cpuinfo').read_text().split('\n\n')[0]
+model=next(s.split(':',1)[1].strip() for s in cpuinfo.splitlines() if s.startswith('model name'))
+disk=os.statvfs(str(OLD))
+result={'host':socket.gethostname(),'cpu_model':model,'allowed_logical_cpus':allowed,'physical_cores':len({(r['socket'],r['core']) for r in topology}),
+    'quota_cores':min(quota) if quota else None,'topology':topology,'mem_available_gib':mem['MemAvailable']/1024**2,
+    'disk_free_gib':disk.f_bavail*disk.f_frsize/1024**3,'retired_agent':agent,'loadavg':os.getloadavg(),'epoch':time.time()}
+print('FP32_RESOURCE '+json.dumps(result),flush=True)

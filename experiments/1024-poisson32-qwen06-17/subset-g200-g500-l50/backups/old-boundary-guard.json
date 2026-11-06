@@ -1,0 +1,7 @@
+{
+  "status": "reconfiguration_boundary",
+  "reason": "User changed Poisson rates; switch controllers after current lambda1 completes.",
+  "rate_update": "rate-update-1-10-50",
+  "no_inference_started": true,
+  "epoch": 1792819087.8951242
+}

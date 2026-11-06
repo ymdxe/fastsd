@@ -1,0 +1,66 @@
+{
+  "worker-07": {
+    "clock_offset_ns": 1010525,
+    "clock_uncertainty_ns": 2243582
+  },
+  "worker-13": {
+    "clock_offset_ns": 1224481,
+    "clock_uncertainty_ns": 2274528
+  },
+  "worker-06": {
+    "clock_offset_ns": 646077,
+    "clock_uncertainty_ns": 1848077
+  },
+  "worker-00": {
+    "clock_offset_ns": 559450,
+    "clock_uncertainty_ns": 1534656
+  },
+  "worker-15": {
+    "clock_offset_ns": 768699,
+    "clock_uncertainty_ns": 1477028
+  },
+  "worker-09": {
+    "clock_offset_ns": 1394792,
+    "clock_uncertainty_ns": 2700143
+  },
+  "worker-05": {
+    "clock_offset_ns": 1496574,
+    "clock_uncertainty_ns": 2789028
+  },
+  "worker-04": {
+    "clock_offset_ns": 1520813,
+    "clock_uncertainty_ns": 2731677
+  },
+  "worker-08": {
+    "clock_offset_ns": 398249,
+    "clock_uncertainty_ns": 1180413
+  },
+  "worker-03": {
+    "clock_offset_ns": 1004628,
+    "clock_uncertainty_ns": 2042312
+  },
+  "worker-14": {
+    "clock_offset_ns": 1080645,
+    "clock_uncertainty_ns": 1814813
+  },
+  "worker-11": {
+    "clock_offset_ns": 1008171,
+    "clock_uncertainty_ns": 1944096
+  },
+  "worker-12": {
+    "clock_offset_ns": 1509954,
+    "clock_uncertainty_ns": 2578313
+  },
+  "worker-02": {
+    "clock_offset_ns": 1362075,
+    "clock_uncertainty_ns": 2071324
+  },
+  "worker-01": {
+    "clock_offset_ns": 1404726,
+    "clock_uncertainty_ns": 2168737
+  },
+  "worker-10": {
+    "clock_offset_ns": 1823163,
+    "clock_uncertainty_ns": 2691849
+  }
+}

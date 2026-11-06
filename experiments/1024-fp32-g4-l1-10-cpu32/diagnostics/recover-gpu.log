@@ -1,0 +1,2 @@
+HTTP_KEEPALIVE_CHECK_OK {"ok": true, "idle_s": 6.207550168968737, "timeout_keep_alive_s": 7200, "same_tcp_connection": true, "model_smokes": 0}
+RECOVERY_READY_TO_LAUNCH; failed attempt retained separately; six cells unchanged

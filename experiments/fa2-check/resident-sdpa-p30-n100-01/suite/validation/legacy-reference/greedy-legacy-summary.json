@@ -1,0 +1,9 @@
+{
+  "variant": "legacy",
+  "requests": 164,
+  "elapsed_s": 256.9096844960004,
+  "generated_tokens": 11589,
+  "kv_transfer_calls": 23130,
+  "peak_allocated_bytes": 17968784896,
+  "peak_reserved_bytes": 18379440128
+}

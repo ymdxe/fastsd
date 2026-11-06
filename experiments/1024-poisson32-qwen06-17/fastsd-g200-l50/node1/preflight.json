@@ -1,0 +1,11 @@
+{
+  "host": "node1",
+  "loadavg": [
+    0.09,
+    2.97,
+    9.32
+  ],
+  "meminfo": "MemTotal:       131298636 kB\nMemFree:        32310024 kB\nMemAvailable:   122794948 kB\nBuffers:            4064 kB\nCached:         92724744 kB\nSwapCached:            0 kB\nActive:         48648652 kB\nInactive:       44232120 kB\nActive(anon):    2960976 kB\nInactive(anon):  1486920 kB\nActive(file):   45687676 kB\nInactive(file): 42745200 kB\nUnevictable:           0 kB\nMlocked:               0 kB\nSwapTotal:             0 kB\nSwapFree:              0 kB\nDirty:               240 kB\nWriteback:             0 kB\nAnonPages:        148008 kB\nMapped:           175908 kB\nShmem:           4295896 kB\nSlab:            3579660 kB\nSReclaimable:    2678052 kB\nSUnreclaim:       901608 kB\nKernelStack:       21280 kB\nPageTables:        16240 kB\nNFS_Unstable:          0 kB\nBounce:                0 kB\nWritebackTmp:          0 kB\nCommitLimit:    65649316 kB\nCommitted_AS:    7551956 kB\nVmallocTotal:   34359738367 kB\nVmallocUsed:      573528 kB\nVmallocChunk:   34159693820 kB\nPercpu:            71744 kB\nHardwareCorrupted:     0 kB\nAnonHugePages:     34816 kB\nCmaTotal:              0 kB\nCmaFree:               0 kB\nHugePages_Total:       0\nHugePages_Free:        0\nHugePages_Rsvd:        0\nHugePages_Surp:        0\nHugepagesize:       2048 kB\nDirectMap4k:      679048 kB\nDirectMap2M:    47032320 kB\nDirectMap1G:    352321536 kB\n",
+  "python": "/home/zhangh/venvs/fastsd_cpu/bin/python",
+  "epoch": 1792823187.804252
+}

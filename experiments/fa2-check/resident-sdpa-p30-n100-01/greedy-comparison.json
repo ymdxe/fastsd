@@ -1,0 +1,9 @@
+{
+  "resident_sdpa": {
+    "exact": true,
+    "compared": 164,
+    "differing_tasks": 0,
+    "first_divergence": null,
+    "differences": []
+  }
+}

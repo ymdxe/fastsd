@@ -1,0 +1,26 @@
+{
+  "origin": "gpunode2:/home/hdd3/zhangh/workspace/fastsd-update/multi-cpu-suite-20261027/network/reverse_relay.py",
+  "source_local_copy": "E:\\Codex\\temp\\fastsd-8b-full-poisson15-20261030\\network\\reverse_relay.previous.py",
+  "source_sha256": "3872b6b2a699409bb1d603e861ff43ad371c8e1d4c66dc9b29b47dcb30d5966b",
+  "relay_sha256": "8d8508b03e084ee91882cb21b9686f35d5e99a6b8389845def266ef848b79206",
+  "source_remote_hash_verified_previously": true,
+  "preserved_ast_sha256": {
+    "recv_line": "1aebe58cfe3ef1113eb8fd0e0db993e94087943e7c7ca6c72d82b82dbb38bd0e",
+    "digest": "679959f059f441ef2d0ad305e9f9c9adb04cb614b5b6ac3150434d375fd3eeae",
+    "Runtime.pump": "d658c3c96fbc38bf7053a04a1ff2bcef822a53615fcf7a70859a4954bd456445",
+    "Hub.authenticate": "75da5b2cf50df496e80d58e1af2287390eed302b61bad99494fdf15e4346e1fa",
+    "Hub.usable": "36186d80668eebf20ccccf8da46844c9bf87c7f93d6561d9e5e6f6aa36aa24ab",
+    "Hub.serve_client": "69194c08b11af28fceb297aa7e7b6768c13b374d06aa8896b972c9356f3e7582",
+    "Agent.slot": "b74a45706d2f650d3fa6f766e03daae8bdc7eb26953b15893dc0374ae984568a"
+  },
+  "changes": [
+    "Fixed task ports: CPU IB 19661, CPU loopback HTTP 29659/gRPC 29660, GPU loopback HTTP 19659/gRPC 19660",
+    "Private --auth-file with bounded regular-file, POSIX ownership/mode/symlink checks",
+    "Configurable 30..172800 second lifetime; default 48 hours",
+    "Thread-safe reaping of exited Runtime thread references on spawn/status; snapshot thread counters",
+    "Startup PID/lifetime metadata; no authentication content is logged",
+    "Bounded HTTP/control pool raised from 32 maximum/8 default to 64 maximum/default; model maximum remains 64/default32 and Hub per-service queues remain128"
+  ],
+  "formal_relay_started": false,
+  "secret_generated": false
+}

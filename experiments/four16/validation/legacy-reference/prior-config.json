@@ -1,0 +1,169 @@
+{
+  "source_sha": "ef6192d27c7de3c3da63c043ddfdf9b2702fd2bc",
+  "source_branch": "update-2",
+  "dataset": "humaneval",
+  "target_model": "/home/hdd/zhangh/models/Qwen3-8B",
+  "tokenizer_model": "/home/hdd/zhangh/models/Qwen3-8B",
+  "dtype": "bfloat16",
+  "tasks_per_worker": 100,
+  "max_tokens": 400,
+  "rate_per_worker": 0.03333333333333333,
+  "batch_size": 16,
+  "token_budget": 512,
+  "seed": 1234,
+  "clock_uncertainty_limit_ms": 100,
+  "bind_host": "127.0.0.1",
+  "port": 19675,
+  "server_url": "http://127.0.0.1:29675",
+  "network": "Framed-v2 authenticated reverse TCP over IB, hub19677, HTTP19675/29675, gRPC19676/29676",
+  "gpu_python": "/home/hdd/zhangh/envs/fastsd_fa2_283_py314_20261031/bin/python",
+  "gpu_result_root": "/home/hdd3/zhangh/workspace/fastsd/exp/config1_humaneval_fa2_p30_n100_20261031",
+  "cpu_result_root": "/home/zhangh/workspace/fastsd/exp/config1_humaneval_fa2_p30_n100_20261031",
+  "gpu_memory_fraction": 0.85,
+  "gpu_selection": "wait_for_fixed_gpu_free_of_foreign_compute_processes; no automatic GPU substitution",
+  "nodes": {
+    "node1": {
+      "ssh": "cpunode1",
+      "workers": 8,
+      "threads": 8,
+      "gamma": 4,
+      "python": "/home/zhangh/miniconda3/envs/fastsd/bin/python",
+      "model": "/mnt/nfs0/zhangh/models/Qwen3-0.6B",
+      "ib_address": "10.66.0.3",
+      "interop_threads": 1,
+      "result_root": "/home/zhangh/workspace/fastsd/exp/config1_humaneval_fa2_p30_n100_20261031",
+      "tokenizer_model": "/mnt/nfs0/zhangh/models/Qwen3-0.6B"
+    },
+    "node2": {
+      "ssh": "cpunode2",
+      "workers": 8,
+      "threads": 8,
+      "gamma": 4,
+      "python": "/home/zhangh/venvs/fastsd_cpu/bin/python",
+      "model": "/vol1/zhangh/models/Qwen3-0.6B-Base",
+      "ib_address": "10.66.0.1",
+      "exclude_cpus": [
+        22,
+        70
+      ],
+      "interop_threads": 1,
+      "result_root": "/home/zhangh/workspace/fastsd/exp/config1_humaneval_fa2_p30_n100_20261031",
+      "tokenizer_model": "/vol1/zhangh/models/Qwen3-0.6B"
+    },
+    "node3": {
+      "ssh": "cpunode3",
+      "workers": 16,
+      "threads": 8,
+      "gamma": 8,
+      "python": "/home/zhangh/envs/fastsd_cpu_py314/bin/python314_glibc",
+      "model": "/mnt/nfs0/zhangh/models/Qwen3-0.6B",
+      "ib_address": "10.66.0.2",
+      "result_root": "/mnt/nvme2/zhangh/fastsd/exp/config1_humaneval_fa2_p30_n100_20261031",
+      "interop_threads": 1,
+      "tokenizer_model": "/mnt/nfs0/zhangh/models/Qwen3-0.6B"
+    }
+  },
+  "grpc_port": 19676,
+  "specedge_server_url": "127.0.0.1:29676",
+  "target_physical_gpu": 1,
+  "gpu_uuid": "GPU-422501a2-5189-7f5b-5ce6-95464276b27f",
+  "methods": [
+    "target_only",
+    "sd",
+    "specedge",
+    "fastsd"
+  ],
+  "official_specedge_sha": "1edcaf02ffc41a7b57726450c5357ed216a3b9bc",
+  "specedge_max_len": 2048,
+  "request_timeout": 21600,
+  "tree_budget": 8,
+  "num_clients": 32,
+  "campaign_timeout_s": 604800,
+  "stage_timeout_s": 86400,
+  "dataset_scope": "Shared deterministic 100-task HumanEval subset; every Draft runs all 100 tasks once",
+  "specedge_variant": "specedge_cpu_adapted_single_chain_included_g8_g4_g4",
+  "gamma_semantics": {
+    "sd": "single linear chain, node3 gamma8 and node1/node2 gamma4",
+    "specedge": "single linear chain, node3 gamma8 and node1/node2 gamma4",
+    "fastsd": "single linear chain, node3 gamma8 and node1/node2 gamma4"
+  },
+  "runtime_fixes": {
+    "sd_fastsd": "Collect completed cache transfer tickets after every execution phase; serialized official poll_completed, nonblocking event checks; no algorithm/parameter/allocator-quota change",
+    "specedge": "Isolated client corrections: int64 ancestry path counts prevent BF16 acceptance errors; proactive KV compaction retains all accepted and proactive nodes. Official source pristine; model/KV/wire stay BF16."
+  },
+  "relay_lifetime_s": 1818000,
+  "gpu_start_free_mib": {
+    "target_only": 43008,
+    "sd": 43008,
+    "specedge": 43008,
+    "fastsd": 43008
+  },
+  "gpu_start_wait_timeout_s": 86400,
+  "lifecycle_note": "User authorized modified implementation, four methods, 100 tasks per Draft, independent mean30-second Poisson arrivals",
+  "specedge_correctness_fix": "int64_path_count_proactive_kv_v1",
+  "datasets": [
+    "humaneval"
+  ],
+  "max_context_length": 2048,
+  "eos_token_ids": [
+    151645,
+    151643
+  ],
+  "pad_token_id": 151643,
+  "relay_channel_port": 19677,
+  "idle_baseline_s": 60,
+  "resource_interval_s": 5,
+  "power_interval_s": 1,
+  "progress_interval_s": 30,
+  "input_mode": "frozen_target_token_ids",
+  "require_gpu_compute_idle": true,
+  "stages": [
+    {
+      "order": 1,
+      "condition_id": "c1-humaneval-fa2-target_only-p30-n100-r01",
+      "dataset": "humaneval",
+      "method": "target_only",
+      "requests": 3200
+    },
+    {
+      "order": 2,
+      "condition_id": "c1-humaneval-fa2-sd-p30-n100-r01",
+      "dataset": "humaneval",
+      "method": "sd",
+      "requests": 3200
+    },
+    {
+      "order": 3,
+      "condition_id": "c1-humaneval-fa2-specedge-p30-n100-r01",
+      "dataset": "humaneval",
+      "method": "specedge",
+      "requests": 3200
+    },
+    {
+      "order": 4,
+      "condition_id": "c1-humaneval-fa2-fastsd-p30-n100-r01",
+      "dataset": "humaneval",
+      "method": "fastsd",
+      "requests": 3200
+    }
+  ],
+  "retry_authorized_by_user": true,
+  "trace_schema_version": 2,
+  "trace_global_index": "unique0..3199 assigned once after sorting frozen arrivals",
+  "target_attention_backend": "flash_attn_varlen",
+  "target_only_kv_policy": "gpu_resident",
+  "require_validation_certificate": true,
+  "attention_dependency": {
+    "package": "flash-attn",
+    "version": "2.8.3",
+    "cuda_home": "/usr/local/cuda-12.8",
+    "torch": "2.9.0+cu128",
+    "transformers": "4.57.1"
+  },
+  "profiling_enabled": false,
+  "metadata_polling_note": "Original full experiment/info polling retained; its cost is reported separately and excluded from forward microbenchmark attribution.",
+  "mean_arrival_interval_s": 30,
+  "subset_seed": 20261031,
+  "subset_selection": "random.Random(seed).sample(sorted-by-source-index full164,100), then sort source_index",
+  "correctness_validation_scope": "All164 HumanEval tasks once per legacy/resident-SDPA/resident-FA2 variant; separate from formal100-task workload"
+}

@@ -1,0 +1,16 @@
+{
+  "status": "interrupted_by_user",
+  "cell": {
+    "id": "fastsd-g100-l10",
+    "method": "fastsd",
+    "gamma": 100,
+    "rate": 10.0,
+    "cap": 1024,
+    "expected_requests": 1319
+  },
+  "error": "RuntimeError('CPU worker failure: User cancelled gamma100; replace with gamma4 and Poisson rates1/10, SpecEdge single chain')",
+  "traceback": "Traceback (most recent call last):\n  File \"/home/hdd3/zhangh/workspace/fastsd/experiments/1024-fp32-g100-l10-cpu32/campaign.py\", line 188, in main\n    run(cell,n,handle)\n  File \"/home/hdd3/zhangh/workspace/fastsd/experiments/1024-fp32-g100-l10-cpu32/campaign.py\", line 126, in run\n    if state['abort']:raise RuntimeError('CPU worker failure: '+str(state['abort']))\nRuntimeError: CPU worker failure: User cancelled gamma100; replace with gamma4 and Poisson rates1/10, SpecEdge single chain\n",
+  "epoch": 1792833591.2029629,
+  "reason": "User cancelled gamma100; replace with gamma4 and Poisson rates1/10, SpecEdge single chain",
+  "completed_requests": 195
+}

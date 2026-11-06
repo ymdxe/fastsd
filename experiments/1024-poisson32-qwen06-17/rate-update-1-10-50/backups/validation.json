@@ -1,0 +1,22 @@
+{
+  "ok": true,
+  "epoch": 1792816704.21241,
+  "model_inference_smokes": 0,
+  "matrix_cells": 27,
+  "dataset_requests": 1319,
+  "prompt_parity_all": true,
+  "prompt_token_range": [
+    35,
+    200
+  ],
+  "largest_grpc_body_bytes": 3096195,
+  "scheduled_last_arrival_s": {
+    "0.1": 12978.99797207645,
+    "0.5": 2595.799594415295,
+    "1.0": 1297.8997972076475
+  },
+  "minimum_serial_schedule_hours": 42.18174340924848,
+  "energy_integration_check": "100W over clipped6s=600J",
+  "gpu_uuid": "GPU-422501a2-5189-7f5b-5ce6-95464276b27f",
+  "observed_idle_power_w": 16.789
+}

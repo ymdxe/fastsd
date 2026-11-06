@@ -1,0 +1,12 @@
+{
+  "status": "completed",
+  "cell": {
+    "id": "standard-g4-l1",
+    "method": "standard",
+    "gamma": 4,
+    "rate": 1.0,
+    "cap": 1024,
+    "expected_requests": 1319
+  },
+  "epoch": 1792870334.163552
+}

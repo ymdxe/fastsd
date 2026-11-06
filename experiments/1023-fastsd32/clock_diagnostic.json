@@ -1,0 +1,71 @@
+{
+  "reused_original_offsets": [
+    {
+      "worker": 0,
+      "clock": {
+        "clock_offset_ns": -1229374,
+        "clock_uncertainty_ns": 8784589,
+        "samples": 5
+      },
+      "response": {
+        "detail": "local_decode_per_token_s must be finite and non-negative"
+      }
+    },
+    {
+      "worker": 14,
+      "clock": {
+        "clock_offset_ns": 1373749,
+        "clock_uncertainty_ns": 8590704,
+        "samples": 5
+      },
+      "response": {
+        "detail": "local_decode_per_token_s must be finite and non-negative"
+      }
+    },
+    {
+      "worker": 18,
+      "clock": {
+        "clock_offset_ns": 2563232,
+        "clock_uncertainty_ns": 8830484,
+        "samples": 5
+      },
+      "response": {
+        "detail": "synchronized clocks produced a negative upload duration; retry clock calibration"
+      }
+    },
+    {
+      "worker": 29,
+      "clock": {
+        "clock_offset_ns": 2112467,
+        "clock_uncertainty_ns": 7378717,
+        "samples": 5
+      },
+      "response": {
+        "detail": "local_decode_per_token_s must be finite and non-negative"
+      }
+    }
+  ],
+  "fresh_calibration": [
+    {
+      "rtt_ns": 7630823,
+      "offset_ns": 2072944
+    },
+    {
+      "rtt_ns": 3111880,
+      "offset_ns": -36653
+    },
+    {
+      "rtt_ns": 3425849,
+      "offset_ns": 46023
+    },
+    {
+      "rtt_ns": 3202989,
+      "offset_ns": -21344
+    },
+    {
+      "rtt_ns": 3171409,
+      "offset_ns": -17257
+    }
+  ],
+  "note": "Diagnostic requests deliberately have negative local_decode_per_token_s and cannot be enqueued or alter model state. They are not measured workload requests."
+}

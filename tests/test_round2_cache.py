@@ -165,30 +165,20 @@ class TransferIsolationTests(unittest.TestCase):
         finally:
             transfers.close()
 
-    def test_protect_forward_drains_only_submitted_chunk_and_blocks_more_dma(self):
-        transfers = CacheTransferManager('cuda:0', mode='protect_forward', chunk_bytes=1024)
-        compute = torch.cuda.Stream()
+    def test_uncalibrated_overlap_submits_no_dma_during_execution(self):
+        # The calibration gate is deliberate: without paired-replay evidence no
+        # speculative DMA may run while a forward is admitted/executing.
+        transfers = CacheTransferManager('cuda:0', mode='overlap', chunk_bytes=1024)
         try:
-            ticket = transfers.submit_h2d(self.host(), purpose='prefetch')
-            with torch.cuda.stream(transfers.prefetch_stream):
-                torch.cuda._sleep(20_000_000)
-            transfers.advance_prefetch(ticket)
             transfers.admit()
-            delay = transfers.begin_execution()
-            self.assertTrue(ticket.last_copy.query())
-            self.assertGreater(delay, 0)
-            chunks = ticket.next_chunk
+            transfers.begin_execution()
+            ticket = transfers.submit_h2d(self.host(), purpose='prefetch')
+            self.assertIsNotNone(ticket)
             transfers.advance_prefetch(ticket)
-            self.assertEqual(ticket.next_chunk, chunks)
-            self.assertIsNone(transfers.submit_h2d(self.host(64), purpose='prefetch'))
-            with torch.cuda.stream(compute):
-                torch.cuda._sleep(20_000_000)
-            transfers.end_execution(compute_stream=compute)
+            self.assertEqual(ticket.next_chunk, 0)
+            transfers.end_execution(compute_stream=None)
             transfers.release_admission()
-            transfers.advance_prefetch(ticket)
-            self.assertEqual(ticket.next_chunk, chunks)
         finally:
-            compute.synchronize()
             transfers.close()
 
     def test_budget_and_cpu_prepare_skip_speculation_but_demand_works(self):

@@ -1,0 +1,27 @@
+{
+  "root": "/home/hdd3/zhangh/workspace/fastsd/experiments/1024-poisson32-qwen06-17",
+  "run": "fastsd-g200-l50",
+  "status_at_stop": {
+    "status": "running",
+    "cell": {
+      "id": "fastsd-g200-l50",
+      "method": "fastsd",
+      "gamma": 200,
+      "rate": 50.0,
+      "cap": 1024,
+      "expected_requests": 1319
+    },
+    "completed": 21,
+    "expected": 1319,
+    "workers_ready": 32,
+    "clock_ready": 32,
+    "release_epoch": 1792823202.4176085,
+    "epoch": 1792827356.8265946
+  },
+  "reason": "New FP32 multicore gamma100/lambda10 experiment requested",
+  "epoch": 1792827358.4665873,
+  "completed_requests_retained": 21,
+  "target_exit_status": 0,
+  "status": "interrupted_by_user",
+  "included_in_new_experiment": false
+}

@@ -1,0 +1,51 @@
+--- first-attempt/edge_comm.py
++++ second-attempt/edge_comm.py
+@@ -30,10 +30,15 @@
+     finally: lib.numa_bitmask_free(mask)
+ 
+ 
++CLOCK_LOCK=None
++CLOCK_BARRIER=None
++
+ class TracedClient(edge_module.EdgeClient):
+     def synchronize_clock(self,samples=5):
+-        info=super().synchronize_clock(samples)
+-        Path(os.environ['COMM_RPC_LOG'].replace('rpc-','clock-').replace('.jsonl','.json')).write_text(json.dumps(info,indent=2)+'\n')
++        with CLOCK_LOCK:
++            info=super().synchronize_clock(samples)
++            Path(os.environ['COMM_RPC_LOG'].replace('rpc-','clock-').replace('.jsonl','.json')).write_text(json.dumps(info,indent=2)+'\n')
++        CLOCK_BARRIER.wait(timeout=120)
+         return info
+     def _post(self,path,payload):
+         start=time.monotonic()
+@@ -43,7 +48,7 @@
+             record.update(ok=True,cloud_total_ms=result.get('cloud_total_ms'),verify_ms=result.get('verify_ms'))
+             return result
+         except Exception as exc:
+-            record.update(ok=False,error=repr(exc)); raise
++            record.update(ok=False,error=repr(exc),response_body=getattr(getattr(exc,'response',None),'text',None)); raise
+         finally:
+             record['finished_monotonic']=time.monotonic()
+             record['http_ms']=(record['finished_monotonic']-start)*1000
+@@ -63,9 +68,19 @@
+         value=tokenizer.apply_chat_template([{'role':'user','content':input_text}],tokenize=True,add_generation_prompt=True,enable_thinking=False,return_tensors='pt')
+         return value if torch.is_tensor(value) else torch.tensor([value],dtype=torch.long)
+     def eval(self):
+-        self.model_barrier=mp.get_context('spawn').Barrier(self.args.num_drafts)
+-        return super().eval()
++        ctx=mp.get_context('spawn')
++        self.model_barrier=ctx.Barrier(self.args.num_drafts)
++        self.clock_lock=ctx.Lock()
++        self.clock_barrier=ctx.Barrier(self.args.num_drafts)
++        result=super().eval()
++        completed=sum(len(p.read_text().splitlines()) for p in Path(self.args.exp_name).glob('edge_metrics_proc*.jsonl'))
++        if completed != self.args.num_drafts:
++            raise RuntimeError(f'Only {completed}/{self.args.num_drafts} workers completed')
++        return result
+     def run_draft_process_http(self,tokenizer,proc_id,arrival_barrier=None,arrival_start_time=None):
++        global CLOCK_LOCK,CLOCK_BARRIER
++        CLOCK_LOCK=self.clock_lock
++        CLOCK_BARRIER=self.clock_barrier
+         self.worker_id=proc_id
+         mapping=json.loads((ROOT/'worker_map.json').read_text())
+         placement=mapping[proc_id]

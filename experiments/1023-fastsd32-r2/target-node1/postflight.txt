@@ -1,0 +1,13 @@
+$ uptime
+ 19:47:07 up 69 days,  7:31,  5 users,  load average: 0.30, 1.07, 0.92
+$ free -h
+              total        used        free      shared  buff/cache   available
+Mem:           125G        3.4G        8.8G        4.1G        112G        117G
+Swap:            0B          0B          0B
+$ df -h /home/zhangh/workspace/fastsd/experiments/1023-fastsd32-r2 /
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda4       3.7T  3.1T  612G  84% /home
+/dev/nvme0n1p5  976G  569G  407G  59% /
+$ git status --short
+fatal: Not a git repository (or any parent up to mount point /home)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).

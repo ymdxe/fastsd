@@ -1,0 +1,10 @@
+{
+  "state": "complete",
+  "started_epoch_s": 1793469134.7049265,
+  "formal_launch_allowed": false,
+  "updated_epoch_s": 1793469144.8964744,
+  "source_id": "HumanEval/147",
+  "same_argmax": false,
+  "cases": 3,
+  "note": "Diagnostic only; no gate relaxation or change to frozen runtime. Replays use batch1; original full164 mismatch remains authoritative."
+}

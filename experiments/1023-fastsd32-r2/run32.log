@@ -1,0 +1,490 @@
+CUDA extension not installed.
+CUDA extension not installed.
+Detected kernel version 3.10.0, which is below the recommended minimum of 5.5.0; this can cause the process to hang. It is recommended to upgrade the kernel to the minimum version or higher.
+[93mLoading tokenizer of /mnt/nfs0/zhangh/models/Qwen3-1.7B...[0m
+CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 0] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]CUDA extension not installed.
+CUDA extension not installed.
+
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.16s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.62s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.85s/it]
+[93m[Edge 1] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]WORKER_READY rank=0 pid=66362 cpus=[8]
+CUDA extension not installed.
+CUDA extension not installed.
+
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.39s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.70s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.95s/it]
+WORKER_READY rank=1 pid=66518 cpus=[32]
+[93m[Edge 2] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]CUDA extension not installed.
+CUDA extension not installed.
+
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.38s/it][93m[Edge 3] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.71s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.96s/it]
+WORKER_READY rank=2 pid=66680 cpus=[48]
+CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 4] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.68s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  1.87s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  2.14s/it]
+WORKER_READY rank=3 pid=66934 cpus=[72]
+CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 5] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.72s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  1.95s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  2.21s/it]
+WORKER_READY rank=4 pid=67186 cpus=[9]
+CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 6] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:04<00:04,  4.12s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  2.12s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  2.42s/it]
+WORKER_READY rank=5 pid=67433 cpus=[33]
+CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 7] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.42s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  1.76s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  2.01s/it]
+WORKER_READY rank=6 pid=67627 cpus=[52]
+CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 8] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.66s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  1.85s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  2.12s/it]
+WORKER_READY rank=7 pid=67807 cpus=[75]
+CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 9] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:04<00:04,  4.05s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  2.08s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  2.37s/it]
+WORKER_READY rank=8 pid=67995 cpus=[10]
+CUDA extension not installed.
+CUDA extension not installed.
+
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.50s/it][93m[Edge 10] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  1.78s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  2.04s/it]
+WORKER_READY rank=9 pid=68228 cpus=[34]
+CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 11] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.30s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.67s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.91s/it]
+WORKER_READY rank=10 pid=68421 cpus=[56]
+CUDA extension not installed.
+CUDA extension not installed.
+
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.34s/it][93m[Edge 12] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.69s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.94s/it]
+WORKER_READY rank=11 pid=68627 cpus=[76]
+CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 13] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.50s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  1.84s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  2.09s/it]
+WORKER_READY rank=12 pid=68785 cpus=[11]
+CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 14] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.24s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.64s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.88s/it]
+WORKER_READY rank=13 pid=69065 cpus=[35]
+CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 15] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.45s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  1.84s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  2.08s/it]
+WORKER_READY rank=14 pid=69322 cpus=[57]
+CUDA extension not installed.
+CUDA extension not installed.
+
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.27s/it][93m[Edge 16] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.66s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.90s/it]
+WORKER_READY rank=15 pid=69470 cpus=[77]
+CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 17] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.78s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  1.95s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  2.22s/it]
+WORKER_READY rank=16 pid=69683 cpus=[13]
+CUDA extension not installed.
+CUDA extension not installed.
+
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.14s/it][93m[Edge 18] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.60s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.83s/it]
+WORKER_READY rank=17 pid=69847 cpus=[36]
+CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 19] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:04<00:04,  4.29s/it]CUDA extension not installed.
+CUDA extension not installed.
+
+Loading checkpoint shards: 100%|██████████| 2/2 [00:05<00:00,  2.19s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:05<00:00,  2.50s/it]
+WORKER_READY rank=18 pid=70060 cpus=[58]
+
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.28s/it][93m[Edge 20] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.66s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.90s/it]
+WORKER_READY rank=19 pid=70260 cpus=[78]
+CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 21] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.86s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  1.99s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  2.27s/it]
+WORKER_READY rank=20 pid=70438 cpus=[14]
+CUDA extension not installed.
+CUDA extension not installed.
+
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.45s/it][93m[Edge 22] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  1.76s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  2.01s/it]
+WORKER_READY rank=21 pid=70640 cpus=[37]
+CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 23] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.96s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  2.02s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  2.31s/it]
+WORKER_READY rank=22 pid=70842 cpus=[59]
+CUDA extension not installed.
+CUDA extension not installed.
+
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.47s/it][93m[Edge 24] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  1.77s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  2.03s/it]
+WORKER_READY rank=23 pid=71087 cpus=[79]
+CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 25] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:04<00:04,  4.14s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  2.13s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  2.43s/it]
+WORKER_READY rank=24 pid=71289 cpus=[15]
+CUDA extension not installed.
+CUDA extension not installed.
+
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.37s/it][93m[Edge 26] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.73s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.97s/it]
+WORKER_READY rank=25 pid=71468 cpus=[38]
+CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 27] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:04<00:04,  4.25s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  2.17s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  2.48s/it]
+WORKER_READY rank=26 pid=71669 cpus=[61]
+CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 28] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.46s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  1.78s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  2.03s/it]
+WORKER_READY rank=27 pid=71908 cpus=[83]
+CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 29] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.95s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  2.03s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  2.31s/it]
+WORKER_READY rank=28 pid=72109 cpus=[17]
+CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 30] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.22s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.74s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.96s/it]
+WORKER_READY rank=29 pid=72324 cpus=[39]
+CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 31] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.34s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.69s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.94s/it]
+WORKER_READY rank=30 pid=72937 cpus=[62]
+
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.30s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.67s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.91s/it]
+WORKER_READY rank=31 pid=73162 cpus=[84]
+[92m[Edge 1] task gsm8k-0001 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 1] finished task gsm8k-0001, generated 16 tokens[0m
+[92m[Edge 1] task gsm8k-0001 output:
+We are told:
+
+- A robe takes **2 bolts of blue fiber**.
+[0m
+[92m[Edge 18] task gsm8k-0018 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 18] finished task gsm8k-0018, generated 16 tokens[0m
+[92m[Edge 18] task gsm8k-0018 output:
+Let's break this down step by step:
+
+### 1. **Eg[0m
+[92m[Edge 3] task gsm8k-0003 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 3] finished task gsm8k-0003, generated 16 tokens[0m
+[92m[Edge 3] task gsm8k-0003 output:
+James runs 3 sprints each week, and each sprint is 60[0m
+[92m[Edge 24] task gsm8k-0024 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 24] finished task gsm8k-0024, generated 16 tokens[0m
+[92m[Edge 24] task gsm8k-0024 output:
+We are told that Kyle bought the book for **$19.50[0m
+[92m[Edge 30] task gsm8k-0030 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 30] finished task gsm8k-0030, generated 16 tokens[0m
+[92m[Edge 30] task gsm8k-0030 output:
+We are given:
+
+- The **ages of Darrell and Allen** are in[0m
+[92m[Edge 6] task gsm8k-0006 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 6] finished task gsm8k-0006, generated 16 tokens[0m
+[92m[Edge 6] task gsm8k-0006 output:
+We are given the following relationships:
+
+1. **Toulouse has twice as many[0m
+[92m[Edge 23] task gsm8k-0023 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 23] finished task gsm8k-0023, generated 16 tokens[0m
+[92m[Edge 23] task gsm8k-0023 output:
+We are told that a candle **melts by 2 centimeters every hour[0m
+[92m[Edge 21] task gsm8k-0021 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 21] finished task gsm8k-0021, generated 16 tokens[0m
+[92m[Edge 21] task gsm8k-0021 output:
+We are given the following information:
+
+- **Raymond and Samantha are cousins.[0m
+[92m[Edge 28] task gsm8k-0028 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 28] finished task gsm8k-0028, generated 16 tokens[0m
+[92m[Edge 28] task gsm8k-0028 output:
+Let's break down the problem step by step.
+
+---
+
+### **Given:**
+[0m
+[92m[Edge 14] task gsm8k-0014 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 14] finished task gsm8k-0014, generated 16 tokens[0m
+[92m[Edge 14] task gsm8k-0014 output:
+We are given:
+
+- Total number of students = 20
+- [0m
+[92m[Edge 16] task gsm8k-0016 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 16] finished task gsm8k-0016, generated 16 tokens[0m
+[92m[Edge 16] task gsm8k-0016 output:
+We are given the following information:
+
+- **Two trains leave San Rafael at the[0m
+[92m[Edge 2] task gsm8k-0002 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 2] finished task gsm8k-0002, generated 16 tokens[0m
+[92m[Edge 2] task gsm8k-0002 output:
+Let's break down the problem step by step.
+
+### Given:
+- **Original[0m
+[92m[Edge 5] task gsm8k-0005 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 5] finished task gsm8k-0005, generated 16 tokens[0m
+[92m[Edge 5] task gsm8k-0005 output:
+Let's break down the problem step by step.
+
+### Given:
+- **First[0m
+[92m[Edge 27] task gsm8k-0027 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 27] finished task gsm8k-0027, generated 16 tokens[0m
+[92m[Edge 27] task gsm8k-0027 output:
+Cynthia eats **1 serving of ice cream every night**.
+
+She buys **[0m
+[92m[Edge 22] task gsm8k-0022 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 22] finished task gsm8k-0022, generated 16 tokens[0m
+[92m[Edge 22] task gsm8k-0022 output:
+Let's break down the number of DVDs Billy sold:
+
+- **First 3[0m
+[92m[Edge 13] task gsm8k-0013 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 13] finished task gsm8k-0013, generated 16 tokens[0m
+[92m[Edge 13] task gsm8k-0013 output:
+We are given a problem about Melanie selling vacuum cleaners, and we need to find[0m
+[92m[Edge 17] task gsm8k-0017 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 17] finished task gsm8k-0017, generated 16 tokens[0m
+[92m[Edge 17] task gsm8k-0017 output:
+To calculate Jill's **annual salary**, we need to find her **weekly earnings[0m
+[92m[Edge 10] task gsm8k-0010 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 10] finished task gsm8k-0010, generated 16 tokens[0m
+[92m[Edge 10] task gsm8k-0010 output:
+Let's break down the problem step by step.
+
+### Step 1: First[0m
+[92m[Edge 20] task gsm8k-0020 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 20] finished task gsm8k-0020, generated 16 tokens[0m
+[92m[Edge 20] task gsm8k-0020 output:
+We are given:
+
+- **10 liters of orange drink**, which is **[0m
+[92m[Edge 31] task gsm8k-0031 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 31] finished task gsm8k-0031, generated 16 tokens[0m
+[92m[Edge 31] task gsm8k-0031 output:
+We are given three guesses about the number of jelly beans in the jar:
+
+1[0m
+[92m[Edge 19] task gsm8k-0019 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 19] finished task gsm8k-0019, generated 16 tokens[0m
+[92m[Edge 19] task gsm8k-0019 output:
+We are given:
+
+- Total trail length: **12 miles**
+- She[0m
+[92m[Edge 11] task gsm8k-0011 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 11] finished task gsm8k-0011, generated 16 tokens[0m
+[92m[Edge 11] task gsm8k-0011 output:
+Let's break down the cost of each item:
+
+---
+
+### 1. **[0m
+[92m[Edge 9] task gsm8k-0009 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 9] finished task gsm8k-0009, generated 16 tokens[0m
+[92m[Edge 9] task gsm8k-0009 output:
+Let's break down Eliza's earnings step by step.
+
+---
+
+### **Step[0m
+[92m[Edge 0] task gsm8k-0000 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 0] finished task gsm8k-0000, generated 16 tokens[0m
+[92m[Edge 0] task gsm8k-0000 output:
+Let's break down the problem step by step.
+
+---
+
+### **Given:**
+
+[0m
+[92m[Edge 25] task gsm8k-0025 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 25] finished task gsm8k-0025, generated 16 tokens[0m
+[92m[Edge 25] task gsm8k-0025 output:
+Let's break down the problem step by step.
+
+### Given:
+- **Chicken[0m
+[92m[Edge 12] task gsm8k-0012 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 12] finished task gsm8k-0012, generated 16 tokens[0m
+[92m[Edge 12] task gsm8k-0012 output:
+Let's break down the problem step by step to find out how many **years[0m
+[92m[Edge 26] task gsm8k-0026 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 26] finished task gsm8k-0026, generated 16 tokens[0m
+[92m[Edge 26] task gsm8k-0026 output:
+Let's break down the total cost step by step.
+
+### Given:
+- **[0m
+[92m[Edge 29] task gsm8k-0029 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 29] finished task gsm8k-0029, generated 16 tokens[0m
+[92m[Edge 29] task gsm8k-0029 output:
+We are given the following information:
+
+- One pair of heels costs **$3[0m
+[92m[Edge 7] task gsm8k-0007 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 7] finished task gsm8k-0007, generated 16 tokens[0m
+[92m[Edge 7] task gsm8k-0007 output:
+We are given the following information:
+
+- **Total file size**: 20[0m
+[92m[Edge 15] task gsm8k-0015 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 15] finished task gsm8k-0015, generated 16 tokens[0m
+[92m[Edge 15] task gsm8k-0015 output:
+To determine which purchase plan gives the **maximum profit**, we need to calculate the[0m
+[92m[Edge 8] task gsm8k-0008 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 8] finished task gsm8k-0008, generated 16 tokens[0m
+[92m[Edge 8] task gsm8k-0008 output:
+We are given the following information:
+
+- John drives **3 hours** at **[0m
+[92m[Edge 4] task gsm8k-0004 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 4] finished task gsm8k-0004, generated 16 tokens[0m
+[92m[Edge 4] task gsm8k-0004 output:
+We are given:
+
+- **Number of chickens**: 20
+- **[0m
+[92m[METRICS] wrote summary: /home/zhangh/workspace/fastsd/experiments/1023-fastsd32-r2/run32/edge_metrics_summary.json[0m

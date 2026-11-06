@@ -1,0 +1,22 @@
+{
+  "worker_id": 14,
+  "pid": 126094,
+  "cpu_affinity": [
+    57
+  ],
+  "threads": 1,
+  "load_seconds": 8.620283235330135,
+  "dtype": "float16",
+  "device": "cpu",
+  "proc_status": {
+    "VmRSS": "3780276 kB",
+    "Threads": "3",
+    "Cpus_allowed_list": "57",
+    "Mems_allowed_list": "0-3"
+  },
+  "numa_policies": [
+    "bind:2"
+  ],
+  "barrier_release_monotonic": 2439131.239103175,
+  "barrier_release_epoch": 1792756690.5705333
+}

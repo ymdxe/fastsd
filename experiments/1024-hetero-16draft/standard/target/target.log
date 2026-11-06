@@ -1,0 +1,465 @@
+INFO:     Started server process [2517413]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:18625 (Press CTRL+C to quit)
+[93mLoading tokenizer of /home/hdd3/zhangh/workspace/fastsd/experiments/1024-hetero-16draft/model-view/Qwen3-32B...[0m
+[93mLoading target model: /home/hdd3/zhangh/workspace/fastsd/experiments/1024-hetero-16draft/model-view/Qwen3-32B[0m
+TARGET_MODEL_LOADING {"pid": 2517521, "model_path": "/home/hdd3/zhangh/workspace/fastsd/experiments/1024-hetero-16draft/model-view/Qwen3-32B", "physical_gpu": 3, "cuda_visible_devices": "3", "execution_device": "cuda:0", "dtype": "float16", "kv_batch_mode": "padded", "attention_implementation": "sdpa", "max_memory": {"0": "34GiB", "cpu": "96GiB"}, "load_started_epoch": 1792772560.8908389, "torch_version": "2.2.1+cu121", "gpu_name": "NVIDIA RTX A6000", "source_directory": "/home/hdd3/zhangh/workspace/fastsd/experiments/1024-hetero-16draft/source"}
+Loading checkpoint shards:   0%|          | 0/17 [00:00<?, ?it/s]Loading checkpoint shards:   6%|▌         | 1/17 [00:23<06:18, 23.68s/it]Loading checkpoint shards:  12%|█▏        | 2/17 [00:47<06:00, 24.04s/it]Loading checkpoint shards:  18%|█▊        | 3/17 [01:12<05:42, 24.43s/it]INFO:     127.0.0.1:44328 - "GET /health HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:44328 - "POST /session/init HTTP/1.1" 200 OK
+Loading checkpoint shards:  24%|██▎       | 4/17 [01:37<05:20, 24.66s/it]Loading checkpoint shards:  29%|██▉       | 5/17 [02:02<04:57, 24.78s/it]Loading checkpoint shards:  35%|███▌      | 6/17 [02:27<04:30, 24.58s/it]Loading checkpoint shards:  41%|████      | 7/17 [02:51<04:04, 24.43s/it]Loading checkpoint shards:  47%|████▋     | 8/17 [03:15<03:39, 24.36s/it]Loading checkpoint shards:  53%|█████▎    | 9/17 [03:38<03:11, 23.90s/it]Loading checkpoint shards:  59%|█████▉    | 10/17 [04:02<02:47, 23.91s/it]Loading checkpoint shards:  65%|██████▍   | 11/17 [04:26<02:23, 23.93s/it]Loading checkpoint shards:  71%|███████   | 12/17 [04:49<01:58, 23.72s/it]Loading checkpoint shards:  76%|███████▋  | 13/17 [05:13<01:35, 23.75s/it]Loading checkpoint shards:  82%|████████▏ | 14/17 [05:36<01:10, 23.62s/it]Loading checkpoint shards:  88%|████████▊ | 15/17 [05:58<00:45, 22.97s/it]Loading checkpoint shards:  94%|█████████▍| 16/17 [06:17<00:21, 21.92s/it]Loading checkpoint shards: 100%|██████████| 17/17 [06:32<00:00, 19.72s/it]Loading checkpoint shards: 100%|██████████| 17/17 [06:32<00:00, 23.07s/it]
+Some parameters are on the meta device because they were offloaded to the cpu.
+TARGET_MODEL_READY {"pid": 2517521, "model_path": "/home/hdd3/zhangh/workspace/fastsd/experiments/1024-hetero-16draft/model-view/Qwen3-32B", "physical_gpu": 3, "cuda_visible_devices": "3", "execution_device": "cuda:0", "dtype": "float16", "kv_batch_mode": "padded", "attention_implementation": "sdpa", "max_memory": {"0": "34GiB", "cpu": "96GiB"}, "load_started_epoch": 1792772560.8908389, "torch_version": "2.2.1+cu121", "gpu_name": "NVIDIA RTX A6000", "source_directory": "/home/hdd3/zhangh/workspace/fastsd/experiments/1024-hetero-16draft/source", "hf_device_map": {"model.embed_tokens": "0", "model.layers.0": "0", "model.layers.1": "0", "model.layers.2": "0", "model.layers.3": "0", "model.layers.4": "0", "model.layers.5": "0", "model.layers.6": "0", "model.layers.7": "0", "model.layers.8": "0", "model.layers.9": "0", "model.layers.10": "0", "model.layers.11": "0", "model.layers.12": "0", "model.layers.13": "0", "model.layers.14": "0", "model.layers.15": "0", "model.layers.16": "0", "model.layers.17": "0", "model.layers.18": "0", "model.layers.19": "0", "model.layers.20": "0", "model.layers.21": "0", "model.layers.22": "0", "model.layers.23": "0", "model.layers.24": "0", "model.layers.25": "0", "model.layers.26": "0", "model.layers.27": "0", "model.layers.28": "0", "model.layers.29": "0", "model.layers.30": "0", "model.layers.31": "0", "model.layers.32": "0", "model.layers.33": "0", "model.layers.34": "cpu", "model.layers.35": "cpu", "model.layers.36": "cpu", "model.layers.37": "cpu", "model.layers.38": "cpu", "model.layers.39": "cpu", "model.layers.40": "cpu", "model.layers.41": "cpu", "model.layers.42": "cpu", "model.layers.43": "cpu", "model.layers.44": "cpu", "model.layers.45": "cpu", "model.layers.46": "cpu", "model.layers.47": "cpu", "model.layers.48": "cpu", "model.layers.49": "cpu", "model.layers.50": "cpu", "model.layers.51": "cpu", "model.layers.52": "cpu", "model.layers.53": "cpu", "model.layers.54": "cpu", "model.layers.55": "cpu", "model.layers.56": "cpu", "model.layers.57": "cpu", "model.layers.58": "cpu", "model.layers.59": "cpu", "model.layers.60": "cpu", "model.layers.61": "cpu", "model.layers.62": "cpu", "model.layers.63": "cpu", "model.norm": "cpu", "model.rotary_emb": "cpu", "lm_head": "cpu"}, "load_duration_seconds": 393.2310338811949, "load_completed_epoch": 1792772954.1218727, "gpu_memory_allocated_bytes": 34712529408, "gpu_memory_reserved_bytes": 34716254208, "gpu_peak_memory_allocated_bytes": 34712529408}
+INFO:     127.0.0.1:44328 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59882 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59882 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50282 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50296 - "GET /health HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:50282 - "POST /session/init HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:50296 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50302 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50318 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50330 - "GET /health HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:50332 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50302 - "POST /session/init HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:50318 - "POST /session/init HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:50330 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50348 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50360 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50364 - "GET /health HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:50348 - "POST /session/init HTTP/1.1" 200 OK
+Initializing new session...Initializing new session...
+
+INFO:     127.0.0.1:50332 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50360 - "POST /session/init HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:50364 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50378 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50388 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50392 - "GET /health HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:50398 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50378 - "POST /session/init HTTP/1.1" 200 OK
+Initializing new session...Initializing new session...
+
+INFO:     127.0.0.1:50400 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50392 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50388 - "POST /session/init HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:50398 - "POST /session/init HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:50400 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50412 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50424 - "GET /health HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:50412 - "POST /session/init HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:50424 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50282 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50302 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50318 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50296 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50330 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50348 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50360 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50332 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50364 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50378 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50388 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50398 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50392 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50400 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50412 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50424 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34694 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39514 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47372 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56062 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56070 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56084 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44570 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50292 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50306 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40776 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40784 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40786 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52454 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52456 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37630 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37640 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51862 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36932 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36944 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54906 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54922 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54934 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59330 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59340 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46868 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46884 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46890 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46900 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46916 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46256 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46260 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36848 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36864 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35832 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35848 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35854 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53348 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53364 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53376 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34588 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34604 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34608 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49144 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49150 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49162 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34528 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34536 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34550 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39332 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39348 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35630 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41468 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41484 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41488 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59396 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59402 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59418 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37400 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37404 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37418 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37424 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48132 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48142 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48148 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59038 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59042 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53242 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53248 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53256 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39820 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39834 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39848 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44754 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44762 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44768 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58818 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58822 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56288 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56300 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56312 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56314 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37140 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37148 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37156 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59830 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59846 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49672 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49686 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49702 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46314 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46316 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46332 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37606 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37610 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37614 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37950 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37956 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47282 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47286 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47292 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47302 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47318 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36246 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36262 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47930 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41520 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41522 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41532 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41544 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55414 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55422 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55424 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55434 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40828 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40840 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33488 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33504 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33518 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33528 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41102 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41108 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54004 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54012 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34076 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34086 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34088 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38140 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32918 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32922 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32936 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50236 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50246 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50258 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36310 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36322 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36334 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36346 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36350 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60924 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60940 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60954 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42314 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42318 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36154 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39124 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39140 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39156 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39162 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44916 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44930 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47930 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47940 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47942 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38032 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38046 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38050 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38052 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47654 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47670 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46584 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46596 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46606 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46618 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43068 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45538 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45550 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45558 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43028 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55274 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55290 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42668 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42684 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42700 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42702 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53082 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53094 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46036 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46044 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46050 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49682 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49684 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52902 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52912 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41814 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41826 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59540 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59542 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59554 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42820 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42834 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42838 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42062 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42072 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42088 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46240 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46246 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46258 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57310 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57324 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41916 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42114 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42124 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39210 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39212 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39216 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40262 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40268 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47080 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47084 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47098 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47108 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33104 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33106 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34956 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34964 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60492 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50062 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50078 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44046 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44054 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44060 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44066 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47182 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47184 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47186 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32794 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32796 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43280 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43294 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54510 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32812 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32818 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44750 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44764 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58292 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58300 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58302 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49268 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49276 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33536 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33540 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33550 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33556 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40868 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42682 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46836 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46840 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56736 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56750 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55328 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55344 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47934 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47936 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47952 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51540 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51550 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51556 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46424 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46438 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37560 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37566 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54496 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47654 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47662 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40896 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40904 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40908 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40912 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58966 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58978 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37568 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37582 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37594 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52074 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35900 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35902 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55212 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55214 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60888 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60896 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39670 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43078 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43090 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48798 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53450 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33602 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33618 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33622 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33204 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33214 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36648 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36656 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49436 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40012 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43032 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55030 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55034 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37876 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44732 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44746 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44752 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44766 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38548 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53674 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39460 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52172 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52186 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56710 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56720 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56726 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60878 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60478 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52832 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59130 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59146 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51800 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59356 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40980 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40986 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41000 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38430 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48564 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58562 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58570 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42848 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51706 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51712 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51714 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47174 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37528 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52232 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52238 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38208 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56452 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45502 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45506 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49782 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38686 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42008 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37734 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37738 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36440 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34500 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34504 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42994 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49516 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49518 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36218 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59142 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60196 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39634 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35918 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44026 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36500 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44576 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36604 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49074 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36248 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38332 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60860 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58826 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34100 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36640 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52852 - "POST /exit HTTP/1.1" 200 OK
+[93mprocess prefill tasks from: ['b994505554124bd1bef4776e5bb0c19f'][0m
+[93mprocess prefill tasks from: ['9d8d798edbd64b5db7bc6f8e1016c9f8'][0m
+[93mprocess prefill tasks from: ['1f9ec814f6d3433d994957d42cdee5a4'][0m
+[93mprocess prefill tasks from: ['ab179d679ceb426f80fe923020a43f74'][0m
+[93mprocess prefill tasks from: ['7a629e0c519548c1953191ad99396c21'][0m
+[93mprocess prefill tasks from: ['c457a189d8c24f3888a862ce6fa987b7'][0m
+[93mprocess prefill tasks from: ['9ce5fac4dbd043cf974960d62c1ef888'][0m
+[93mprocess prefill tasks from: ['f6af0642c28d4401b587ac1180709e70'][0m
+[93mprocess prefill tasks from: ['7475b0e7b2a947d0a393379f4aa4ba00'][0m
+[93mprocess prefill tasks from: ['2685d1295b2e4658a83e8d258ce805f0'][0m
+[93mprocess prefill tasks from: ['5978a40f4a5945c2bcacf5f4f8047dd5'][0m
+[93mprocess prefill tasks from: ['9cbb90491f0d479c8d6919014474c4ba'][0m
+[93mprocess prefill tasks from: ['14f5ce96bad44a9a8f41a0340b95cc86'][0m
+[93mprocess prefill tasks from: ['735b9c216d784afdba7c550a742303f1'][0m
+[93mprocess prefill tasks from: ['a52f28a061b74d08ac4e87d97dc4b823'][0m
+[93mprocess prefill tasks from: ['4e6fe1efd2f4402c9b1a6e0bca28d3d8'][0m
+[93mprocess prefill tasks from: ['f84551db53ab442b8784d59bc61a1f5b'][0m
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [2517413]

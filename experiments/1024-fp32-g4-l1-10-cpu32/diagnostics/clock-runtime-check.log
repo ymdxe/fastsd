@@ -1,0 +1,12 @@
+test_negative_pull_recalibrates_original_response (__main__.ClockChecks) ... ok
+test_no_previous_estimate_stays_unavailable (__main__.ClockChecks) ... ok
+test_only_rejected_upload_can_be_retried (__main__.ClockChecks) ... ok
+test_other_http_errors_are_not_replayed (__main__.ClockChecks) ... ok
+test_runtime_calibration_bypasses_startup_barrier (__main__.ClockChecks) ... ok
+test_uncertain_pull_keeps_scheduler_estimate_explicit (__main__.ClockChecks) ... ok
+test_valid_pull_unchanged (__main__.ClockChecks) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.005s
+
+OK

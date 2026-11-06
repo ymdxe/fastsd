@@ -1,0 +1,11 @@
+{
+  "run": "fastsd-g20-l1-a2",
+  "status": "interrupted_by_user",
+  "completed_requests": 356,
+  "by_node": {
+    "node1": 219,
+    "node3": 137
+  },
+  "target_exit_status": 0,
+  "included_in_subset": false
+}

@@ -1,0 +1,16 @@
+{
+  "status": "interrupted_by_user",
+  "cell": {
+    "id": "fastsd-g200-l50",
+    "method": "fastsd",
+    "gamma": 200,
+    "rate": 50.0,
+    "cap": 1024,
+    "expected_requests": 1319
+  },
+  "error": "RuntimeError(\"CPU worker failure: RuntimeError('Controller aborted run')\")",
+  "traceback": "Traceback (most recent call last):\n  File \"/home/hdd3/zhangh/workspace/fastsd/experiments/1024-poisson32-qwen06-17/campaign.py\", line 188, in main\n    run(cell,n,handle)\n  File \"/home/hdd3/zhangh/workspace/fastsd/experiments/1024-poisson32-qwen06-17/campaign.py\", line 126, in run\n    if state['abort']:raise RuntimeError('CPU worker failure: '+str(state['abort']))\nRuntimeError: CPU worker failure: RuntimeError('Controller aborted run')\n",
+  "epoch": 1792827361.117005,
+  "reason": "New FP32 multicore gamma100/lambda10 run requested",
+  "completed_requests": 21
+}

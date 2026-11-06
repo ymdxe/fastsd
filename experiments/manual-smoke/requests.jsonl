@@ -1,0 +1,2 @@
+{"sample_id":"smoke-0","dataset":"mt_bench","prompt":"Explain in three short sentences how rain forms.","reference":null,"scheduled_arrival_s":0}
+{"sample_id":"smoke-1","dataset":"mt_bench","prompt":"List the numbers from one to twenty, separated by commas.","reference":null,"scheduled_arrival_s":0}

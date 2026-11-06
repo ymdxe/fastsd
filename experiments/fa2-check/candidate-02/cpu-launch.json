@@ -1,0 +1,8 @@
+{
+  "pid": 3599787,
+  "pgid": 3599787,
+  "start_ticks": 11207942,
+  "uid": 1074,
+  "started_epoch_s": 1793465601.8000164,
+  "script": "/home/hdd3/zhangh/workspace/fastsd/config1-fa2-validation-20261031/candidate-02/validate_cpu.py"
+}

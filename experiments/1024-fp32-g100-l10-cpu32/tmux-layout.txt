@@ -1,0 +1,3 @@
+gpunode2:0 %0 bash
+cpunode1:0 %10 ssh
+cpunode3:0 %11 ssh

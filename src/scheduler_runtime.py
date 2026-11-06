@@ -204,15 +204,23 @@ class SchedulerQueues:
         }
         self.metrics = metrics if metrics is not None else {}
         self.dirty = False
+        # Monotonic mutation counter: an O(1) prediction signature component.
+        self.version = 0
+
+    def bump_version(self) -> int:
+        self.version += 1
+        return self.version
 
     def enqueue(self, item: Any) -> None:
         self._queues[item.task_type][item.category].append(item)
         self.dirty = True
+        self.bump_version()
 
     def mark_dirty(self) -> None:
         """Force the next sort to re-bucket (e.g. after a chunk commit)."""
 
         self.dirty = True
+        self.bump_version()
 
     def snapshot(self) -> dict[str, dict[str, list]]:
         """Return a stable copy for the pure planner."""
@@ -268,6 +276,7 @@ class SchedulerQueues:
                     bucket[:] = kept
         if removed:
             self.dirty = True
+            self.bump_version()
         return removed
 
     def remove_where(self, predicate: Callable[[Any], bool]) -> int:
@@ -283,6 +292,7 @@ class SchedulerQueues:
                     bucket[:] = kept
         if removed:
             self.dirty = True
+            self.bump_version()
         return removed
 
     def prune_finished(self) -> int:
@@ -304,6 +314,7 @@ class SchedulerQueues:
                     bucket[:] = kept
         if removed:
             self.dirty = True
+            self.bump_version()
             self.metrics["finished_work_items_removed"] = (
                 self.metrics.get("finished_work_items_removed", 0) + removed
             )
@@ -758,6 +769,9 @@ class KVPrefetchWorker:
             self._pending -= 1
 
     # -- worker ------------------------------------------------------------
+    IDLE_POLL_SECONDS = 1.0
+    COPYING_POLL_SECONDS = 0.005
+
     def _poll_timeout(self):
         # Only an unfinished copy needs the short progress tick. Repeating
         # allocation attempts when the byte budget is full competes with the
@@ -767,9 +781,13 @@ class KVPrefetchWorker:
                           and t.copy_state != "ready"
                           for t in self.residency.candidates.values())
         if copying:
-            return 0.001
-        return max(0.001, min(self._preparation_retry_interval,
-                             self._next_preparation_retry_at - self._clock()))
+            return self.COPYING_POLL_SECONDS
+        if not self._latest_intent:
+            # Nothing was predicted: stay asleep and let Queue.get wake us.
+            return self.IDLE_POLL_SECONDS
+        return max(self.COPYING_POLL_SECONDS,
+                   min(self._preparation_retry_interval,
+                       self._next_preparation_retry_at - self._clock()))
 
     def _background_progress(self):
         # Advance already prepared copies independently of allocation retry.

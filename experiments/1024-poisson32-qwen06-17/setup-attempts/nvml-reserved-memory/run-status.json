@@ -1,0 +1,14 @@
+{
+  "status": "failed",
+  "cell": {
+    "id": "fastsd-g20-l1",
+    "method": "fastsd",
+    "gamma": 20,
+    "rate": 1.0,
+    "cap": 1024,
+    "expected_requests": 1319
+  },
+  "error": "KeyboardInterrupt()",
+  "traceback": "Traceback (most recent call last):\n  File \"/home/hdd3/zhangh/workspace/fastsd/experiments/1024-poisson32-qwen06-17/campaign.py\", line 179, in main\n    if args.resume:continue\n  File \"/home/hdd3/zhangh/workspace/fastsd/experiments/1024-poisson32-qwen06-17/campaign.py\", line 96, in run\n    # an otherwise idle A6000 (nvidia-smi v2 used=15MiB). Check processes too.\nKeyboardInterrupt\n",
+  "epoch": 1792816994.2614899
+}

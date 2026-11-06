@@ -1,0 +1,60 @@
+{
+  "old_launch": {
+    "pid": 3801588,
+    "pgid": 3801588,
+    "start_ticks": 11416193,
+    "uid": 1074,
+    "started_epoch_s": 1793467684.3120635,
+    "script": "/home/hdd3/zhangh/workspace/fastsd/config1-fa2-validation-20261031/candidate-02/validate_gpu.py"
+  },
+  "prior_status": {
+    "state": "greedy164",
+    "started_epoch_s": 1793467684.4269562,
+    "formal_launch_allowed": false,
+    "gpu_uuid": "GPU-422501a2-5189-7f5b-5ce6-95464276b27f",
+    "gates": {
+      "dependency_abi": true,
+      "cpu_contracts": true,
+      "gpu_attention_cache": true,
+      "performance": true
+    },
+    "progress": {
+      "variant": "legacy",
+      "completed": 62,
+      "total": 164,
+      "forward_steps": 280,
+      "elapsed_s": 97.14353658400069,
+      "generated_tokens": 4423
+    },
+    "updated_epoch_s": 1793468353.324181,
+    "bundle_id": "b1be9fd947897f057fa408aafee4484783b5783e7562a2abfc5010de2e510a86",
+    "validated_content_sha256": "b1be9fd947897f057fa408aafee4484783b5783e7562a2abfc5010de2e510a86",
+    "dependency_build": {
+      "state": "complete",
+      "pid": 3636455,
+      "version": "2.8.3",
+      "environment": "/home/hdd/zhangh/envs/fastsd_fa2_283_py314_20261031",
+      "started_utc": "2026-10-31T16:59:32.720808+00:00",
+      "free_bytes_before": 74821693440,
+      "updated_utc": "2026-10-31T17:25:39.782221+00:00",
+      "source_sha256": "1e71dd64a9e0280e0447b8a0c2541bad4bf6ac65bdeaa2f90e51a9e57de0370d",
+      "source_url": "https://files.pythonhosted.org/packages/3b/b2/8d76c41ad7974ee264754709c22963447f7f8134613fd9ce80984ed0dab7/flash_attn-2.8.3.tar.gz",
+      "source_root": "/home/hdd/zhangh/tmp/config1_fa2_20261031/source/flash_attn-2.8.3",
+      "max_jobs": 8,
+      "nvcc_threads": 2,
+      "free_bytes_after": 74202836992,
+      "cuda_runtime": "12.8",
+      "gpu_test_performed": false
+    },
+    "effective_runtime_options": {
+      "kv_block_tokens": 128,
+      "native_gqa": true,
+      "torch_num_threads": 1,
+      "formal_heavy_profiler": false
+    }
+  },
+  "reason": "User changed formal workload to p30/n100; validate new content-bound candidate",
+  "signal_sent": true,
+  "stopped_epoch_s": 1793468364.900398,
+  "confirmed_exited": true
+}

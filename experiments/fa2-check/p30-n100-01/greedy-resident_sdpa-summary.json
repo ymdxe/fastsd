@@ -1,0 +1,9 @@
+{
+  "variant": "resident_sdpa",
+  "requests": 164,
+  "elapsed_s": 82.75727161100076,
+  "generated_tokens": 11589,
+  "kv_transfer_calls": 0,
+  "peak_allocated_bytes": 17338091008,
+  "peak_reserved_bytes": 17729323008
+}

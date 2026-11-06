@@ -1,0 +1,27 @@
+{
+  "root": "/home/hdd3/zhangh/workspace/fastsd/experiments/1024-fp32-g100-l10-cpu32",
+  "run": "fastsd-g100-l10",
+  "status_at_stop": {
+    "status": "running",
+    "cell": {
+      "id": "fastsd-g100-l10",
+      "method": "fastsd",
+      "gamma": 100,
+      "rate": 10.0,
+      "cap": 1024,
+      "expected_requests": 1319
+    },
+    "completed": 194,
+    "expected": 1319,
+    "workers_ready": 32,
+    "clock_ready": 32,
+    "release_epoch": 1792829211.2682168,
+    "epoch": 1792833466.211876
+  },
+  "reason": "User cancelled gamma100; replace with gamma4 and Poisson rates1/10, SpecEdge single chain",
+  "epoch": 1792833467.8361516,
+  "status": "interrupted_by_user",
+  "completed_requests_retained": 195,
+  "target_exit_status": 0,
+  "included_in_new_experiment": false
+}

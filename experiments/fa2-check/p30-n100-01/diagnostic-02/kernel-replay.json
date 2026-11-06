@@ -1,0 +1,1319 @@
+[
+  {
+    "case": {
+      "source_id": "HumanEval/1",
+      "first_token_index": 14,
+      "reference_token": 271,
+      "actual_token": 198,
+      "reference_length": 88,
+      "actual_length": 87
+    },
+    "replay": "batch1, prompt chunks32, teacher-forced identical legacy prefix; differs from original batch scheduling",
+    "variants": {
+      "sdpa_per_sequence": {
+        "top_tokens": [
+          {
+            "token": 271,
+            "text": "\n\n",
+            "logit": 54.0
+          },
+          {
+            "token": 198,
+            "text": "\n",
+            "logit": 54.0
+          },
+          {
+            "token": 7213,
+            "text": "\n    \n",
+            "logit": 50.75
+          },
+          {
+            "token": 26809,
+            "text": "\n \n",
+            "logit": 38.25
+          },
+          {
+            "token": 8945,
+            "text": "\n        \n",
+            "logit": 33.75
+          }
+        ],
+        "top2_margin": 0.0,
+        "predicted": 198,
+        "layers": []
+      },
+      "flash_attn_varlen": {
+        "top_tokens": [
+          {
+            "token": 271,
+            "text": "\n\n",
+            "logit": 54.0
+          },
+          {
+            "token": 198,
+            "text": "\n",
+            "logit": 54.0
+          },
+          {
+            "token": 7213,
+            "text": "\n    \n",
+            "logit": 51.0
+          },
+          {
+            "token": 26809,
+            "text": "\n \n",
+            "logit": 38.5
+          },
+          {
+            "token": 8945,
+            "text": "\n        \n",
+            "logit": 33.75
+          }
+        ],
+        "top2_margin": 0.0,
+        "predicted": 198,
+        "layers": [
+          {
+            "layer": 0,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.0009833574295043945,
+            "sdpa_vs_fp32_max_abs": 0.0009833574295043945,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 154
+          },
+          {
+            "layer": 1,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.000495612621307373,
+            "sdpa_vs_fp32_max_abs": 0.000495612621307373,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 154
+          },
+          {
+            "layer": 2,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.00037060678005218506,
+            "sdpa_vs_fp32_max_abs": 0.00037060678005218506,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 154
+          },
+          {
+            "layer": 3,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.0006019026041030884,
+            "sdpa_vs_fp32_max_abs": 0.0006019026041030884,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 154
+          },
+          {
+            "layer": 4,
+            "fa2_vs_sdpa_max_abs": 2.9802322387695312e-08,
+            "fa2_vs_fp32_max_abs": 0.0005324184894561768,
+            "sdpa_vs_fp32_max_abs": 0.0005324184894561768,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 154
+          },
+          {
+            "layer": 5,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.0005889534950256348,
+            "sdpa_vs_fp32_max_abs": 0.0005889534950256348,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 154
+          },
+          {
+            "layer": 6,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.0017077922821044922,
+            "sdpa_vs_fp32_max_abs": 0.0017077922821044922,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 154
+          },
+          {
+            "layer": 7,
+            "fa2_vs_sdpa_max_abs": 0.00048828125,
+            "fa2_vs_fp32_max_abs": 0.0008721053600311279,
+            "sdpa_vs_fp32_max_abs": 0.0008721053600311279,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 154
+          },
+          {
+            "layer": 8,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.00165557861328125,
+            "sdpa_vs_fp32_max_abs": 0.00165557861328125,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 154
+          },
+          {
+            "layer": 9,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.0016021132469177246,
+            "sdpa_vs_fp32_max_abs": 0.0016021132469177246,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 154
+          },
+          {
+            "layer": 10,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.001683056354522705,
+            "sdpa_vs_fp32_max_abs": 0.001683056354522705,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 154
+          },
+          {
+            "layer": 11,
+            "fa2_vs_sdpa_max_abs": 0.00048828125,
+            "fa2_vs_fp32_max_abs": 0.001902937889099121,
+            "sdpa_vs_fp32_max_abs": 0.001902937889099121,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 154
+          },
+          {
+            "layer": 12,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.002076864242553711,
+            "sdpa_vs_fp32_max_abs": 0.002076864242553711,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 154
+          },
+          {
+            "layer": 13,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.0017707347869873047,
+            "sdpa_vs_fp32_max_abs": 0.0017707347869873047,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 154
+          },
+          {
+            "layer": 14,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.0031366348266601562,
+            "sdpa_vs_fp32_max_abs": 0.0031366348266601562,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 154
+          },
+          {
+            "layer": 15,
+            "fa2_vs_sdpa_max_abs": 3.814697265625e-06,
+            "fa2_vs_fp32_max_abs": 0.002267301082611084,
+            "sdpa_vs_fp32_max_abs": 0.002267301082611084,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 154
+          },
+          {
+            "layer": 16,
+            "fa2_vs_sdpa_max_abs": 3.725290298461914e-09,
+            "fa2_vs_fp32_max_abs": 0.005002021789550781,
+            "sdpa_vs_fp32_max_abs": 0.005002021789550781,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 154
+          },
+          {
+            "layer": 17,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.006966352462768555,
+            "sdpa_vs_fp32_max_abs": 0.006966352462768555,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 154
+          },
+          {
+            "layer": 18,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.003548264503479004,
+            "sdpa_vs_fp32_max_abs": 0.003548264503479004,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 154
+          },
+          {
+            "layer": 19,
+            "fa2_vs_sdpa_max_abs": 7.62939453125e-06,
+            "fa2_vs_fp32_max_abs": 0.004273176193237305,
+            "sdpa_vs_fp32_max_abs": 0.004273176193237305,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 154
+          },
+          {
+            "layer": 20,
+            "fa2_vs_sdpa_max_abs": 7.450580596923828e-09,
+            "fa2_vs_fp32_max_abs": 0.0049440860748291016,
+            "sdpa_vs_fp32_max_abs": 0.0049440860748291016,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 154
+          },
+          {
+            "layer": 21,
+            "fa2_vs_sdpa_max_abs": 3.0517578125e-05,
+            "fa2_vs_fp32_max_abs": 0.007361888885498047,
+            "sdpa_vs_fp32_max_abs": 0.007361888885498047,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 154
+          },
+          {
+            "layer": 22,
+            "fa2_vs_sdpa_max_abs": 3.0517578125e-05,
+            "fa2_vs_fp32_max_abs": 0.005194187164306641,
+            "sdpa_vs_fp32_max_abs": 0.005194187164306641,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 154
+          },
+          {
+            "layer": 23,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.00789785385131836,
+            "sdpa_vs_fp32_max_abs": 0.00789785385131836,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 154
+          },
+          {
+            "layer": 24,
+            "fa2_vs_sdpa_max_abs": 0.00048828125,
+            "fa2_vs_fp32_max_abs": 0.007425546646118164,
+            "sdpa_vs_fp32_max_abs": 0.007425546646118164,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 154
+          },
+          {
+            "layer": 25,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.00818943977355957,
+            "sdpa_vs_fp32_max_abs": 0.00818943977355957,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 154
+          },
+          {
+            "layer": 26,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.0071752071380615234,
+            "sdpa_vs_fp32_max_abs": 0.0071752071380615234,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 154
+          },
+          {
+            "layer": 27,
+            "fa2_vs_sdpa_max_abs": 0.00390625,
+            "fa2_vs_fp32_max_abs": 0.008430242538452148,
+            "sdpa_vs_fp32_max_abs": 0.008430242538452148,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 154
+          },
+          {
+            "layer": 28,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.013283729553222656,
+            "sdpa_vs_fp32_max_abs": 0.013283729553222656,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 154
+          },
+          {
+            "layer": 29,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.009586334228515625,
+            "sdpa_vs_fp32_max_abs": 0.009586334228515625,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 154
+          },
+          {
+            "layer": 30,
+            "fa2_vs_sdpa_max_abs": 6.103515625e-05,
+            "fa2_vs_fp32_max_abs": 0.008642196655273438,
+            "sdpa_vs_fp32_max_abs": 0.008642196655273438,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 154
+          },
+          {
+            "layer": 31,
+            "fa2_vs_sdpa_max_abs": 0.0001220703125,
+            "fa2_vs_fp32_max_abs": 0.029909133911132812,
+            "sdpa_vs_fp32_max_abs": 0.029909133911132812,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 154
+          },
+          {
+            "layer": 32,
+            "fa2_vs_sdpa_max_abs": 0.0001220703125,
+            "fa2_vs_fp32_max_abs": 0.016446590423583984,
+            "sdpa_vs_fp32_max_abs": 0.016446590423583984,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 154
+          },
+          {
+            "layer": 33,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.030648231506347656,
+            "sdpa_vs_fp32_max_abs": 0.030648231506347656,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 154
+          },
+          {
+            "layer": 34,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.051853179931640625,
+            "sdpa_vs_fp32_max_abs": 0.051853179931640625,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 154
+          },
+          {
+            "layer": 35,
+            "fa2_vs_sdpa_max_abs": 0.000244140625,
+            "fa2_vs_fp32_max_abs": 0.021917343139648438,
+            "sdpa_vs_fp32_max_abs": 0.021917343139648438,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 154
+          }
+        ]
+      }
+    },
+    "same_argmax": true
+  },
+  {
+    "case": {
+      "source_id": "HumanEval/39",
+      "first_token_index": 0,
+      "reference_token": 1654,
+      "actual_token": 750,
+      "reference_length": 156,
+      "actual_length": 200
+    },
+    "replay": "batch1, prompt chunks32, teacher-forced identical legacy prefix; differs from original batch scheduling",
+    "variants": {
+      "sdpa_per_sequence": {
+        "top_tokens": [
+          {
+            "token": 1654,
+            "text": "We",
+            "logit": 36.25
+          },
+          {
+            "token": 750,
+            "text": "def",
+            "logit": 35.5
+          },
+          {
+            "token": 31115,
+            "text": "Generate",
+            "logit": 35.25
+          },
+          {
+            "token": 1249,
+            "text": "To",
+            "logit": 31.875
+          },
+          {
+            "token": 5338,
+            "text": "First",
+            "logit": 31.75
+          }
+        ],
+        "top2_margin": 0.75,
+        "predicted": 1654,
+        "layers": []
+      },
+      "flash_attn_varlen": {
+        "top_tokens": [
+          {
+            "token": 1654,
+            "text": "We",
+            "logit": 36.5
+          },
+          {
+            "token": 31115,
+            "text": "Generate",
+            "logit": 35.0
+          },
+          {
+            "token": 750,
+            "text": "def",
+            "logit": 34.75
+          },
+          {
+            "token": 5338,
+            "text": "First",
+            "logit": 32.25
+          },
+          {
+            "token": 1249,
+            "text": "To",
+            "logit": 31.75
+          }
+        ],
+        "top2_margin": 1.5,
+        "predicted": 1654,
+        "layers": [
+          {
+            "layer": 0,
+            "fa2_vs_sdpa_max_abs": 0.001953125,
+            "fa2_vs_fp32_max_abs": 0.0011386275291442871,
+            "sdpa_vs_fp32_max_abs": 0.0009626448154449463,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 114688,
+            "query_tokens": 28,
+            "kv_tokens": 124
+          },
+          {
+            "layer": 1,
+            "fa2_vs_sdpa_max_abs": 0.001953125,
+            "fa2_vs_fp32_max_abs": 0.0012003183364868164,
+            "sdpa_vs_fp32_max_abs": 0.0009403526782989502,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 114688,
+            "query_tokens": 28,
+            "kv_tokens": 124
+          },
+          {
+            "layer": 2,
+            "fa2_vs_sdpa_max_abs": 0.001953125,
+            "fa2_vs_fp32_max_abs": 0.0010981261730194092,
+            "sdpa_vs_fp32_max_abs": 0.0009465813636779785,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 114688,
+            "query_tokens": 28,
+            "kv_tokens": 124
+          },
+          {
+            "layer": 3,
+            "fa2_vs_sdpa_max_abs": 0.001953125,
+            "fa2_vs_fp32_max_abs": 0.0017271637916564941,
+            "sdpa_vs_fp32_max_abs": 0.0017271637916564941,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 114688,
+            "query_tokens": 28,
+            "kv_tokens": 124
+          },
+          {
+            "layer": 4,
+            "fa2_vs_sdpa_max_abs": 0.0009765625,
+            "fa2_vs_fp32_max_abs": 0.0009589791297912598,
+            "sdpa_vs_fp32_max_abs": 0.0009589791297912598,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 114688,
+            "query_tokens": 28,
+            "kv_tokens": 124
+          },
+          {
+            "layer": 5,
+            "fa2_vs_sdpa_max_abs": 0.001953125,
+            "fa2_vs_fp32_max_abs": 0.001589953899383545,
+            "sdpa_vs_fp32_max_abs": 0.001589953899383545,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 114688,
+            "query_tokens": 28,
+            "kv_tokens": 124
+          },
+          {
+            "layer": 6,
+            "fa2_vs_sdpa_max_abs": 0.001953125,
+            "fa2_vs_fp32_max_abs": 0.0018476247787475586,
+            "sdpa_vs_fp32_max_abs": 0.0018476247787475586,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 114688,
+            "query_tokens": 28,
+            "kv_tokens": 124
+          },
+          {
+            "layer": 7,
+            "fa2_vs_sdpa_max_abs": 0.00390625,
+            "fa2_vs_fp32_max_abs": 0.003300786018371582,
+            "sdpa_vs_fp32_max_abs": 0.003300786018371582,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 114688,
+            "query_tokens": 28,
+            "kv_tokens": 124
+          },
+          {
+            "layer": 8,
+            "fa2_vs_sdpa_max_abs": 0.00390625,
+            "fa2_vs_fp32_max_abs": 0.0023068785667419434,
+            "sdpa_vs_fp32_max_abs": 0.0019475817680358887,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 114688,
+            "query_tokens": 28,
+            "kv_tokens": 124
+          },
+          {
+            "layer": 9,
+            "fa2_vs_sdpa_max_abs": 0.0078125,
+            "fa2_vs_fp32_max_abs": 0.00491786003112793,
+            "sdpa_vs_fp32_max_abs": 0.0031824111938476562,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 114688,
+            "query_tokens": 28,
+            "kv_tokens": 124
+          },
+          {
+            "layer": 10,
+            "fa2_vs_sdpa_max_abs": 0.0078125,
+            "fa2_vs_fp32_max_abs": 0.004010319709777832,
+            "sdpa_vs_fp32_max_abs": 0.0038983821868896484,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 114688,
+            "query_tokens": 28,
+            "kv_tokens": 124
+          },
+          {
+            "layer": 11,
+            "fa2_vs_sdpa_max_abs": 0.00390625,
+            "fa2_vs_fp32_max_abs": 0.00386655330657959,
+            "sdpa_vs_fp32_max_abs": 0.00386655330657959,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 114688,
+            "query_tokens": 28,
+            "kv_tokens": 124
+          },
+          {
+            "layer": 12,
+            "fa2_vs_sdpa_max_abs": 0.0078125,
+            "fa2_vs_fp32_max_abs": 0.004130840301513672,
+            "sdpa_vs_fp32_max_abs": 0.003884434700012207,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 114688,
+            "query_tokens": 28,
+            "kv_tokens": 124
+          },
+          {
+            "layer": 13,
+            "fa2_vs_sdpa_max_abs": 0.0078125,
+            "fa2_vs_fp32_max_abs": 0.004015684127807617,
+            "sdpa_vs_fp32_max_abs": 0.0038530826568603516,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 114688,
+            "query_tokens": 28,
+            "kv_tokens": 124
+          },
+          {
+            "layer": 14,
+            "fa2_vs_sdpa_max_abs": 0.0078125,
+            "fa2_vs_fp32_max_abs": 0.006440401077270508,
+            "sdpa_vs_fp32_max_abs": 0.006440401077270508,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 114688,
+            "query_tokens": 28,
+            "kv_tokens": 124
+          },
+          {
+            "layer": 15,
+            "fa2_vs_sdpa_max_abs": 0.0078125,
+            "fa2_vs_fp32_max_abs": 0.0064067840576171875,
+            "sdpa_vs_fp32_max_abs": 0.0064067840576171875,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 114688,
+            "query_tokens": 28,
+            "kv_tokens": 124
+          },
+          {
+            "layer": 16,
+            "fa2_vs_sdpa_max_abs": 0.015625,
+            "fa2_vs_fp32_max_abs": 0.007852554321289062,
+            "sdpa_vs_fp32_max_abs": 0.0077724456787109375,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 114688,
+            "query_tokens": 28,
+            "kv_tokens": 124
+          },
+          {
+            "layer": 17,
+            "fa2_vs_sdpa_max_abs": 0.015625,
+            "fa2_vs_fp32_max_abs": 0.009356975555419922,
+            "sdpa_vs_fp32_max_abs": 0.007784128189086914,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 114688,
+            "query_tokens": 28,
+            "kv_tokens": 124
+          },
+          {
+            "layer": 18,
+            "fa2_vs_sdpa_max_abs": 0.015625,
+            "fa2_vs_fp32_max_abs": 0.008578062057495117,
+            "sdpa_vs_fp32_max_abs": 0.007651329040527344,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 114688,
+            "query_tokens": 28,
+            "kv_tokens": 124
+          },
+          {
+            "layer": 19,
+            "fa2_vs_sdpa_max_abs": 0.015625,
+            "fa2_vs_fp32_max_abs": 0.007970333099365234,
+            "sdpa_vs_fp32_max_abs": 0.007654666900634766,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 114688,
+            "query_tokens": 28,
+            "kv_tokens": 124
+          },
+          {
+            "layer": 20,
+            "fa2_vs_sdpa_max_abs": 0.015625,
+            "fa2_vs_fp32_max_abs": 0.00853872299194336,
+            "sdpa_vs_fp32_max_abs": 0.0076596736907958984,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 114688,
+            "query_tokens": 28,
+            "kv_tokens": 124
+          },
+          {
+            "layer": 21,
+            "fa2_vs_sdpa_max_abs": 0.015625,
+            "fa2_vs_fp32_max_abs": 0.009960174560546875,
+            "sdpa_vs_fp32_max_abs": 0.009960174560546875,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 114688,
+            "query_tokens": 28,
+            "kv_tokens": 124
+          },
+          {
+            "layer": 22,
+            "fa2_vs_sdpa_max_abs": 0.015625,
+            "fa2_vs_fp32_max_abs": 0.012721061706542969,
+            "sdpa_vs_fp32_max_abs": 0.012721061706542969,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 114688,
+            "query_tokens": 28,
+            "kv_tokens": 124
+          },
+          {
+            "layer": 23,
+            "fa2_vs_sdpa_max_abs": 0.015625,
+            "fa2_vs_fp32_max_abs": 0.015311241149902344,
+            "sdpa_vs_fp32_max_abs": 0.015311241149902344,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 114688,
+            "query_tokens": 28,
+            "kv_tokens": 124
+          },
+          {
+            "layer": 24,
+            "fa2_vs_sdpa_max_abs": 0.03125,
+            "fa2_vs_fp32_max_abs": 0.017713069915771484,
+            "sdpa_vs_fp32_max_abs": 0.015218734741210938,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 114688,
+            "query_tokens": 28,
+            "kv_tokens": 124
+          },
+          {
+            "layer": 25,
+            "fa2_vs_sdpa_max_abs": 0.03125,
+            "fa2_vs_fp32_max_abs": 0.01598501205444336,
+            "sdpa_vs_fp32_max_abs": 0.01526498794555664,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 114688,
+            "query_tokens": 28,
+            "kv_tokens": 124
+          },
+          {
+            "layer": 26,
+            "fa2_vs_sdpa_max_abs": 0.03125,
+            "fa2_vs_fp32_max_abs": 0.016005516052246094,
+            "sdpa_vs_fp32_max_abs": 0.015404701232910156,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 114688,
+            "query_tokens": 28,
+            "kv_tokens": 124
+          },
+          {
+            "layer": 27,
+            "fa2_vs_sdpa_max_abs": 0.015625,
+            "fa2_vs_fp32_max_abs": 0.014424324035644531,
+            "sdpa_vs_fp32_max_abs": 0.014424324035644531,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 114688,
+            "query_tokens": 28,
+            "kv_tokens": 124
+          },
+          {
+            "layer": 28,
+            "fa2_vs_sdpa_max_abs": 0.03125,
+            "fa2_vs_fp32_max_abs": 0.024637222290039062,
+            "sdpa_vs_fp32_max_abs": 0.015381336212158203,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 114688,
+            "query_tokens": 28,
+            "kv_tokens": 124
+          },
+          {
+            "layer": 29,
+            "fa2_vs_sdpa_max_abs": 0.0625,
+            "fa2_vs_fp32_max_abs": 0.03161907196044922,
+            "sdpa_vs_fp32_max_abs": 0.03088092803955078,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 114688,
+            "query_tokens": 28,
+            "kv_tokens": 124
+          },
+          {
+            "layer": 30,
+            "fa2_vs_sdpa_max_abs": 0.0625,
+            "fa2_vs_fp32_max_abs": 0.03518486022949219,
+            "sdpa_vs_fp32_max_abs": 0.030320167541503906,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 114688,
+            "query_tokens": 28,
+            "kv_tokens": 124
+          },
+          {
+            "layer": 31,
+            "fa2_vs_sdpa_max_abs": 0.0625,
+            "fa2_vs_fp32_max_abs": 0.03606414794921875,
+            "sdpa_vs_fp32_max_abs": 0.028759002685546875,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 114688,
+            "query_tokens": 28,
+            "kv_tokens": 124
+          },
+          {
+            "layer": 32,
+            "fa2_vs_sdpa_max_abs": 0.0625,
+            "fa2_vs_fp32_max_abs": 0.06221771240234375,
+            "sdpa_vs_fp32_max_abs": 0.06221771240234375,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 114688,
+            "query_tokens": 28,
+            "kv_tokens": 124
+          },
+          {
+            "layer": 33,
+            "fa2_vs_sdpa_max_abs": 0.125,
+            "fa2_vs_fp32_max_abs": 0.07675743103027344,
+            "sdpa_vs_fp32_max_abs": 0.06225395202636719,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 114688,
+            "query_tokens": 28,
+            "kv_tokens": 124
+          },
+          {
+            "layer": 34,
+            "fa2_vs_sdpa_max_abs": 0.125,
+            "fa2_vs_fp32_max_abs": 0.08261871337890625,
+            "sdpa_vs_fp32_max_abs": 0.08261871337890625,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 114688,
+            "query_tokens": 28,
+            "kv_tokens": 124
+          },
+          {
+            "layer": 35,
+            "fa2_vs_sdpa_max_abs": 0.0625,
+            "fa2_vs_fp32_max_abs": 0.10598373413085938,
+            "sdpa_vs_fp32_max_abs": 0.10598373413085938,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 114688,
+            "query_tokens": 28,
+            "kv_tokens": 124
+          }
+        ]
+      }
+    },
+    "same_argmax": true
+  },
+  {
+    "case": {
+      "source_id": "HumanEval/147",
+      "first_token_index": 0,
+      "reference_token": 262,
+      "actual_token": 750,
+      "reference_length": 88,
+      "actual_length": 250
+    },
+    "replay": "batch1, prompt chunks32, teacher-forced identical legacy prefix; differs from original batch scheduling",
+    "variants": {
+      "sdpa_per_sequence": {
+        "top_tokens": [
+          {
+            "token": 750,
+            "text": "def",
+            "logit": 37.25
+          },
+          {
+            "token": 262,
+            "text": "   ",
+            "logit": 37.0
+          },
+          {
+            "token": 1958,
+            "text": "for",
+            "logit": 32.75
+          },
+          {
+            "token": 73594,
+            "text": "```",
+            "logit": 31.75
+          },
+          {
+            "token": 1654,
+            "text": "We",
+            "logit": 31.25
+          }
+        ],
+        "top2_margin": 0.25,
+        "predicted": 750,
+        "layers": []
+      },
+      "flash_attn_varlen": {
+        "top_tokens": [
+          {
+            "token": 262,
+            "text": "   ",
+            "logit": 37.0
+          },
+          {
+            "token": 750,
+            "text": "def",
+            "logit": 36.75
+          },
+          {
+            "token": 1958,
+            "text": "for",
+            "logit": 32.25
+          },
+          {
+            "token": 1654,
+            "text": "We",
+            "logit": 31.875
+          },
+          {
+            "token": 73594,
+            "text": "```",
+            "logit": 31.625
+          }
+        ],
+        "top2_margin": 0.25,
+        "predicted": 262,
+        "layers": [
+          {
+            "layer": 0,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.00044536590576171875,
+            "sdpa_vs_fp32_max_abs": 0.00044536590576171875,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 193
+          },
+          {
+            "layer": 1,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.0005642473697662354,
+            "sdpa_vs_fp32_max_abs": 0.0005642473697662354,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 193
+          },
+          {
+            "layer": 2,
+            "fa2_vs_sdpa_max_abs": 1.52587890625e-05,
+            "fa2_vs_fp32_max_abs": 0.0005479156970977783,
+            "sdpa_vs_fp32_max_abs": 0.0005479156970977783,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 193
+          },
+          {
+            "layer": 3,
+            "fa2_vs_sdpa_max_abs": 1.9073486328125e-06,
+            "fa2_vs_fp32_max_abs": 0.00046737492084503174,
+            "sdpa_vs_fp32_max_abs": 0.00046737492084503174,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 193
+          },
+          {
+            "layer": 4,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.0009338557720184326,
+            "sdpa_vs_fp32_max_abs": 0.0009338557720184326,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 193
+          },
+          {
+            "layer": 5,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.0009396672248840332,
+            "sdpa_vs_fp32_max_abs": 0.0009396672248840332,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 193
+          },
+          {
+            "layer": 6,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.0007922947406768799,
+            "sdpa_vs_fp32_max_abs": 0.0007922947406768799,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 193
+          },
+          {
+            "layer": 7,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.001243293285369873,
+            "sdpa_vs_fp32_max_abs": 0.001243293285369873,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 193
+          },
+          {
+            "layer": 8,
+            "fa2_vs_sdpa_max_abs": 3.0517578125e-05,
+            "fa2_vs_fp32_max_abs": 0.0011094212532043457,
+            "sdpa_vs_fp32_max_abs": 0.0011094212532043457,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 193
+          },
+          {
+            "layer": 9,
+            "fa2_vs_sdpa_max_abs": 6.103515625e-05,
+            "fa2_vs_fp32_max_abs": 0.001888871192932129,
+            "sdpa_vs_fp32_max_abs": 0.001888871192932129,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 193
+          },
+          {
+            "layer": 10,
+            "fa2_vs_sdpa_max_abs": 6.103515625e-05,
+            "fa2_vs_fp32_max_abs": 0.003689289093017578,
+            "sdpa_vs_fp32_max_abs": 0.003689289093017578,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 193
+          },
+          {
+            "layer": 11,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.002256155014038086,
+            "sdpa_vs_fp32_max_abs": 0.002256155014038086,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 193
+          },
+          {
+            "layer": 12,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.00330197811126709,
+            "sdpa_vs_fp32_max_abs": 0.00330197811126709,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 193
+          },
+          {
+            "layer": 13,
+            "fa2_vs_sdpa_max_abs": 1.1920928955078125e-07,
+            "fa2_vs_fp32_max_abs": 0.003542184829711914,
+            "sdpa_vs_fp32_max_abs": 0.003542184829711914,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 193
+          },
+          {
+            "layer": 14,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.00353240966796875,
+            "sdpa_vs_fp32_max_abs": 0.00353240966796875,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 193
+          },
+          {
+            "layer": 15,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.003577709197998047,
+            "sdpa_vs_fp32_max_abs": 0.003577709197998047,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 193
+          },
+          {
+            "layer": 16,
+            "fa2_vs_sdpa_max_abs": 0.00048828125,
+            "fa2_vs_fp32_max_abs": 0.0041048526763916016,
+            "sdpa_vs_fp32_max_abs": 0.0041048526763916016,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 193
+          },
+          {
+            "layer": 17,
+            "fa2_vs_sdpa_max_abs": 1.1920928955078125e-07,
+            "fa2_vs_fp32_max_abs": 0.00401616096496582,
+            "sdpa_vs_fp32_max_abs": 0.00401616096496582,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 193
+          },
+          {
+            "layer": 18,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.0061855316162109375,
+            "sdpa_vs_fp32_max_abs": 0.0061855316162109375,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 193
+          },
+          {
+            "layer": 19,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.006812095642089844,
+            "sdpa_vs_fp32_max_abs": 0.006812095642089844,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 193
+          },
+          {
+            "layer": 20,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.005199432373046875,
+            "sdpa_vs_fp32_max_abs": 0.005199432373046875,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 193
+          },
+          {
+            "layer": 21,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.0052471160888671875,
+            "sdpa_vs_fp32_max_abs": 0.0052471160888671875,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 193
+          },
+          {
+            "layer": 22,
+            "fa2_vs_sdpa_max_abs": 7.62939453125e-06,
+            "fa2_vs_fp32_max_abs": 0.007177114486694336,
+            "sdpa_vs_fp32_max_abs": 0.007177114486694336,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 193
+          },
+          {
+            "layer": 23,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.008916378021240234,
+            "sdpa_vs_fp32_max_abs": 0.008916378021240234,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 193
+          },
+          {
+            "layer": 24,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.008961200714111328,
+            "sdpa_vs_fp32_max_abs": 0.008961200714111328,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 193
+          },
+          {
+            "layer": 25,
+            "fa2_vs_sdpa_max_abs": 1.9073486328125e-06,
+            "fa2_vs_fp32_max_abs": 0.0059871673583984375,
+            "sdpa_vs_fp32_max_abs": 0.0059871673583984375,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 193
+          },
+          {
+            "layer": 26,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.004406929016113281,
+            "sdpa_vs_fp32_max_abs": 0.004406929016113281,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 193
+          },
+          {
+            "layer": 27,
+            "fa2_vs_sdpa_max_abs": 0.0001220703125,
+            "fa2_vs_fp32_max_abs": 0.0061032772064208984,
+            "sdpa_vs_fp32_max_abs": 0.0061032772064208984,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 193
+          },
+          {
+            "layer": 28,
+            "fa2_vs_sdpa_max_abs": 5.960464477539063e-08,
+            "fa2_vs_fp32_max_abs": 0.0069806575775146484,
+            "sdpa_vs_fp32_max_abs": 0.0069806575775146484,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 193
+          },
+          {
+            "layer": 29,
+            "fa2_vs_sdpa_max_abs": 9.5367431640625e-07,
+            "fa2_vs_fp32_max_abs": 0.006928563117980957,
+            "sdpa_vs_fp32_max_abs": 0.006928563117980957,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 193
+          },
+          {
+            "layer": 30,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.014585494995117188,
+            "sdpa_vs_fp32_max_abs": 0.014585494995117188,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 193
+          },
+          {
+            "layer": 31,
+            "fa2_vs_sdpa_max_abs": 0.001953125,
+            "fa2_vs_fp32_max_abs": 0.0162811279296875,
+            "sdpa_vs_fp32_max_abs": 0.0162811279296875,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 193
+          },
+          {
+            "layer": 32,
+            "fa2_vs_sdpa_max_abs": 0.0,
+            "fa2_vs_fp32_max_abs": 0.008328676223754883,
+            "sdpa_vs_fp32_max_abs": 0.008328676223754883,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 193
+          },
+          {
+            "layer": 33,
+            "fa2_vs_sdpa_max_abs": 3.814697265625e-06,
+            "fa2_vs_fp32_max_abs": 0.011759281158447266,
+            "sdpa_vs_fp32_max_abs": 0.011759281158447266,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 193
+          },
+          {
+            "layer": 34,
+            "fa2_vs_sdpa_max_abs": 0.00048828125,
+            "fa2_vs_fp32_max_abs": 0.03284263610839844,
+            "sdpa_vs_fp32_max_abs": 0.03284263610839844,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 193
+          },
+          {
+            "layer": 35,
+            "fa2_vs_sdpa_max_abs": 6.103515625e-05,
+            "fa2_vs_fp32_max_abs": 0.020349502563476562,
+            "sdpa_vs_fp32_max_abs": 0.020349502563476562,
+            "fa2_fp32_outside_tolerance": 0,
+            "elements": 4096,
+            "query_tokens": 1,
+            "kv_tokens": 193
+          }
+        ]
+      }
+    },
+    "same_argmax": false
+  }
+]

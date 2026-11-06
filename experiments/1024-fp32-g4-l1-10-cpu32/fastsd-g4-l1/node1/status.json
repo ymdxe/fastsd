@@ -1,0 +1,38 @@
+{
+  "run": "fastsd-g4-l1",
+  "node": "node1",
+  "epoch": 1792861504.1297495,
+  "exit_codes": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "finished": true,
+  "failed": false,
+  "completed": 663,
+  "ready": 16,
+  "loadavg": [
+    2.68,
+    7.38,
+    16.47
+  ],
+  "clock_timing": {
+    "recalibrations": 2705,
+    "valid_pull_measurements": 43591,
+    "unreliable_pull_measurements": 0,
+    "upload_pre_admission_retries": 0
+  }
+}

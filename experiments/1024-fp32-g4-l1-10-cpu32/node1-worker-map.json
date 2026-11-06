@@ -1,0 +1,306 @@
+[
+  {
+    "worker": 0,
+    "cpus": [
+      0,
+      6
+    ],
+    "numa": 0,
+    "threads": 2,
+    "physical_cores": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        6
+      ]
+    ]
+  },
+  {
+    "worker": 1,
+    "cpus": [
+      1,
+      3
+    ],
+    "numa": 1,
+    "threads": 2,
+    "physical_cores": [
+      [
+        1,
+        1
+      ],
+      [
+        1,
+        3
+      ]
+    ]
+  },
+  {
+    "worker": 2,
+    "cpus": [
+      8,
+      10
+    ],
+    "numa": 0,
+    "threads": 2,
+    "physical_cores": [
+      [
+        0,
+        8
+      ],
+      [
+        0,
+        10
+      ]
+    ]
+  },
+  {
+    "worker": 3,
+    "cpus": [
+      5,
+      7
+    ],
+    "numa": 1,
+    "threads": 2,
+    "physical_cores": [
+      [
+        1,
+        5
+      ],
+      [
+        1,
+        7
+      ]
+    ]
+  },
+  {
+    "worker": 4,
+    "cpus": [
+      12,
+      14
+    ],
+    "numa": 0,
+    "threads": 2,
+    "physical_cores": [
+      [
+        0,
+        12
+      ],
+      [
+        0,
+        14
+      ]
+    ]
+  },
+  {
+    "worker": 5,
+    "cpus": [
+      9,
+      11
+    ],
+    "numa": 1,
+    "threads": 2,
+    "physical_cores": [
+      [
+        1,
+        9
+      ],
+      [
+        1,
+        11
+      ]
+    ]
+  },
+  {
+    "worker": 6,
+    "cpus": [
+      16,
+      18
+    ],
+    "numa": 0,
+    "threads": 2,
+    "physical_cores": [
+      [
+        0,
+        16
+      ],
+      [
+        0,
+        18
+      ]
+    ]
+  },
+  {
+    "worker": 7,
+    "cpus": [
+      13,
+      15
+    ],
+    "numa": 1,
+    "threads": 2,
+    "physical_cores": [
+      [
+        1,
+        13
+      ],
+      [
+        1,
+        15
+      ]
+    ]
+  },
+  {
+    "worker": 8,
+    "cpus": [
+      20,
+      22
+    ],
+    "numa": 0,
+    "threads": 2,
+    "physical_cores": [
+      [
+        0,
+        20
+      ],
+      [
+        0,
+        22
+      ]
+    ]
+  },
+  {
+    "worker": 9,
+    "cpus": [
+      17,
+      23
+    ],
+    "numa": 1,
+    "threads": 2,
+    "physical_cores": [
+      [
+        1,
+        17
+      ],
+      [
+        1,
+        23
+      ]
+    ]
+  },
+  {
+    "worker": 10,
+    "cpus": [
+      24,
+      26
+    ],
+    "numa": 0,
+    "threads": 2,
+    "physical_cores": [
+      [
+        0,
+        24
+      ],
+      [
+        0,
+        26
+      ]
+    ]
+  },
+  {
+    "worker": 11,
+    "cpus": [
+      25,
+      27
+    ],
+    "numa": 1,
+    "threads": 2,
+    "physical_cores": [
+      [
+        1,
+        25
+      ],
+      [
+        1,
+        27
+      ]
+    ]
+  },
+  {
+    "worker": 12,
+    "cpus": [
+      28,
+      34
+    ],
+    "numa": 0,
+    "threads": 2,
+    "physical_cores": [
+      [
+        0,
+        28
+      ],
+      [
+        0,
+        34
+      ]
+    ]
+  },
+  {
+    "worker": 13,
+    "cpus": [
+      29,
+      31
+    ],
+    "numa": 1,
+    "threads": 2,
+    "physical_cores": [
+      [
+        1,
+        29
+      ],
+      [
+        1,
+        31
+      ]
+    ]
+  },
+  {
+    "worker": 14,
+    "cpus": [
+      30,
+      36
+    ],
+    "numa": 0,
+    "threads": 2,
+    "physical_cores": [
+      [
+        0,
+        36
+      ],
+      [
+        0,
+        30
+      ]
+    ]
+  },
+  {
+    "worker": 15,
+    "cpus": [
+      33,
+      35
+    ],
+    "numa": 1,
+    "threads": 2,
+    "physical_cores": [
+      [
+        1,
+        33
+      ],
+      [
+        1,
+        35
+      ]
+    ]
+  }
+]

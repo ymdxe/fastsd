@@ -1,0 +1,4 @@
+.coordinator-token
+model-view/
+__pycache__/
+*.pid

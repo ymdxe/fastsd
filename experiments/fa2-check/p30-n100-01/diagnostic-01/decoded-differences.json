@@ -1,0 +1,122 @@
+[
+  {
+    "source_id": "HumanEval/1",
+    "first_token_index": 14,
+    "legacy": "    groups = []\n    current_group = []\n    depth = 0\n\n    for char in paren_string.replace(' ', ''):\n        if char == '(':\n            depth += 1\n            current_group.append(char)\n        elif char == ')':\n            depth -= 1\n            current_group.append(char)\n            if depth == 0:\n                groups.append(''.join(current_group))\n                current_group = []\n    \n    return groups<|im_end|>",
+    "fa2": "    groups = []\n    current_group = []\n    depth = 0\n    for char in paren_string.replace(' ', ''):\n        if char == '(':\n            depth += 1\n            current_group.append(char)\n        elif char == ')':\n            depth -= 1\n            current_group.append(char)\n            if depth == 0:\n                groups.append(''.join(current_group))\n                current_group = []\n    return groups<|im_end|>"
+  },
+  {
+    "source_id": "HumanEval/19",
+    "first_token_index": 23,
+    "legacy": "    # Split the input string into a list of number words\n    number_words = numbers.split()\n    \n    # Define a mapping from number words to their numeric values\n    number_map = {\n        'zero': '0',\n        'one': '1',\n        'two': '2',\n        'three': '3',\n        'four': '4',\n        'five': '5',\n        'six': '6',\n        'seven': '7',\n        'eight': '8',\n        'nine': '9'\n    }\n    \n    # Convert each number word to its numeric string representation\n    numeric_values = [number_map[word] for word in number_words]\n    \n    # Sort the numeric values\n    numeric_values.sort()\n    \n    # Convert back to number words in the sorted order\n    sorted_words = [list(number_map.keys())[list(number_map.values()).index(val)] for val in numeric_values]\n    \n    # Join the sorted words into a space-delimited string\n    return ' '.join(sorted_words)<|im_end|>",
+    "fa2": "    # Split the input string into a list of number words\n    number_words = numbers.split()\n    \n    # Create a mapping from number words to their numeric values\n    number_map = {\n        'zero': '0',\n        'one': '1',\n        'two': '2',\n        'three': '3',\n        'four': '4',\n        'five': '5',\n        'six': '6',\n        'seven': '7',\n        'eight': '8',\n        'nine': '9'\n    }\n    \n    # Convert each number word to its numeric string representation\n    numeric_values = [number_map[word] for word in number_words]\n    \n    # Sort the numeric values\n    numeric_values.sort()\n    \n    # Convert back to number words in the sorted order\n    sorted_words = [list(number_map.keys())[list(number_map.values()).index(val)] for val in numeric_values]\n    \n    # Join the sorted words into a space-delimited string\n    return ' '.join(sorted_words)<|im_end|>"
+  },
+  {
+    "source_id": "HumanEval/39",
+    "first_token_index": 0,
+    "legacy": "We need to generate Fibonacci numbers and check if they are prime, then return the n-th such number.\n\nHere's the continuation:\n\n    fib_numbers = [0, 1]\n    prime_numbers = []\n\n    while len(prime_numbers) < n:\n        next_fib = fib_numbers[-1] + fib_numbers[-2]\n        fib_numbers.append(next_fib)\n        if is_prime(next_fib):\n            prime_numbers.append(next_fib)\n\n    return prime_numbers[-1]\n\ndef is_prime(num: int) -> bool:\n    if num < 2:\n        return False\n    for i in range(2, int(num ** 0.5) + 1):\n        if num % i == 0:\n            return False\n    return True<|im_end|>",
+    "fa2": "def prime_fib(n: int):\n    \"\"\"\n    prime_fib returns n-th number that is a Fibonacci number and it's also prime.\n    >>> prime_fib(1)\n    2\n    >>> prime_fib(2)\n    3\n    >>> prime_fib(3)\n    5\n    >>> prime_fib(4)\n    13\n    >>> prime_fib(5)\n    89\n    \"\"\"\n    def is_prime(num):\n        if num < 2:\n            return False\n        for i in range(2, int(num**0.5) + 1):\n            if num % i == 0:\n                return False\n        return True\n\n    a, b = 1, 1\n    count = 0\n    while True:\n        a, b = b, a + b\n        if is_prime(a):\n            count += 1\n            if count == n:\n                return a<|im_end|>"
+  },
+  {
+    "source_id": "HumanEval/64",
+    "first_token_index": 114,
+    "legacy": "def vowels_count(s):\n    \"\"\"Write a function vowels_count which takes a string representing\n    a word as input and returns the number of vowels in the string.\n    Vowels in this case are 'a', 'e', 'i', 'o', 'u'. Here, 'y' is also a\n    vowel, but only when it is at the end of the given word.\n\n    Example:\n    >>> vowels_count(\"abcde\")\n    2\n    >>> vowels_count(\"ACEDY\")\n    3\n    \"\"\"\n    vowels = set('aeiou')\n    count = 0\n    for i, char in enumerate(s.lower()):\n        if char in vowels:\n            count += 1\n        elif char == 'y' and i == len(s) - 1:\n            count += 1\n    return count<|im_end|>",
+    "fa2": "def vowels_count(s):\n    \"\"\"Write a function vowels_count which takes a string representing\n    a word as input and returns the number of vowels in the string.\n    Vowels in this case are 'a', 'e', 'i', 'o', 'u'. Here, 'y' is also a\n    vowel, but only when it is at the end of the given word.\n\n    Example:\n    >>> vowels_count(\"abcde\")\n    2\n    >>> vowels_count(\"ACEDY\")\n    3\n    \"\"\"\n    vowels = {'a', 'e', 'i', 'o', 'u'}\n    count = 0\n    for i, char in enumerate(s.lower()):\n        if char in vowels:\n            count += 1\n        elif char == 'y' and i == len(s) - 1:\n            count += 1\n    return count<|im_end|>"
+  },
+  {
+    "source_id": "HumanEval/84",
+    "first_token_index": 3,
+    "legacy": "    total = sum(int(digit) for digit in str(N))\n    return bin(total)[2:]<|im_end|>",
+    "fa2": "    total = 0\n    for digit in str(N):\n        total += int(digit)\n    return bin(total)[2:]<|im_end|>"
+  },
+  {
+    "source_id": "HumanEval/89",
+    "first_token_index": 17,
+    "legacy": "    shifted = ''\n    for char in s:\n        if char.isalpha():\n            base = ord('a') if char.islower() else ord('A')\n            shifted_char = chr((ord(char) - base + 4) % 26 + base)\n            shifted += shifted_char\n        else:\n            shifted += char\n    return shifted<|im_end|>",
+    "fa2": "    shifted = ''\n    for char in s:\n        if char.isalpha():\n            shift = 2 * 2\n            if char.islower():\n                base = ord('a')\n            else:\n                base = ord('A')\n            shifted_char = chr((ord(char) - base + shift) % 26 + base)\n            shifted += shifted_char\n        else:\n            shifted += char\n    return shifted<|im_end|>"
+  },
+  {
+    "source_id": "HumanEval/99",
+    "first_token_index": 82,
+    "legacy": "    if '.' in value:\n        integer_part = int(value.split('.')[0])\n        decimal_part = value.split('.')[1]\n        if len(decimal_part) > 0:\n            if decimal_part[0] == '5':\n                if integer_part >= 0:\n                    return integer_part + 1\n                else:\n                    return integer_part - 1\n            else:\n                return integer_part\n    return int(value)<|im_end|>",
+    "fa2": "    if '.' in value:\n        integer_part = int(value.split('.')[0])\n        decimal_part = value.split('.')[1]\n        if len(decimal_part) > 0:\n            if decimal_part[0] == '5':\n                if integer_part >= 0:\n                    return integer_part + 1\n                else:\n                    return integer_part - 1\n            else:\n                return integer_part\n    else:\n        return int(value)<|im_end|>"
+  },
+  {
+    "source_id": "HumanEval/107",
+    "first_token_index": 13,
+    "legacy": "    even_count = 0\n    odd_count = 0\n    for i in range(1, n + 1):\n        if str(i) == str(i)[::-1]:\n            if i % 2 == 0:\n                even_count += 1\n            else:\n                odd_count += 1\n    return (even_count, odd_count)<|im_end|>",
+    "fa2": "    even_count = 0\n    odd_count = 0\n\n    for i in range(1, n + 1):\n        if str(i) == str(i)[::-1]:\n            if i % 2 == 0:\n                even_count += 1\n            else:\n                odd_count += 1\n\n    return (even_count, odd_count)<|im_end|>"
+  },
+  {
+    "source_id": "HumanEval/108",
+    "first_token_index": 50,
+    "legacy": "def count_nums(arr):\n    count = 0\n    for num in arr:\n        total = 0\n        if num < 0:\n            num = -num\n            total -= 1  # account for the negative sign\n        while num > 0:\n            total += num % 10\n            num //= 10\n        if total > 0:\n            count += 1\n    return count<|im_end|>",
+    "fa2": "def count_nums(arr):\n    count = 0\n    for num in arr:\n        total = 0\n        if num < 0:\n            num = -num\n            total -= 1  # account for the negative sign\n        for digit in str(num):\n            total += int(digit)\n        if total > 0:\n            count += 1\n    return count<|im_end|>"
+  },
+  {
+    "source_id": "HumanEval/110",
+    "first_token_index": 70,
+    "legacy": "To solve this problem, we need to determine if we can exchange elements between `lst1` and `lst2` such that all elements in `lst1` become even. \n\nHere's the logic:\n- We need to count how many **odd** numbers are in `lst1` (let's call this `odd_count`).\n- We also need to count how many **even** numbers are in `lst2` (let's call this `even_count`).\n- If the number of odd elements in `lst1` is less than or equal to the number of even elements in `lst2`, then it is possible to exchange elements to make all elements in `lst1` even. Otherwise, it is not.\n\nNow, here is the continuation of the code:\n\n```python\n    odd_count = sum(1 for x in lst1 if x % 2 != 0)\n    even_count = sum(1 for x in lst2 if x % 2 == 0)\n    return \"YES\" if odd_count <= even_count else \"NO\"\n```<|im_end|>",
+    "fa2": "To solve this problem, we need to determine if we can exchange elements between `lst1` and `lst2` such that all elements in `lst1` become even. \n\nHere's the logic:\n- We need to count how many **odd** numbers are in `lst1` (let's call this `odd_count`).\n- For each odd number in `lst1`, we need to find an **even** number in `lst2` to swap with it.\n- If there are enough even numbers in `lst2` to cover all the odd numbers in `lst1`, then it is possible to make all elements in `lst1` even, and we return `\"YES\"`. Otherwise, we return `\"NO\"`.\n\nNow, here is the continuation of the code:\n\n```python\n    odd_count = sum(1 for x in lst1 if x % 2 != 0)\n    even_count = sum(1 for x in lst2 if x % 2 == 0)\n    return \"YES\" if even_count >= odd_count else \"NO\"\n```<|im_end|>"
+  },
+  {
+    "source_id": "HumanEval/118",
+    "first_token_index": 14,
+    "legacy": "    vowels = 'aeiou'\n    for i in range(len(word)-2, -1, -1):\n        if word[i] in vowels:\n            if word[i-1] not in vowels and word[i+1] not in vowels:\n                return word[i]\n    return \"\"<|im_end|>",
+    "fa2": "    vowels = 'aeiou'\n    for i in range(len(word) - 2, -1, -1):\n        if word[i] in vowels:\n            if word[i-1] not in vowels and word[i+1] not in vowels:\n                return word[i]\n    return \"\"<|im_end|>"
+  },
+  {
+    "source_id": "HumanEval/119",
+    "first_token_index": 75,
+    "legacy": "    total_open = lst[0].count('(') + lst[1].count('(')\n    total_close = lst[0].count(')') + lst[1].count(')')\n    \n    if total_open != total_close:\n        return 'No'\n    \n    # Check both possible concatenations\n    if is_balanced(lst[0] + lst[1]) or is_balanced(lst[1] + lst[0]):\n        return 'Yes'\n    return 'No'\n\ndef is_balanced(s):\n    balance = 0\n    for char in s:\n        if char == '(':\n            balance += 1\n        else:\n            balance -= 1\n        if balance < 0:\n            return False\n    return balance == 0<|im_end|>",
+    "fa2": "    total_open = lst[0].count('(') + lst[1].count('(')\n    total_close = lst[0].count(')') + lst[1].count(')')\n    \n    if total_open != total_close:\n        return 'No'\n    \n    # Check both possible concatenations\n    if is_balanced(lst[0] + lst[1]):\n        return 'Yes'\n    if is_balanced(lst[1] + lst[0]):\n        return 'Yes'\n    \n    return 'No'\n\ndef is_balanced(s):\n    balance = 0\n    for char in s:\n        if char == '(':\n            balance += 1\n        else:\n            balance -= 1\n        if balance < 0:\n            return False\n    return balance == 0<|im_end|>"
+  },
+  {
+    "source_id": "HumanEval/124",
+    "first_token_index": 194,
+    "legacy": "    if not date:\n        return False\n    if len(date) != 10 or date[2] != '-' or date[5] != '-':\n        return False\n    month_str, day_str, year_str = date.split('-')\n    if not (month_str.isdigit() and day_str.isdigit() and year_str.isdigit()):\n        return False\n    month = int(month_str)\n    day = int(day_str)\n    year = int(year_str)\n    if month < 1 or month > 12:\n        return False\n    if day < 1:\n        return False\n    if month in [1, 3, 5, 7, 8, 10, 12] and day > 31:\n        return False\n    if month in [4, 6, 9, 11] and day > 30:\n        return False\n    if month == 2 and day > 29:\n        return False\n    return True<|im_end|>",
+    "fa2": "    if not date:\n        return False\n    if len(date) != 10 or date[2] != '-' or date[5] != '-':\n        return False\n    month_str, day_str, year_str = date.split('-')\n    if not (month_str.isdigit() and day_str.isdigit() and year_str.isdigit()):\n        return False\n    month = int(month_str)\n    day = int(day_str)\n    year = int(year_str)\n    if month < 1 or month > 12:\n        return False\n    if day < 1:\n        return False\n    if month in [1, 3, 5, 7, 8, 10, 12] and day > 31:\n        return False\n    if month in [4, 6, 9, 11] and day > 30:\n        return False\n    if month == 2:\n        if day > 29:\n            return False\n        if day == 29 and not (year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)):\n            return False\n    return True<|im_end|>"
+  },
+  {
+    "source_id": "HumanEval/126",
+    "first_token_index": 22,
+    "legacy": "for i in range(len(lst) - 1):\n        if lst[i] >= lst[i + 1]:\n            return False\n    return True<|im_end|>",
+    "fa2": "for i in range(len(lst) - 1):\n        if lst[i] >= lst[i + 1] or lst[i] == lst[i + 1]:\n            return False\nreturn True<|im_end|>"
+  },
+  {
+    "source_id": "HumanEval/127",
+    "first_token_index": 28,
+    "legacy": "    start = max(interval1[0], interval2[0])\n    end = min(interval1[1], interval2[1])\n    if start > end:\n        return \"NO\"\n    length = end - start + 1\n    if length < 2:\n        return \"NO\"\n    for i in range(2, int(length**0.5) + 1):\n        if length % i == 0:\n            return \"NO\"\n    return \"YES\"<|im_end|>",
+    "fa2": "    start = max(interval1[0], interval2[0])\n    end = min(interval1[1], interval2[1])\n    \n    if start > end:\n        return \"NO\"\n    \n    length = end - start + 1\n    \n    if length < 2:\n        return \"NO\"\n    \n    for i in range(2, int(length**0.5) + 1):\n        if length % i == 0:\n            return \"NO\"\n    \n    return \"YES\"<|im_end|>"
+  },
+  {
+    "source_id": "HumanEval/134",
+    "first_token_index": 40,
+    "legacy": "    if not txt:\n        return False\n    last_char = txt[-1]\n    if not last_char.isalpha():\n        return False\n    # Check if the last character is a standalone letter\n    # Split the string into words and check the last word\n    words = txt.split()\n    if not words:\n        return False\n    last_word = words[-1]\n    return last_word[-1] == last_char and len(last_word) == 1<|im_end|>",
+    "fa2": "    if not txt:\n        return False\n    last_char = txt[-1]\n    if not last_char.isalpha():\n        return False\n    # Check if the last character is a standalone letter (not part of a word)\n    # Split the string into words and check the last word's last character\n    words = txt.split()\n    if not words:\n        return False\n    last_word = words[-1]\n    return last_word[-1] == last_char and len(last_word) == 1<|im_end|>"
+  },
+  {
+    "source_id": "HumanEval/136",
+    "first_token_index": 30,
+    "legacy": "    negatives = [x for x in lst if x < 0]\n    positives = [x for x in lst if x > 0]\n    \n    a = max(negatives) if negatives else None\n    b = min(positives) if positives else None\n    \n    return (a, b)<|im_end|>",
+    "fa2": "    negatives = [x for x in lst if x < 0]\n    positives = [x for x in lst if x > 0]\n    a = max(negatives) if negatives else None\n    b = min(positives) if positives else None\n    return (a, b)<|im_end|>"
+  },
+  {
+    "source_id": "HumanEval/137",
+    "first_token_index": 2,
+    "legacy": "    if isinstance(a, str):\n        a = float(a.replace(',', '.'))\n    if isinstance(b, str):\n        b = float(b.replace(',', '.'))\n    if a > b:\n        return a\n    elif b > a:\n        return b\n    else:\n        return None<|im_end|>",
+    "fa2": "    if a == b:\n        return None\n    # Convert both values to float for comparison\n    try:\n        a_float = float(a.replace(',', '.'))\n    except:\n        a_float = float('-inf')\n    try:\n        b_float = float(b.replace(',', '.'))\n    except:\n        b_float = float('-inf')\n    if a_float > b_float:\n        return a\n    else:\n        return b<|im_end|>"
+  },
+  {
+    "source_id": "HumanEval/147",
+    "first_token_index": 0,
+    "legacy": "    a = [i*i - i + 1 for i in range(1, n+1)]\n    count = 0\n    for i in range(n):\n        for j in range(i+1, n):\n            for k in range(j+1, n):\n                if (a[i] + a[j] + a[k]) % 3 == 0:\n                    count += 1\n    return count<|im_end|>",
+    "fa2": "def get_max_triples(n):\n    \"\"\"\n    You are given a positive integer n. You have to create an integer array a of length n.\n        For each i (1 ≤ i ≤ n), the value of a[i] = i * i - i + 1.\n        Return the number of triples (a[i], a[j], a[k]) of a where i < j < k, \n    and a[i] + a[j] + a[k] is a multiple of 3.\n\n    Example :\n        Input: n = 5\n        Output: 1\n        Explanation: \n        a = [1, 3, 7, 13, 21]\n        The only valid triple is (1, 7, 13).\n    \"\"\"\n    a = [i*i - i + 1 for i in range(1, n+1)]\n    count = 0\n    for i in range(n):\n        for j in range(i+1, n):\n            for k in range(j+1, n):\n                if (a[i] + a[j] + a[k]) % 3 == 0:\n                    count += 1\n    return count<|im_end|>"
+  },
+  {
+    "source_id": "HumanEval/148",
+    "first_token_index": 52,
+    "legacy": "The planets in order from the Sun are: Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, Neptune.\n\nWe can define a list of planets in this order and use it to find the indices of the input planets. Then, we can extract the planets that lie between them, ensuring the correct order.\n\nHere is the continuation of the code:\n\n    planets = [\"Mercury\", \"Venus\", \"Earth\", \"Mars\", \"Jupiter\", \"Saturn\", \"Uranus\", \"Neptune\"]\n    if planet1 not in planets or planet2 not in planets:\n        return ()\n    idx1 = planets.index(planet1)\n    idx2 = planets.index(planet2)\n    start = min(idx1, idx2)\n    end = max(idx1, idx2)\n    return tuple(planets[start+1:end])<|im_end|>",
+    "fa2": "The planets in order from the Sun are: Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, Neptune.\n\nWe can define a list of planets in this order and use it to find the indices of the input planets. Then, we can slice the list to get the planets between them, ensuring the correct order.\n\nHere is the continuation of the code:\n\n    planets = [\"Mercury\", \"Venus\", \"Earth\", \"Mars\", \"Jupiter\", \"Saturn\", \"Uranus\", \"Neptune\"]\n    if planet1 not in planets or planet2 not in planets:\n        return ()\n    idx1 = planets.index(planet1)\n    idx2 = planets.index(planet2)\n    start = min(idx1, idx2)\n    end = max(idx1, idx2)\n    return tuple(planets[start+1:end])<|im_end|>"
+  }
+]

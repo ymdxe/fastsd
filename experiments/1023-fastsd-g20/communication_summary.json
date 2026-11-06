@@ -1,0 +1,161 @@
+{
+  "status": "completed",
+  "method": "FastSD",
+  "gamma": 20,
+  "max_new_tokens": 64,
+  "adaptive_gamma": false,
+  "requests": 32,
+  "failed_requests": 0,
+  "generated_tokens": 2048,
+  "output_tokens_per_request": {
+    "count": 32,
+    "min": 64.0,
+    "mean": 64.0,
+    "p50": 64.0,
+    "p95": 64.0,
+    "max": 64.0
+  },
+  "rpc_count": 224,
+  "rpc_counts": {
+    "/session/init": 32,
+    "/prefill/arrival": 32,
+    "/prefill": 32,
+    "/verify": 128
+  },
+  "observed_verify_gamma_counts": {
+    "20": 128
+  },
+  "request_e2e_seconds": {
+    "count": 32,
+    "min": 259.42225864110515,
+    "mean": 313.3294738436816,
+    "p50": 311.26671316451393,
+    "p95": 371.60312507399357,
+    "max": 398.3082013451494
+  },
+  "ttft_seconds": {
+    "count": 32,
+    "min": 109.27927757799625,
+    "mean": 181.62114433711395,
+    "p50": 179.4033916448243,
+    "p95": 247.36945516976994,
+    "max": 273.3524886863306
+  },
+  "first_draft_seconds": {
+    "count": 32,
+    "min": 106.15887353289872,
+    "mean": 167.41121363639832,
+    "p50": 166.714343897067,
+    "p95": 240.8770854618866,
+    "max": 264.53900552820414
+  },
+  "prefill_http_ms": {
+    "count": 32,
+    "min": 1133.1064072437584,
+    "mean": 10003.19116479659,
+    "p50": 5348.098286194727,
+    "p95": 32493.960814992897,
+    "max": 35669.24327099696
+  },
+  "verify_http_ms": {
+    "count": 128,
+    "min": 637.2643569484353,
+    "mean": 3669.9832540507487,
+    "p50": 1985.9881896991283,
+    "p95": 12461.543920193793,
+    "max": 26897.57225289941
+  },
+  "verify_cloud_total_ms": {
+    "count": 128,
+    "min": 633.2604885101318,
+    "mean": 3666.8546069413424,
+    "p50": 1983.4561347961426,
+    "p95": 12458.806955814356,
+    "max": 26894.74081993103
+  },
+  "verify_compute_ms": {
+    "count": 128,
+    "min": 614.8941516876221,
+    "mean": 1981.4120437949896,
+    "p50": 1327.4726867675781,
+    "p95": 5096.1737632751465,
+    "max": 5096.1737632751465
+  },
+  "verify_http_minus_cloud_ms": {
+    "count": 128,
+    "min": 2.344034146517515,
+    "mean": 3.1286471094063018,
+    "p50": 2.8359005227684975,
+    "p95": 4.13917344994843,
+    "max": 10.116561781615019
+  },
+  "accepted_draft_tokens": 2533,
+  "drafted_tokens": 2560,
+  "acceptance_rate": 0.989453125,
+  "verify_rounds_per_request": {
+    "count": 32,
+    "min": 4.0,
+    "mean": 4.0,
+    "p50": 4.0,
+    "p95": 4.0,
+    "max": 4.0
+  },
+  "proactive_reuse_hit_rounds": 125,
+  "proactive_reuse_miss_rounds": 0,
+  "application_request_bytes": 107095,
+  "application_response_bytes": 38631,
+  "clock_uncertainty_ms": {
+    "count": 32,
+    "min": 1.067784,
+    "mean": 1.33451840625,
+    "p50": 1.2967749999999998,
+    "p95": 1.6899679999999997,
+    "max": 1.840162
+  },
+  "estimated_output_window_seconds": 398.8453405103646,
+  "estimated_output_tokens_per_second": 5.134822428611973,
+  "worker_completion_window_seconds": 398.84942475985736,
+  "tokens_per_second_including_worker_completion": 5.134769847626274,
+  "all_workers_finish_minus_last_output_seconds": 0.004084249492734671,
+  "matching_first_16_tokens_vs_old_standard": 32,
+  "timing_definition": "Both windows start at model-ready barrier. Output window ends at max(session/init start + native request E2E), an estimate. Worker window ends at return from native per-worker implementation, including outstanding executor work. Model loading excluded; clock startup and prefill included.",
+  "limits": [
+    "32 questions, one repeat, same 1.7B checkpoint on both hosts; not GSM8K accuracy evaluation",
+    "gamma20 with cap64 cannot be compared directly against prior gamma4/cap16 tests",
+    "FastSD gamma adaptation disabled for this fixed-gamma comparison; other FastSD features remain enabled",
+    "Shared CPU servers; affinity is not exclusive and background load can vary",
+    "CPU Target does not measure GPU KV transfer benefit",
+    "Full gamma drafts can extend beyond the remaining output budget; accepted candidates can exceed retained output tokens",
+    "HTTP minus cloud service includes transport and serialization overhead, not pure network RTT"
+  ],
+  "target_service_stopped": true,
+  "target_scheduler": {
+    "iterations": 11311,
+    "used_tokens": 4927,
+    "plans": 85,
+    "verify_slices": 128,
+    "prefill_slices": 35,
+    "partial_verify": 0,
+    "partial_prefill": 3,
+    "prefetch_plans": 11311,
+    "prefetch_hits": 3,
+    "prefetch_misses": 11,
+    "prefetch_evictions": 11,
+    "prefetch_async_submitted": 4,
+    "prefetch_async_dropped": 0,
+    "prefetch_async_completed": 4,
+    "prefetch_async_moved": 18,
+    "prefetch_async_failed": 0,
+    "timing_updates": 0,
+    "timing_ready_prefill_forwards": 35,
+    "prefill_cancels": 0,
+    "prefetch_async_last_error": null
+  },
+  "proactive_skip_not_full_accept_rounds": 3,
+  "observed_host_load1": {
+    "min": 2.24,
+    "max": 30.22,
+    "mean": 20.557058823529413,
+    "note": "Includes this experiment; not a direct background-load measurement."
+  }
+}

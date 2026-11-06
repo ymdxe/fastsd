@@ -1,0 +1,70 @@
+{
+  "bundle_id": "998a754607811c740e4ef0f8ca63daca05e31a6ad8335b33b40b8713c5984695",
+  "validated_content_sha256": "998a754607811c740e4ef0f8ca63daca05e31a6ad8335b33b40b8713c5984695",
+  "tests_run": 9,
+  "real_model_probe": {
+    "model": "/home/hdd/zhangh/models/Qwen3-8B",
+    "dtype": "bfloat16",
+    "attention_backend": "sdpa_per_sequence",
+    "probe_batch_size": 16,
+    "probe_gamma": 8,
+    "prefetch_ticket_id": 129377355927344,
+    "target_forward_ms": 271.7859802246094,
+    "worker_metrics": {
+      "prefetch_async_submitted": 1,
+      "prefetch_async_completed": 1,
+      "prefetch_async_moved": 1
+    },
+    "transfer_metrics": {
+      "copies": 2.0,
+      "d2h_bytes": 18874368.0,
+      "prefetch_drain_ms": 0.0020030129235237837,
+      "prefetch_inflight_bytes": 0,
+      "prefetch_reserved_bytes": 18874368,
+      "prefetch_dma_inflight_bytes": 0,
+      "h2d_bytes": 18874368.0,
+      "speculative_submitted_bytes": 18874368.0
+    },
+    "exact_probability_and_kv_match": true,
+    "probe_scope": "One controlled real-model batch; full campaign validates actual traffic separately.",
+    "real_cuda_overlap_ms": 1.9091796875,
+    "prefetch_cuda_spans": 5
+  },
+  "cuda_spans": 21,
+  "negative_control": {
+    "compute_ms": [
+      2421.937255859375,
+      2449.73876953125
+    ],
+    "copy_ms": [
+      2449.74072265625,
+      2450.606201171875
+    ],
+    "intersection_ms": 0
+  },
+  "positive_control": {
+    "compute_ms": [
+      2470.90380859375,
+      2498.893798828125
+    ],
+    "copy_ms": [
+      2471.167724609375,
+      2472.04931640625
+    ],
+    "intersection_ms": 0.881591796875
+  },
+  "observer": {
+    "emitted": 55,
+    "written": 63,
+    "dropped": 0,
+    "emit_host_ns": 1388118,
+    "writer_cpu_ns": 23641666,
+    "writer_errors": 0,
+    "writer_error": null,
+    "writer_alive_at_close": false,
+    "unresolved_cuda_spans": 0,
+    "cuda_limit_drops": 0,
+    "scope": "Observer overhead is recorded, not subtracted from experiment latency."
+  },
+  "probe_scope": "Synthetic clock and actual transfer validation; does not assert production overlap or output equality"
+}

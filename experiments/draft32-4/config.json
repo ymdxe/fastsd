@@ -1,0 +1,81 @@
+{
+  "source_sha": "ef6192d27c7de3c3da63c043ddfdf9b2702fd2bc",
+  "source_branch": "update-2",
+  "dataset": "mt_bench",
+  "target_model": "/home/hdd/zhangh/models/Qwen3-8B",
+  "tokenizer_model": "/home/hdd/zhangh/models/Qwen3-0.6B",
+  "dtype": "bfloat16",
+  "tasks_per_worker": 80,
+  "max_tokens": 400,
+  "rate_per_worker": 0.06666666666666667,
+  "batch_size": 16,
+  "token_budget": 512,
+  "seed": 1234,
+  "clock_uncertainty_limit_ms": 100,
+  "bind_host": "127.0.0.1",
+  "port": 19659,
+  "server_url": "http://127.0.0.1:29659",
+  "network": "Server-side reverse TCP over IB addresses: CPU localhost:29659/29660 -> CPU hub:19661 <- GPU agent -> GPU localhost:19659/19660; no desktop or SSH data forwarding",
+  "gpu_python": "/home/hdd/zhangh/envs/specedge/bin/python",
+  "gpu_result_root": "/home/hdd3/zhangh/workspace/fastsd/exp/tri32_8b_p15_20261030",
+  "cpu_result_root": "/home/zhangh/workspace/fastsd/exp/tri32_8b_p15_20261030",
+  "gpu_memory_fraction": 0.6,
+  "gpu_selection": "User explicitly authorized sharing physical GPU1 with 8B for this experiment",
+  "nodes": {
+    "node1": {
+      "ssh": "cpunode1",
+      "workers": 8,
+      "threads": 8,
+      "gamma": 4,
+      "python": "/home/zhangh/miniconda3/envs/fastsd/bin/python",
+      "model": "/mnt/nfs0/zhangh/models/Qwen3-0.6B",
+      "ib_address": "10.66.0.3"
+    },
+    "node2": {
+      "ssh": "cpunode2",
+      "workers": 8,
+      "threads": 8,
+      "gamma": 4,
+      "python": "/home/zhangh/venvs/fastsd_cpu/bin/python",
+      "model": "/vol1/zhangh/models/Qwen3-0.6B",
+      "ib_address": "10.66.0.1",
+      "exclude_cpus": [
+        22,
+        70
+      ]
+    },
+    "node3": {
+      "ssh": "cpunode3",
+      "workers": 16,
+      "threads": 8,
+      "gamma": 8,
+      "python": "/home/zhangh/envs/fastsd_cpu_py314/bin/python314_glibc",
+      "model": "/mnt/nfs0/zhangh/models/Qwen3-0.6B",
+      "ib_address": "10.66.0.2",
+      "result_root": "/mnt/nvme2/zhangh/fastsd/exp/tri32_8b_p15_20261030"
+    }
+  },
+  "grpc_port": 19660,
+  "specedge_server_url": "127.0.0.1:29660",
+  "target_physical_gpu": 1,
+  "gpu_uuid": "GPU-422501a2-5189-7f5b-5ce6-95464276b27f",
+  "methods": [
+    "sd",
+    "fastsd",
+    "specedge"
+  ],
+  "official_specedge_sha": "1edcaf02ffc41a7b57726450c5357ed216a3b9bc",
+  "specedge_max_len": 1024,
+  "request_timeout": 3600,
+  "tree_budget": 32,
+  "num_clients": 32,
+  "campaign_timeout_s": 172800,
+  "stage_timeout_s": 86400,
+  "dataset_scope": "All 80 MT-Bench first-turn prompts per worker, the upstream default single-turn evaluation",
+  "specedge_variant": "specedge_cpu_adapted",
+  "gamma_semantics": {
+    "sd": "linear proposal length",
+    "fastsd": "fixed linear proposal length",
+    "specedge": "maximum tree depth; official budget32, beams32, branch16, proactive included depth3"
+  }
+}

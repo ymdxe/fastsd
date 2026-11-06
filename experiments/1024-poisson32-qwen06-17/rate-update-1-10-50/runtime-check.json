@@ -1,0 +1,15 @@
+{
+  "epoch": 1792822164.7027528,
+  "rates": [
+    1.0,
+    10.0,
+    50.0
+  ],
+  "handoff_status": "waiting_for_current_run",
+  "watcher_alive": true,
+  "original_campaign_alive": true,
+  "original_target_alive": true,
+  "active_run": "fastsd-g20-l1-a2",
+  "completed": 325,
+  "workers_ready": 32
+}

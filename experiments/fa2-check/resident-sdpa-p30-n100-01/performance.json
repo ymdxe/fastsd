@@ -1,0 +1,95 @@
+[
+  {
+    "variant": "resident_sdpa",
+    "batch": 1,
+    "history_start": 256,
+    "clean_iterations": 16,
+    "clean_wall_s": 0.5026102010160685,
+    "clean_decode_tokens_per_s": 31.83381468910632,
+    "attention_calls_per_forward": 36.0,
+    "profiled_one_step": {
+      "host_wall_ms": {
+        "kv_h2d": 0.06206100806593895,
+        "attention": 3.170501993736252,
+        "full_forward": 34.91659299470484,
+        "kv_d2h": 0.021926010958850384
+      },
+      "stream_elapsed_ms": {
+        "kv_h2d": 0.016383999958634377,
+        "attention": 1.3180160047486424,
+        "full_forward": 35.29619216918945,
+        "kv_d2h": 0.0010239999974146485
+      }
+    },
+    "peak_allocated_bytes": 16475726848,
+    "peak_reserved_bytes": 16611540992,
+    "kv_transfer_bytes": {
+      "kv_h2d_bytes": 0,
+      "kv_d2h_bytes": 0,
+      "kv_transfer_calls": 0
+    },
+    "workspace": null
+  },
+  {
+    "variant": "resident_sdpa",
+    "batch": 8,
+    "history_start": 256,
+    "clean_iterations": 16,
+    "clean_wall_s": 1.0735163110075518,
+    "clean_decode_tokens_per_s": 119.2343317819412,
+    "attention_calls_per_forward": 288.0,
+    "profiled_one_step": {
+      "host_wall_ms": {
+        "kv_h2d": 0.03983601345680654,
+        "attention": 19.619615690317005,
+        "full_forward": 79.33258698903956,
+        "kv_d2h": 0.02220200258307159
+      },
+      "stream_elapsed_ms": {
+        "kv_h2d": 0.012032000347971916,
+        "attention": 14.188703961670399,
+        "full_forward": 79.31916809082031,
+        "kv_d2h": 0.010143999941647053
+      }
+    },
+    "peak_allocated_bytes": 16882849280,
+    "peak_reserved_bytes": 17492344832,
+    "kv_transfer_bytes": {
+      "kv_h2d_bytes": 0,
+      "kv_d2h_bytes": 0,
+      "kv_transfer_calls": 0
+    },
+    "workspace": null
+  },
+  {
+    "variant": "resident_sdpa",
+    "batch": 16,
+    "history_start": 256,
+    "clean_iterations": 16,
+    "clean_wall_s": 1.7076060060062446,
+    "clean_decode_tokens_per_s": 149.91748629341834,
+    "attention_calls_per_forward": 576.0,
+    "profiled_one_step": {
+      "host_wall_ms": {
+        "kv_h2d": 0.05646800855174661,
+        "attention": 38.494358042953536,
+        "full_forward": 127.05209798878059,
+        "kv_d2h": 0.03681299858726561
+      },
+      "stream_elapsed_ms": {
+        "kv_h2d": 0.025599999353289604,
+        "attention": 28.56806398462504,
+        "full_forward": 127.03743743896484,
+        "kv_d2h": 0.010239999741315842
+      }
+    },
+    "peak_allocated_bytes": 17347642880,
+    "peak_reserved_bytes": 18454937600,
+    "kv_transfer_bytes": {
+      "kv_h2d_bytes": 0,
+      "kv_d2h_bytes": 0,
+      "kv_transfer_calls": 0
+    },
+    "workspace": null
+  }
+]

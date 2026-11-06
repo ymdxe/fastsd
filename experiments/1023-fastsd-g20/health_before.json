@@ -1,0 +1,82 @@
+[
+  {
+    "http_ms": 3.1177587807178497,
+    "response": {
+      "status": "ok",
+      "worker_alive": true,
+      "model_ready": true
+    }
+  },
+  {
+    "http_ms": 2.6445728726685047,
+    "response": {
+      "status": "ok",
+      "worker_alive": true,
+      "model_ready": true
+    }
+  },
+  {
+    "http_ms": 3.0359141528606415,
+    "response": {
+      "status": "ok",
+      "worker_alive": true,
+      "model_ready": true
+    }
+  },
+  {
+    "http_ms": 3.1916769221425056,
+    "response": {
+      "status": "ok",
+      "worker_alive": true,
+      "model_ready": true
+    }
+  },
+  {
+    "http_ms": 3.2904529944062233,
+    "response": {
+      "status": "ok",
+      "worker_alive": true,
+      "model_ready": true
+    }
+  },
+  {
+    "http_ms": 3.1781932339072227,
+    "response": {
+      "status": "ok",
+      "worker_alive": true,
+      "model_ready": true
+    }
+  },
+  {
+    "http_ms": 2.8732577338814735,
+    "response": {
+      "status": "ok",
+      "worker_alive": true,
+      "model_ready": true
+    }
+  },
+  {
+    "http_ms": 2.8657279908657074,
+    "response": {
+      "status": "ok",
+      "worker_alive": true,
+      "model_ready": true
+    }
+  },
+  {
+    "http_ms": 2.5396370328962803,
+    "response": {
+      "status": "ok",
+      "worker_alive": true,
+      "model_ready": true
+    }
+  },
+  {
+    "http_ms": 2.699153032153845,
+    "response": {
+      "status": "ok",
+      "worker_alive": true,
+      "model_ready": true
+    }
+  }
+]

@@ -1,0 +1,42 @@
+{
+  "bundle_id": "09a35f71d1b1d37992989b384f96453ba6ba2caad50b31467929992ed23ea39e",
+  "validated_content_sha256": "09a35f71d1b1d37992989b384f96453ba6ba2caad50b31467929992ed23ea39e",
+  "tests_run": 6,
+  "cuda_spans": 11,
+  "negative_control": {
+    "compute_ms": [
+      18239.689453125,
+      18267.486328125
+    ],
+    "copy_ms": [
+      18267.490234375,
+      18268.3671875
+    ],
+    "intersection_ms": 0
+  },
+  "positive_control": {
+    "compute_ms": [
+      18289.775390625,
+      18317.833984375
+    ],
+    "copy_ms": [
+      18290.111328125,
+      18291.02734375
+    ],
+    "intersection_ms": 0.916015625
+  },
+  "observer": {
+    "emitted": 30,
+    "written": 49,
+    "dropped": 0,
+    "emit_host_ns": 1708082,
+    "writer_cpu_ns": 36253797,
+    "writer_errors": 0,
+    "writer_error": null,
+    "writer_alive_at_close": false,
+    "unresolved_cuda_spans": 0,
+    "cuda_limit_drops": 0,
+    "scope": "Observer overhead is recorded, not subtracted from experiment latency."
+  },
+  "probe_scope": "Synthetic clock and actual transfer validation; does not assert production overlap or output equality"
+}

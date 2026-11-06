@@ -1,0 +1,1948 @@
+2026-10-24T02:27:54.677+08:00 DEBUG   [selector_events.py:__init__:54] Using selector: EpollSelector
+2026-10-24T02:28:13.209+08:00 DEBUG   [specexec.py:__init__:27] Initializing SpecExecClient
+2026-10-24T02:28:13.233+08:00 DEBUG   [_channel.py:__init__:370] Using AsyncIOEngine.POLLER as I/O engine
+2026-10-24T02:28:13.243+08:00 DEBUG   [specexec.py:_grow_tree:168] Growing tree
+2026-10-24T02:28:13.243+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 0 / 20
+2026-10-24T02:28:13.243+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:31:30.401+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:31:30.413+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 1 / 20
+2026-10-24T02:31:30.413+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:31:35.089+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:31:35.103+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 2 / 20
+2026-10-24T02:31:35.103+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:31:39.807+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:31:39.819+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 3 / 20
+2026-10-24T02:31:39.819+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:31:44.436+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:31:44.437+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 4 / 20
+2026-10-24T02:31:44.437+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:31:49.119+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:31:49.133+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 5 / 20
+2026-10-24T02:31:49.133+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:31:53.892+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:31:53.904+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 6 / 20
+2026-10-24T02:31:53.904+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:31:58.584+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:31:58.586+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 7 / 20
+2026-10-24T02:31:58.586+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:32:03.320+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:32:03.322+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 8 / 20
+2026-10-24T02:32:03.322+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:32:08.038+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:32:08.039+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 9 / 20
+2026-10-24T02:32:08.040+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:32:12.400+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:32:12.401+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 10 / 20
+2026-10-24T02:32:12.401+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:32:17.572+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:32:17.573+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 11 / 20
+2026-10-24T02:32:17.573+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:32:21.657+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:32:21.672+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 12 / 20
+2026-10-24T02:32:21.672+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:32:25.720+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:32:25.722+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 13 / 20
+2026-10-24T02:32:25.722+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:32:27.765+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:32:27.767+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 14 / 20
+2026-10-24T02:32:27.767+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:32:29.811+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:32:29.813+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 15 / 20
+2026-10-24T02:32:29.813+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:32:31.854+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:32:31.855+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 16 / 20
+2026-10-24T02:32:31.855+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:32:33.888+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:32:33.890+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 17 / 20
+2026-10-24T02:32:33.890+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:32:35.920+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:32:35.921+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 18 / 20
+2026-10-24T02:32:35.921+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:32:37.951+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:32:37.952+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 19 / 20
+2026-10-24T02:32:37.952+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:32:39.982+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:32:39.983+08:00 DEBUG   [specexec.py:_grow_tree:221] Trimming tree
+2026-10-24T02:32:39.994+08:00 DEBUG   [specexec.py:_validate_tree:377] Validating tree
+2026-10-24T02:32:39.995+08:00 DEBUG   [proactive.py:_get_best_bonus_token_candidate:99] Getting best bonus token candidate...
+2026-10-24T02:32:42.039+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 1 / 20
+2026-10-24T02:32:44.087+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 2 / 20
+2026-10-24T02:32:46.130+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 3 / 20
+2026-10-24T02:32:48.165+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 4 / 20
+2026-10-24T02:32:50.198+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 5 / 20
+2026-10-24T02:32:52.231+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 6 / 20
+2026-10-24T02:32:54.280+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 7 / 20
+2026-10-24T02:32:56.327+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 8 / 20
+2026-10-24T02:33:00.309+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 9 / 20
+2026-10-24T02:33:04.430+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 10 / 20
+2026-10-24T02:33:08.559+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 11 / 20
+2026-10-24T02:33:12.664+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 12 / 20
+2026-10-24T02:33:16.819+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 13 / 20
+2026-10-24T02:33:20.938+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 14 / 20
+2026-10-24T02:33:25.178+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 15 / 20
+2026-10-24T02:33:29.304+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 16 / 20
+2026-10-24T02:33:33.427+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 17 / 20
+2026-10-24T02:33:38.296+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 18 / 20
+2026-10-24T02:33:42.505+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 19 / 20
+2026-10-24T02:33:46.632+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 20 / 20
+2026-10-24T02:33:50.759+08:00 DEBUG   [specexec.py:_validate_tree:475] Num of accepted tokens: 3
+2026-10-24T02:33:50.799+08:00 DEBUG   [specexec.py:_grow_tree:168] Growing tree
+2026-10-24T02:33:50.799+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 0 / 20
+2026-10-24T02:33:50.799+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:33:54.915+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:33:54.916+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 1 / 20
+2026-10-24T02:33:54.916+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:33:59.025+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:33:59.027+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 2 / 20
+2026-10-24T02:33:59.027+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:34:03.146+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:34:03.147+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 3 / 20
+2026-10-24T02:34:03.147+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:34:07.276+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:34:07.277+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 4 / 20
+2026-10-24T02:34:07.277+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:34:11.397+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:34:11.399+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 5 / 20
+2026-10-24T02:34:11.399+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:34:15.510+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:34:15.524+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 6 / 20
+2026-10-24T02:34:15.524+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:34:19.651+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:34:19.652+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 7 / 20
+2026-10-24T02:34:19.652+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:34:23.780+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:34:23.781+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 8 / 20
+2026-10-24T02:34:23.782+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:34:27.885+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:34:27.899+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 9 / 20
+2026-10-24T02:34:27.899+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:34:32.008+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:34:32.023+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 10 / 20
+2026-10-24T02:34:32.023+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:34:36.135+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:34:36.137+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 11 / 20
+2026-10-24T02:34:36.137+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:34:40.255+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:34:40.256+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 12 / 20
+2026-10-24T02:34:40.256+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:34:44.370+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:34:44.384+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 13 / 20
+2026-10-24T02:34:44.384+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:34:48.503+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:34:48.505+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 14 / 20
+2026-10-24T02:34:48.505+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:34:52.620+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:34:52.621+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 15 / 20
+2026-10-24T02:34:52.621+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:34:56.751+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:34:56.753+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 16 / 20
+2026-10-24T02:34:56.753+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:35:00.862+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:35:00.876+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 17 / 20
+2026-10-24T02:35:00.876+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:35:04.992+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:35:04.994+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 18 / 20
+2026-10-24T02:35:04.994+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:35:09.121+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:35:09.122+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 19 / 20
+2026-10-24T02:35:09.122+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:35:13.246+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:35:13.247+08:00 DEBUG   [specexec.py:_grow_tree:221] Trimming tree
+2026-10-24T02:35:13.258+08:00 DEBUG   [specexec.py:_validate_tree:377] Validating tree
+2026-10-24T02:35:13.271+08:00 DEBUG   [proactive.py:_get_best_bonus_token_candidate:99] Getting best bonus token candidate...
+2026-10-24T02:35:17.384+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 1 / 20
+2026-10-24T02:35:21.505+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 2 / 20
+2026-10-24T02:35:25.635+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 3 / 20
+2026-10-24T02:35:29.739+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 4 / 20
+2026-10-24T02:35:33.868+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 5 / 20
+2026-10-24T02:35:38.011+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 6 / 20
+2026-10-24T02:35:42.113+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 7 / 20
+2026-10-24T02:35:46.237+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 8 / 20
+2026-10-24T02:35:50.373+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 9 / 20
+2026-10-24T02:35:54.480+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 10 / 20
+2026-10-24T02:35:58.617+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 11 / 20
+2026-10-24T02:36:02.741+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 12 / 20
+2026-10-24T02:36:06.852+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 13 / 20
+2026-10-24T02:36:10.981+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 14 / 20
+2026-10-24T02:36:15.101+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 15 / 20
+2026-10-24T02:36:19.220+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 16 / 20
+2026-10-24T02:36:23.340+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 17 / 20
+2026-10-24T02:36:27.451+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 18 / 20
+2026-10-24T02:36:31.571+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 19 / 20
+2026-10-24T02:36:35.856+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 20 / 20
+2026-10-24T02:36:39.997+08:00 DEBUG   [specexec.py:_validate_tree:475] Num of accepted tokens: 2
+2026-10-24T02:36:40.036+08:00 DEBUG   [specexec.py:_grow_tree:168] Growing tree
+2026-10-24T02:36:40.037+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 0 / 20
+2026-10-24T02:36:40.037+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:36:44.140+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:36:44.141+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 1 / 20
+2026-10-24T02:36:44.141+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:36:48.268+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:36:48.270+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 2 / 20
+2026-10-24T02:36:48.270+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:36:52.383+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:36:52.384+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 3 / 20
+2026-10-24T02:36:52.384+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:36:56.497+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:36:56.499+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 4 / 20
+2026-10-24T02:36:56.499+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:37:00.630+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:37:00.640+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 5 / 20
+2026-10-24T02:37:00.640+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:37:04.746+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:37:04.760+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 6 / 20
+2026-10-24T02:37:04.760+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:37:08.873+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:37:08.875+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 7 / 20
+2026-10-24T02:37:08.875+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:37:12.995+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:37:13.009+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 8 / 20
+2026-10-24T02:37:13.009+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:37:17.123+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:37:17.136+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 9 / 20
+2026-10-24T02:37:17.136+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:37:21.239+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:37:21.240+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 10 / 20
+2026-10-24T02:37:21.240+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:37:25.362+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:37:25.363+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 11 / 20
+2026-10-24T02:37:25.364+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:37:29.473+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:37:29.487+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 12 / 20
+2026-10-24T02:37:29.487+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:37:33.597+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:37:33.611+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 13 / 20
+2026-10-24T02:37:33.611+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:37:37.714+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:37:37.715+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 14 / 20
+2026-10-24T02:37:37.715+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:37:41.950+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:37:41.951+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 15 / 20
+2026-10-24T02:37:41.951+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:37:46.076+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:37:46.078+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 16 / 20
+2026-10-24T02:37:46.078+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:37:50.331+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:37:50.333+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 17 / 20
+2026-10-24T02:37:50.333+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:37:54.443+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:37:54.445+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 18 / 20
+2026-10-24T02:37:54.445+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:37:58.770+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:37:58.782+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 19 / 20
+2026-10-24T02:37:58.782+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:38:04.024+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:38:04.038+08:00 DEBUG   [specexec.py:_grow_tree:221] Trimming tree
+2026-10-24T02:38:04.061+08:00 DEBUG   [specexec.py:_validate_tree:377] Validating tree
+2026-10-24T02:38:04.073+08:00 DEBUG   [proactive.py:_get_best_bonus_token_candidate:99] Getting best bonus token candidate...
+2026-10-24T02:38:08.176+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 1 / 20
+2026-10-24T02:38:12.316+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 2 / 20
+2026-10-24T02:38:16.424+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 3 / 20
+2026-10-24T02:38:20.553+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 4 / 20
+2026-10-24T02:38:24.675+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 5 / 20
+2026-10-24T02:38:28.788+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 6 / 20
+2026-10-24T02:38:32.916+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 7 / 20
+2026-10-24T02:38:37.042+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 8 / 20
+2026-10-24T02:38:41.158+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 9 / 20
+2026-10-24T02:38:45.274+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 10 / 20
+2026-10-24T02:38:49.409+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 11 / 20
+2026-10-24T02:38:53.538+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 12 / 20
+2026-10-24T02:38:57.648+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 13 / 20
+2026-10-24T02:39:01.768+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 14 / 20
+2026-10-24T02:39:05.897+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 15 / 20
+2026-10-24T02:39:10.026+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 16 / 20
+2026-10-24T02:39:14.154+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 17 / 20
+2026-10-24T02:39:18.255+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 18 / 20
+2026-10-24T02:39:22.396+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 19 / 20
+2026-10-24T02:39:26.518+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 20 / 20
+2026-10-24T02:39:30.631+08:00 DEBUG   [specexec.py:_validate_tree:475] Num of accepted tokens: 4
+2026-10-24T02:39:30.670+08:00 DEBUG   [specexec.py:_grow_tree:168] Growing tree
+2026-10-24T02:39:30.670+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 0 / 20
+2026-10-24T02:39:30.670+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:39:34.780+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:39:34.782+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 1 / 20
+2026-10-24T02:39:34.782+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:39:38.896+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:39:38.897+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 2 / 20
+2026-10-24T02:39:38.897+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:39:43.012+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:39:43.014+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 3 / 20
+2026-10-24T02:39:43.014+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:39:47.131+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:39:47.133+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 4 / 20
+2026-10-24T02:39:47.133+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:39:51.255+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:39:51.267+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 5 / 20
+2026-10-24T02:39:51.267+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:39:55.368+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:39:55.382+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 6 / 20
+2026-10-24T02:39:55.382+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:39:59.493+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:39:59.507+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 7 / 20
+2026-10-24T02:39:59.507+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:40:03.617+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:40:03.631+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 8 / 20
+2026-10-24T02:40:03.631+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:40:07.789+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:40:07.790+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 9 / 20
+2026-10-24T02:40:07.791+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:40:11.899+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:40:11.901+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 10 / 20
+2026-10-24T02:40:11.901+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:40:16.000+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:40:16.001+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 11 / 20
+2026-10-24T02:40:16.001+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:40:20.121+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:40:20.123+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 12 / 20
+2026-10-24T02:40:20.123+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:40:24.220+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:40:24.234+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 13 / 20
+2026-10-24T02:40:24.234+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:40:28.299+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:40:28.313+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 14 / 20
+2026-10-24T02:40:28.313+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:40:32.426+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:40:32.428+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 15 / 20
+2026-10-24T02:40:32.428+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:40:36.534+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:40:36.548+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 16 / 20
+2026-10-24T02:40:36.548+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:40:42.907+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:40:42.909+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 17 / 20
+2026-10-24T02:40:42.909+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:40:47.273+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:40:47.277+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 18 / 20
+2026-10-24T02:40:47.277+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:40:54.640+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:40:54.642+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 19 / 20
+2026-10-24T02:40:54.642+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:40:59.864+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:40:59.866+08:00 DEBUG   [specexec.py:_grow_tree:221] Trimming tree
+2026-10-24T02:40:59.877+08:00 DEBUG   [specexec.py:_validate_tree:377] Validating tree
+2026-10-24T02:40:59.890+08:00 DEBUG   [proactive.py:_get_best_bonus_token_candidate:99] Getting best bonus token candidate...
+2026-10-24T02:41:03.978+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 1 / 20
+2026-10-24T02:41:08.601+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 2 / 20
+2026-10-24T02:41:13.641+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 3 / 20
+2026-10-24T02:41:18.720+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 4 / 20
+2026-10-24T02:41:23.366+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 5 / 20
+2026-10-24T02:41:27.462+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 6 / 20
+2026-10-24T02:41:31.545+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 7 / 20
+2026-10-24T02:41:35.634+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 8 / 20
+2026-10-24T02:41:40.192+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 9 / 20
+2026-10-24T02:41:44.850+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 10 / 20
+2026-10-24T02:41:49.544+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 11 / 20
+2026-10-24T02:41:54.214+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 12 / 20
+2026-10-24T02:41:58.866+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 13 / 20
+2026-10-24T02:42:03.634+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 14 / 20
+2026-10-24T02:42:08.354+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 15 / 20
+2026-10-24T02:42:13.059+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 16 / 20
+2026-10-24T02:42:17.740+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 17 / 20
+2026-10-24T02:42:22.505+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 18 / 20
+2026-10-24T02:42:27.176+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 19 / 20
+2026-10-24T02:42:31.876+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 20 / 20
+2026-10-24T02:42:36.596+08:00 DEBUG   [specexec.py:_validate_tree:475] Num of accepted tokens: 1
+2026-10-24T02:42:36.640+08:00 DEBUG   [specexec.py:_grow_tree:168] Growing tree
+2026-10-24T02:42:36.640+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 0 / 20
+2026-10-24T02:42:36.640+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:42:41.362+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:42:41.376+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 1 / 20
+2026-10-24T02:42:41.376+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:42:46.110+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:42:46.128+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 2 / 20
+2026-10-24T02:42:46.128+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:42:50.851+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:42:50.853+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 3 / 20
+2026-10-24T02:42:50.853+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:42:55.487+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:42:55.500+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 4 / 20
+2026-10-24T02:42:55.500+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:43:00.270+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:43:00.272+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 5 / 20
+2026-10-24T02:43:00.272+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:43:04.977+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:43:04.978+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 6 / 20
+2026-10-24T02:43:04.979+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:43:09.613+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:43:09.615+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 7 / 20
+2026-10-24T02:43:09.615+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:43:14.305+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:43:14.307+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 8 / 20
+2026-10-24T02:43:14.307+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:43:19.043+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:43:19.045+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 9 / 20
+2026-10-24T02:43:19.045+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:43:23.685+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:43:23.687+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 10 / 20
+2026-10-24T02:43:23.687+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:43:28.416+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:43:28.418+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 11 / 20
+2026-10-24T02:43:28.418+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:43:33.125+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:43:33.127+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 12 / 20
+2026-10-24T02:43:33.127+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:43:37.676+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:43:37.677+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 13 / 20
+2026-10-24T02:43:37.677+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:43:42.265+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:43:42.267+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 14 / 20
+2026-10-24T02:43:42.267+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:43:47.224+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:43:47.234+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 15 / 20
+2026-10-24T02:43:47.234+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:43:51.305+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:43:51.306+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 16 / 20
+2026-10-24T02:43:51.306+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:43:55.052+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:43:55.053+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 17 / 20
+2026-10-24T02:43:55.053+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:43:57.099+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:43:57.101+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 18 / 20
+2026-10-24T02:43:57.101+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:43:59.150+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:43:59.151+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 19 / 20
+2026-10-24T02:43:59.152+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:44:01.191+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:44:01.192+08:00 DEBUG   [specexec.py:_grow_tree:221] Trimming tree
+2026-10-24T02:44:01.203+08:00 DEBUG   [specexec.py:_validate_tree:377] Validating tree
+2026-10-24T02:44:01.204+08:00 DEBUG   [proactive.py:_get_best_bonus_token_candidate:99] Getting best bonus token candidate...
+2026-10-24T02:44:03.239+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 1 / 20
+2026-10-24T02:44:05.270+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 2 / 20
+2026-10-24T02:44:07.301+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 3 / 20
+2026-10-24T02:44:09.332+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 4 / 20
+2026-10-24T02:44:11.367+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 5 / 20
+2026-10-24T02:44:13.401+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 6 / 20
+2026-10-24T02:44:15.434+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 7 / 20
+2026-10-24T02:44:17.467+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 8 / 20
+2026-10-24T02:44:19.497+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 9 / 20
+2026-10-24T02:44:21.528+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 10 / 20
+2026-10-24T02:44:23.558+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 11 / 20
+2026-10-24T02:44:25.591+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 12 / 20
+2026-10-24T02:44:27.626+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 13 / 20
+2026-10-24T02:44:29.659+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 14 / 20
+2026-10-24T02:44:31.693+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 15 / 20
+2026-10-24T02:44:33.729+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 16 / 20
+2026-10-24T02:44:35.762+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 17 / 20
+2026-10-24T02:44:37.795+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 18 / 20
+2026-10-24T02:44:39.829+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 19 / 20
+2026-10-24T02:44:41.862+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 20 / 20
+2026-10-24T02:44:43.895+08:00 DEBUG   [specexec.py:_validate_tree:475] Num of accepted tokens: 4
+2026-10-24T02:44:43.910+08:00 DEBUG   [specexec.py:_grow_tree:168] Growing tree
+2026-10-24T02:44:43.910+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 0 / 20
+2026-10-24T02:44:43.910+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:44:45.944+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:44:45.946+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 1 / 20
+2026-10-24T02:44:45.946+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:44:47.978+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:44:47.979+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 2 / 20
+2026-10-24T02:44:47.980+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:44:50.010+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:44:50.012+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 3 / 20
+2026-10-24T02:44:50.012+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:44:52.042+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:44:52.044+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 4 / 20
+2026-10-24T02:44:52.044+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:44:54.075+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:44:54.076+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 5 / 20
+2026-10-24T02:44:54.076+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:44:56.108+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:44:56.109+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 6 / 20
+2026-10-24T02:44:56.109+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:44:58.140+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:44:58.141+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 7 / 20
+2026-10-24T02:44:58.141+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:45:00.172+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:45:00.173+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 8 / 20
+2026-10-24T02:45:00.173+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:45:02.204+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:45:02.206+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 9 / 20
+2026-10-24T02:45:02.206+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:45:04.236+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:45:04.238+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 10 / 20
+2026-10-24T02:45:04.238+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:45:06.269+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:45:06.270+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 11 / 20
+2026-10-24T02:45:06.270+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:45:08.301+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:45:08.302+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 12 / 20
+2026-10-24T02:45:08.303+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:45:10.332+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:45:10.334+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 13 / 20
+2026-10-24T02:45:10.334+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:45:12.364+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:45:12.366+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 14 / 20
+2026-10-24T02:45:12.366+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:45:14.397+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:45:14.398+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 15 / 20
+2026-10-24T02:45:14.399+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:45:16.429+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:45:16.431+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 16 / 20
+2026-10-24T02:45:16.431+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:45:18.463+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:45:18.464+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 17 / 20
+2026-10-24T02:45:18.464+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:45:20.494+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:45:20.495+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 18 / 20
+2026-10-24T02:45:20.495+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:45:22.525+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:45:22.527+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 19 / 20
+2026-10-24T02:45:22.527+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:45:24.557+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:45:24.558+08:00 DEBUG   [specexec.py:_grow_tree:221] Trimming tree
+2026-10-24T02:45:24.569+08:00 DEBUG   [specexec.py:_validate_tree:377] Validating tree
+2026-10-24T02:45:24.570+08:00 DEBUG   [proactive.py:_get_best_bonus_token_candidate:99] Getting best bonus token candidate...
+2026-10-24T02:45:26.603+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 1 / 20
+2026-10-24T02:45:28.636+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 2 / 20
+2026-10-24T02:45:30.666+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 3 / 20
+2026-10-24T02:45:32.698+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 4 / 20
+2026-10-24T02:45:34.729+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 5 / 20
+2026-10-24T02:45:36.761+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 6 / 20
+2026-10-24T02:45:38.795+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 7 / 20
+2026-10-24T02:45:40.826+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 8 / 20
+2026-10-24T02:45:42.857+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 9 / 20
+2026-10-24T02:45:44.888+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 10 / 20
+2026-10-24T02:45:46.919+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 11 / 20
+2026-10-24T02:45:48.950+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 12 / 20
+2026-10-24T02:45:50.981+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 13 / 20
+2026-10-24T02:45:53.013+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 14 / 20
+2026-10-24T02:45:55.044+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 15 / 20
+2026-10-24T02:45:57.076+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 16 / 20
+2026-10-24T02:45:59.106+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 17 / 20
+2026-10-24T02:46:01.137+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 18 / 20
+2026-10-24T02:46:03.168+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 19 / 20
+2026-10-24T02:46:05.200+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 20 / 20
+2026-10-24T02:46:07.233+08:00 DEBUG   [specexec.py:_validate_tree:475] Num of accepted tokens: 7
+2026-10-24T02:46:07.248+08:00 DEBUG   [specexec.py:_grow_tree:168] Growing tree
+2026-10-24T02:46:07.248+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 0 / 20
+2026-10-24T02:46:07.248+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:46:09.278+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:46:09.279+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 1 / 20
+2026-10-24T02:46:09.279+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:46:11.308+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:46:11.310+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 2 / 20
+2026-10-24T02:46:11.310+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:46:13.339+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:46:13.341+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 3 / 20
+2026-10-24T02:46:13.341+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:46:15.371+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:46:15.372+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 4 / 20
+2026-10-24T02:46:15.372+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:46:17.403+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:46:17.404+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 5 / 20
+2026-10-24T02:46:17.404+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:46:19.435+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:46:19.436+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 6 / 20
+2026-10-24T02:46:19.436+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:46:21.466+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:46:21.468+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 7 / 20
+2026-10-24T02:46:21.468+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:46:23.499+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:46:23.500+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 8 / 20
+2026-10-24T02:46:23.500+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:46:25.531+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:46:25.532+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 9 / 20
+2026-10-24T02:46:25.532+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:46:27.562+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:46:27.563+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 10 / 20
+2026-10-24T02:46:27.563+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:46:29.594+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:46:29.595+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 11 / 20
+2026-10-24T02:46:29.595+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:46:31.627+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:46:31.628+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 12 / 20
+2026-10-24T02:46:31.628+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:46:33.659+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:46:33.660+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 13 / 20
+2026-10-24T02:46:33.660+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:46:35.690+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:46:35.691+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 14 / 20
+2026-10-24T02:46:35.691+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:46:37.722+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:46:37.723+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 15 / 20
+2026-10-24T02:46:37.723+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:46:39.753+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:46:39.755+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 16 / 20
+2026-10-24T02:46:39.755+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:46:41.784+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:46:41.786+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 17 / 20
+2026-10-24T02:46:41.786+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:46:43.816+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:46:43.818+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 18 / 20
+2026-10-24T02:46:43.818+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:46:45.849+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:46:45.850+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 19 / 20
+2026-10-24T02:46:45.850+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:46:47.880+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:46:47.881+08:00 DEBUG   [specexec.py:_grow_tree:221] Trimming tree
+2026-10-24T02:46:47.892+08:00 DEBUG   [specexec.py:_validate_tree:377] Validating tree
+2026-10-24T02:46:47.893+08:00 DEBUG   [proactive.py:_get_best_bonus_token_candidate:99] Getting best bonus token candidate...
+2026-10-24T02:46:49.925+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 1 / 20
+2026-10-24T02:46:51.957+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 2 / 20
+2026-10-24T02:46:53.989+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 3 / 20
+2026-10-24T02:46:56.021+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 4 / 20
+2026-10-24T02:46:58.051+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 5 / 20
+2026-10-24T02:47:00.081+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 6 / 20
+2026-10-24T02:47:02.115+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 7 / 20
+2026-10-24T02:47:04.146+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 8 / 20
+2026-10-24T02:47:06.178+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 9 / 20
+2026-10-24T02:47:08.210+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 10 / 20
+2026-10-24T02:47:10.241+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 11 / 20
+2026-10-24T02:47:12.272+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 12 / 20
+2026-10-24T02:47:14.304+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 13 / 20
+2026-10-24T02:47:16.334+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 14 / 20
+2026-10-24T02:47:18.366+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 15 / 20
+2026-10-24T02:47:20.396+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 16 / 20
+2026-10-24T02:47:22.426+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 17 / 20
+2026-10-24T02:47:24.457+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 18 / 20
+2026-10-24T02:47:26.487+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 19 / 20
+2026-10-24T02:47:28.519+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 20 / 20
+2026-10-24T02:47:30.556+08:00 DEBUG   [specexec.py:_validate_tree:475] Num of accepted tokens: 3
+2026-10-24T02:47:30.571+08:00 DEBUG   [specexec.py:_grow_tree:168] Growing tree
+2026-10-24T02:47:30.571+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 0 / 20
+2026-10-24T02:47:30.571+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:47:32.601+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:47:32.603+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 1 / 20
+2026-10-24T02:47:32.603+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:47:34.632+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:47:34.634+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 2 / 20
+2026-10-24T02:47:34.634+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:47:36.664+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:47:36.665+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 3 / 20
+2026-10-24T02:47:36.665+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:47:38.696+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:47:38.697+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 4 / 20
+2026-10-24T02:47:38.697+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:47:40.728+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:47:40.729+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 5 / 20
+2026-10-24T02:47:40.729+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:47:42.759+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:47:42.760+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 6 / 20
+2026-10-24T02:47:42.760+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:47:44.791+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:47:44.792+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 7 / 20
+2026-10-24T02:47:44.792+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:47:46.822+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:47:46.823+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 8 / 20
+2026-10-24T02:47:46.823+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:47:48.854+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:47:48.855+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 9 / 20
+2026-10-24T02:47:48.855+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:47:50.885+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:47:50.886+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 10 / 20
+2026-10-24T02:47:50.886+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:47:52.916+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:47:52.918+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 11 / 20
+2026-10-24T02:47:52.918+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:47:54.948+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:47:54.949+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 12 / 20
+2026-10-24T02:47:54.949+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:47:56.979+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:47:56.980+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 13 / 20
+2026-10-24T02:47:56.980+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:47:59.011+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:47:59.012+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 14 / 20
+2026-10-24T02:47:59.012+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:48:01.042+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:48:01.044+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 15 / 20
+2026-10-24T02:48:01.044+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:48:03.075+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:48:03.076+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 16 / 20
+2026-10-24T02:48:03.076+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:48:05.106+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:48:05.108+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 17 / 20
+2026-10-24T02:48:05.108+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:48:07.136+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:48:07.137+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 18 / 20
+2026-10-24T02:48:07.138+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:48:09.166+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:48:09.167+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 19 / 20
+2026-10-24T02:48:09.167+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:48:11.196+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:48:11.197+08:00 DEBUG   [specexec.py:_grow_tree:221] Trimming tree
+2026-10-24T02:48:11.208+08:00 DEBUG   [specexec.py:_validate_tree:377] Validating tree
+2026-10-24T02:48:11.209+08:00 DEBUG   [proactive.py:_get_best_bonus_token_candidate:99] Getting best bonus token candidate...
+2026-10-24T02:48:13.240+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 1 / 20
+2026-10-24T02:48:15.271+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 2 / 20
+2026-10-24T02:48:17.301+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 3 / 20
+2026-10-24T02:48:19.332+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 4 / 20
+2026-10-24T02:48:21.363+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 5 / 20
+2026-10-24T02:48:23.394+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 6 / 20
+2026-10-24T02:48:25.427+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 7 / 20
+2026-10-24T02:48:27.457+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 8 / 20
+2026-10-24T02:48:29.489+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 9 / 20
+2026-10-24T02:48:31.519+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 10 / 20
+2026-10-24T02:48:33.551+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 11 / 20
+2026-10-24T02:48:35.582+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 12 / 20
+2026-10-24T02:48:37.612+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 13 / 20
+2026-10-24T02:48:39.642+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 14 / 20
+2026-10-24T02:48:41.671+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 15 / 20
+2026-10-24T02:48:43.701+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 16 / 20
+2026-10-24T02:48:45.733+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 17 / 20
+2026-10-24T02:48:47.764+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 18 / 20
+2026-10-24T02:48:49.795+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 19 / 20
+2026-10-24T02:48:51.826+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 20 / 20
+2026-10-24T02:48:53.858+08:00 DEBUG   [specexec.py:_validate_tree:475] Num of accepted tokens: 1
+2026-10-24T02:48:53.873+08:00 DEBUG   [specexec.py:_grow_tree:168] Growing tree
+2026-10-24T02:48:53.873+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 0 / 20
+2026-10-24T02:48:53.873+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:48:55.904+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:48:55.905+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 1 / 20
+2026-10-24T02:48:55.906+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:48:57.935+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:48:57.936+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 2 / 20
+2026-10-24T02:48:57.936+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:48:59.966+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:48:59.968+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 3 / 20
+2026-10-24T02:48:59.968+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:49:01.998+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:49:02.000+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 4 / 20
+2026-10-24T02:49:02.000+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:49:04.031+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:49:04.032+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 5 / 20
+2026-10-24T02:49:04.032+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:49:06.063+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:49:06.065+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 6 / 20
+2026-10-24T02:49:06.065+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:49:08.095+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:49:08.096+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 7 / 20
+2026-10-24T02:49:08.096+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:49:10.127+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:49:10.128+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 8 / 20
+2026-10-24T02:49:10.128+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:49:12.157+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:49:12.158+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 9 / 20
+2026-10-24T02:49:12.158+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:49:14.188+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:49:14.189+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 10 / 20
+2026-10-24T02:49:14.189+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:49:16.219+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:49:16.221+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 11 / 20
+2026-10-24T02:49:16.221+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:49:18.251+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:49:18.252+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 12 / 20
+2026-10-24T02:49:18.252+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:49:20.281+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:49:20.283+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 13 / 20
+2026-10-24T02:49:20.283+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:49:22.312+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:49:22.313+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 14 / 20
+2026-10-24T02:49:22.313+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:49:24.342+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:49:24.344+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 15 / 20
+2026-10-24T02:49:24.344+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:49:26.374+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:49:26.375+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 16 / 20
+2026-10-24T02:49:26.375+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:49:28.405+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:49:28.406+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 17 / 20
+2026-10-24T02:49:28.407+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:49:30.437+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:49:30.438+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 18 / 20
+2026-10-24T02:49:30.438+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:49:32.469+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:49:32.471+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 19 / 20
+2026-10-24T02:49:32.471+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:49:34.501+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:49:34.503+08:00 DEBUG   [specexec.py:_grow_tree:221] Trimming tree
+2026-10-24T02:49:34.513+08:00 DEBUG   [specexec.py:_validate_tree:377] Validating tree
+2026-10-24T02:49:34.514+08:00 DEBUG   [proactive.py:_get_best_bonus_token_candidate:99] Getting best bonus token candidate...
+2026-10-24T02:49:36.545+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 1 / 20
+2026-10-24T02:49:38.575+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 2 / 20
+2026-10-24T02:49:40.606+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 3 / 20
+2026-10-24T02:49:42.636+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 4 / 20
+2026-10-24T02:49:44.667+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 5 / 20
+2026-10-24T02:49:46.698+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 6 / 20
+2026-10-24T02:49:48.730+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 7 / 20
+2026-10-24T02:49:50.760+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 8 / 20
+2026-10-24T02:49:52.791+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 9 / 20
+2026-10-24T02:49:54.822+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 10 / 20
+2026-10-24T02:49:56.854+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 11 / 20
+2026-10-24T02:49:58.885+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 12 / 20
+2026-10-24T02:50:00.916+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 13 / 20
+2026-10-24T02:50:02.948+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 14 / 20
+2026-10-24T02:50:04.980+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 15 / 20
+2026-10-24T02:50:07.012+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 16 / 20
+2026-10-24T02:50:09.043+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 17 / 20
+2026-10-24T02:50:11.074+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 18 / 20
+2026-10-24T02:50:13.106+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 19 / 20
+2026-10-24T02:50:15.137+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 20 / 20
+2026-10-24T02:50:17.170+08:00 DEBUG   [specexec.py:_validate_tree:475] Num of accepted tokens: 7
+2026-10-24T02:50:17.187+08:00 DEBUG   [specexec.py:_grow_tree:168] Growing tree
+2026-10-24T02:50:17.187+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 0 / 20
+2026-10-24T02:50:17.187+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:50:19.217+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:50:19.219+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 1 / 20
+2026-10-24T02:50:19.219+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:50:21.250+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:50:21.251+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 2 / 20
+2026-10-24T02:50:21.251+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:50:23.282+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:50:23.283+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 3 / 20
+2026-10-24T02:50:23.283+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:50:25.314+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:50:25.315+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 4 / 20
+2026-10-24T02:50:25.315+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:50:27.346+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:50:27.347+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 5 / 20
+2026-10-24T02:50:27.347+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:50:29.378+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:50:29.379+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 6 / 20
+2026-10-24T02:50:29.379+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:50:31.410+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:50:31.411+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 7 / 20
+2026-10-24T02:50:31.411+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:50:33.442+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:50:33.443+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 8 / 20
+2026-10-24T02:50:33.443+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:50:35.473+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:50:35.474+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 9 / 20
+2026-10-24T02:50:35.474+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:50:37.504+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:50:37.506+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 10 / 20
+2026-10-24T02:50:37.506+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:50:39.537+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:50:39.538+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 11 / 20
+2026-10-24T02:50:39.538+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:50:41.569+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:50:41.570+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 12 / 20
+2026-10-24T02:50:41.570+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:50:43.600+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:50:43.602+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 13 / 20
+2026-10-24T02:50:43.602+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:50:45.632+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:50:45.633+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 14 / 20
+2026-10-24T02:50:45.634+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:50:47.663+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:50:47.665+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 15 / 20
+2026-10-24T02:50:47.665+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:50:49.695+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:50:49.696+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 16 / 20
+2026-10-24T02:50:49.697+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:50:51.727+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:50:51.728+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 17 / 20
+2026-10-24T02:50:51.728+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:50:53.758+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:50:53.759+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 18 / 20
+2026-10-24T02:50:53.759+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:50:55.789+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:50:55.791+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 19 / 20
+2026-10-24T02:50:55.791+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:50:57.821+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:50:57.822+08:00 DEBUG   [specexec.py:_grow_tree:221] Trimming tree
+2026-10-24T02:50:57.833+08:00 DEBUG   [specexec.py:_validate_tree:377] Validating tree
+2026-10-24T02:50:57.833+08:00 DEBUG   [proactive.py:_get_best_bonus_token_candidate:99] Getting best bonus token candidate...
+2026-10-24T02:50:59.865+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 1 / 20
+2026-10-24T02:51:01.897+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 2 / 20
+2026-10-24T02:51:03.929+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 3 / 20
+2026-10-24T02:51:05.961+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 4 / 20
+2026-10-24T02:51:07.993+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 5 / 20
+2026-10-24T02:51:10.023+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 6 / 20
+2026-10-24T02:51:12.055+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 7 / 20
+2026-10-24T02:51:14.086+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 8 / 20
+2026-10-24T02:51:16.118+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 9 / 20
+2026-10-24T02:51:18.149+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 10 / 20
+2026-10-24T02:51:20.180+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 11 / 20
+2026-10-24T02:51:22.211+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 12 / 20
+2026-10-24T02:51:24.242+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 13 / 20
+2026-10-24T02:51:26.275+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 14 / 20
+2026-10-24T02:51:28.306+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 15 / 20
+2026-10-24T02:51:30.337+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 16 / 20
+2026-10-24T02:51:32.368+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 17 / 20
+2026-10-24T02:51:34.400+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 18 / 20
+2026-10-24T02:51:36.432+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 19 / 20
+2026-10-24T02:51:38.466+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 20 / 20
+2026-10-24T02:51:40.498+08:00 DEBUG   [specexec.py:_validate_tree:475] Num of accepted tokens: 21
+2026-10-24T02:51:40.516+08:00 DEBUG   [specexec.py:_grow_tree:168] Growing tree
+2026-10-24T02:51:40.516+08:00 DEBUG   [specexec.py:_grow_tree:221] Trimming tree
+2026-10-24T02:51:40.526+08:00 DEBUG   [specexec.py:_validate_tree:377] Validating tree
+2026-10-24T02:51:40.527+08:00 DEBUG   [proactive.py:_get_best_bonus_token_candidate:99] Getting best bonus token candidate...
+2026-10-24T02:51:42.559+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 1 / 20
+2026-10-24T02:51:44.590+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 2 / 20
+2026-10-24T02:51:46.622+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 3 / 20
+2026-10-24T02:51:48.654+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 4 / 20
+2026-10-24T02:51:50.683+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 5 / 20
+2026-10-24T02:51:52.713+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 6 / 20
+2026-10-24T02:51:54.745+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 7 / 20
+2026-10-24T02:51:56.776+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 8 / 20
+2026-10-24T02:51:58.808+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 9 / 20
+2026-10-24T02:52:00.839+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 10 / 20
+2026-10-24T02:52:02.871+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 11 / 20
+2026-10-24T02:52:04.901+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 12 / 20
+2026-10-24T02:52:06.933+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 13 / 20
+2026-10-24T02:52:08.965+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 14 / 20
+2026-10-24T02:52:10.996+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 15 / 20
+2026-10-24T02:52:13.028+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 16 / 20
+2026-10-24T02:52:15.059+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 17 / 20
+2026-10-24T02:52:17.091+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 18 / 20
+2026-10-24T02:52:19.122+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 19 / 20
+2026-10-24T02:52:21.154+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 20 / 20
+2026-10-24T02:52:23.186+08:00 DEBUG   [specexec.py:_validate_tree:475] Num of accepted tokens: 7
+2026-10-24T02:52:23.204+08:00 DEBUG   [specexec.py:_grow_tree:168] Growing tree
+2026-10-24T02:52:23.204+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 0 / 20
+2026-10-24T02:52:23.204+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:52:25.234+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:52:25.235+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 1 / 20
+2026-10-24T02:52:25.235+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:52:27.265+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:52:27.267+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 2 / 20
+2026-10-24T02:52:27.267+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:52:29.296+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:52:29.298+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 3 / 20
+2026-10-24T02:52:29.298+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:52:31.327+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:52:31.328+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 4 / 20
+2026-10-24T02:52:31.328+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:52:33.360+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:52:33.361+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 5 / 20
+2026-10-24T02:52:33.361+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:52:35.397+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:52:35.399+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 6 / 20
+2026-10-24T02:52:35.399+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:52:37.423+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:52:37.425+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 7 / 20
+2026-10-24T02:52:37.425+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:52:39.449+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:52:39.450+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 8 / 20
+2026-10-24T02:52:39.450+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:52:41.474+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:52:41.475+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 9 / 20
+2026-10-24T02:52:41.475+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:52:43.500+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:52:43.501+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 10 / 20
+2026-10-24T02:52:43.501+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:52:45.527+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:52:45.528+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 11 / 20
+2026-10-24T02:52:45.529+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:52:47.554+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:52:47.555+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 12 / 20
+2026-10-24T02:52:47.555+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:52:49.580+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:52:49.581+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 13 / 20
+2026-10-24T02:52:49.581+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:52:51.603+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:52:51.605+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 14 / 20
+2026-10-24T02:52:51.605+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:52:53.629+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:52:53.630+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 15 / 20
+2026-10-24T02:52:53.630+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:52:55.654+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:52:55.656+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 16 / 20
+2026-10-24T02:52:55.656+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:52:57.679+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:52:57.680+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 17 / 20
+2026-10-24T02:52:57.681+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:52:59.704+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:52:59.705+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 18 / 20
+2026-10-24T02:52:59.705+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:53:01.728+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:53:01.729+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 19 / 20
+2026-10-24T02:53:01.729+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:53:03.755+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:53:03.756+08:00 DEBUG   [specexec.py:_grow_tree:221] Trimming tree
+2026-10-24T02:53:03.767+08:00 DEBUG   [specexec.py:_validate_tree:377] Validating tree
+2026-10-24T02:53:03.767+08:00 DEBUG   [proactive.py:_get_best_bonus_token_candidate:99] Getting best bonus token candidate...
+2026-10-24T02:53:05.794+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 1 / 20
+2026-10-24T02:53:07.819+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 2 / 20
+2026-10-24T02:53:09.844+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 3 / 20
+2026-10-24T02:53:11.869+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 4 / 20
+2026-10-24T02:53:13.895+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 5 / 20
+2026-10-24T02:53:15.920+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 6 / 20
+2026-10-24T02:53:17.945+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 7 / 20
+2026-10-24T02:53:19.971+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 8 / 20
+2026-10-24T02:53:21.996+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 9 / 20
+2026-10-24T02:53:24.021+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 10 / 20
+2026-10-24T02:53:26.045+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 11 / 20
+2026-10-24T02:53:28.071+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 12 / 20
+2026-10-24T02:53:30.096+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 13 / 20
+2026-10-24T02:53:32.121+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 14 / 20
+2026-10-24T02:53:34.146+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 15 / 20
+2026-10-24T02:53:36.172+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 16 / 20
+2026-10-24T02:53:38.197+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 17 / 20
+2026-10-24T02:53:40.223+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 18 / 20
+2026-10-24T02:53:42.250+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 19 / 20
+2026-10-24T02:53:44.275+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 20 / 20
+2026-10-24T02:53:46.302+08:00 DEBUG   [specexec.py:_validate_tree:475] Num of accepted tokens: 2
+2026-10-24T02:53:46.320+08:00 DEBUG   [specexec.py:_grow_tree:168] Growing tree
+2026-10-24T02:53:46.320+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 0 / 20
+2026-10-24T02:53:46.320+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:53:48.345+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:53:48.346+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 1 / 20
+2026-10-24T02:53:48.347+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:53:50.371+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:53:50.373+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 2 / 20
+2026-10-24T02:53:50.373+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:53:52.397+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:53:52.398+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 3 / 20
+2026-10-24T02:53:52.398+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:53:54.422+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:53:54.424+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 4 / 20
+2026-10-24T02:53:54.424+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:53:56.447+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:53:56.449+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 5 / 20
+2026-10-24T02:53:56.449+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:53:58.473+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:53:58.474+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 6 / 20
+2026-10-24T02:53:58.474+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:54:00.497+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:54:00.499+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 7 / 20
+2026-10-24T02:54:00.499+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:54:02.523+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:54:02.524+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 8 / 20
+2026-10-24T02:54:02.524+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:54:04.549+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:54:04.550+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 9 / 20
+2026-10-24T02:54:04.550+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:54:06.574+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:54:06.575+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 10 / 20
+2026-10-24T02:54:06.575+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:54:08.599+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:54:08.600+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 11 / 20
+2026-10-24T02:54:08.600+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:54:10.624+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:54:10.625+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 12 / 20
+2026-10-24T02:54:10.625+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:54:12.649+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:54:12.651+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 13 / 20
+2026-10-24T02:54:12.651+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:54:14.676+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:54:14.677+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 14 / 20
+2026-10-24T02:54:14.677+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:54:16.701+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:54:16.702+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 15 / 20
+2026-10-24T02:54:16.702+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:54:18.727+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:54:18.728+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 16 / 20
+2026-10-24T02:54:18.728+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:54:20.752+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:54:20.753+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 17 / 20
+2026-10-24T02:54:20.754+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:54:22.778+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:54:22.779+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 18 / 20
+2026-10-24T02:54:22.779+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:54:24.805+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:54:24.806+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 19 / 20
+2026-10-24T02:54:24.806+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:54:26.831+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:54:26.833+08:00 DEBUG   [specexec.py:_grow_tree:221] Trimming tree
+2026-10-24T02:54:26.843+08:00 DEBUG   [specexec.py:_validate_tree:377] Validating tree
+2026-10-24T02:54:26.843+08:00 DEBUG   [proactive.py:_get_best_bonus_token_candidate:99] Getting best bonus token candidate...
+2026-10-24T02:54:28.869+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 1 / 20
+2026-10-24T02:54:30.895+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 2 / 20
+2026-10-24T02:54:32.920+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 3 / 20
+2026-10-24T02:54:34.945+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 4 / 20
+2026-10-24T02:54:36.971+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 5 / 20
+2026-10-24T02:54:38.998+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 6 / 20
+2026-10-24T02:54:41.023+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 7 / 20
+2026-10-24T02:54:43.048+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 8 / 20
+2026-10-24T02:54:45.073+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 9 / 20
+2026-10-24T02:54:47.098+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 10 / 20
+2026-10-24T02:54:49.124+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 11 / 20
+2026-10-24T02:54:51.149+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 12 / 20
+2026-10-24T02:54:53.174+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 13 / 20
+2026-10-24T02:54:55.199+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 14 / 20
+2026-10-24T02:54:57.223+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 15 / 20
+2026-10-24T02:54:59.249+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 16 / 20
+2026-10-24T02:55:01.274+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 17 / 20
+2026-10-24T02:55:03.299+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 18 / 20
+2026-10-24T02:55:05.325+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 19 / 20
+2026-10-24T02:55:07.349+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 20 / 20
+2026-10-24T02:55:09.376+08:00 DEBUG   [specexec.py:_validate_tree:475] Num of accepted tokens: 3
+2026-10-24T02:55:09.394+08:00 DEBUG   [specexec.py:_grow_tree:168] Growing tree
+2026-10-24T02:55:09.394+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 0 / 20
+2026-10-24T02:55:09.394+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:55:11.420+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:55:11.421+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 1 / 20
+2026-10-24T02:55:11.421+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:55:13.445+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:55:13.446+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 2 / 20
+2026-10-24T02:55:13.446+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:55:15.470+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:55:15.471+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 3 / 20
+2026-10-24T02:55:15.471+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:55:17.496+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:55:17.497+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 4 / 20
+2026-10-24T02:55:17.497+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:55:19.521+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:55:19.523+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 5 / 20
+2026-10-24T02:55:19.523+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:55:21.547+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:55:21.549+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 6 / 20
+2026-10-24T02:55:21.549+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:55:23.572+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:55:23.574+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 7 / 20
+2026-10-24T02:55:23.574+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:55:25.599+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:55:25.600+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 8 / 20
+2026-10-24T02:55:25.600+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:55:27.625+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:55:27.626+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 9 / 20
+2026-10-24T02:55:27.626+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:55:29.650+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:55:29.652+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 10 / 20
+2026-10-24T02:55:29.652+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:55:31.677+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:55:31.678+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 11 / 20
+2026-10-24T02:55:31.678+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:55:33.702+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:55:33.704+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 12 / 20
+2026-10-24T02:55:33.704+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:55:35.729+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:55:35.730+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 13 / 20
+2026-10-24T02:55:35.730+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:55:37.754+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:55:37.755+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 14 / 20
+2026-10-24T02:55:37.756+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:55:39.781+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:55:39.783+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 15 / 20
+2026-10-24T02:55:39.783+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:55:41.808+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:55:41.809+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 16 / 20
+2026-10-24T02:55:41.809+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:55:43.834+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:55:43.835+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 17 / 20
+2026-10-24T02:55:43.835+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:55:45.859+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:55:45.861+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 18 / 20
+2026-10-24T02:55:45.861+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:55:47.885+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:55:47.886+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 19 / 20
+2026-10-24T02:55:47.886+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:55:49.910+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:55:49.912+08:00 DEBUG   [specexec.py:_grow_tree:221] Trimming tree
+2026-10-24T02:55:49.921+08:00 DEBUG   [specexec.py:_validate_tree:377] Validating tree
+2026-10-24T02:55:49.922+08:00 DEBUG   [proactive.py:_get_best_bonus_token_candidate:99] Getting best bonus token candidate...
+2026-10-24T02:55:51.949+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 1 / 20
+2026-10-24T02:55:53.974+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 2 / 20
+2026-10-24T02:55:56.000+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 3 / 20
+2026-10-24T02:55:58.025+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 4 / 20
+2026-10-24T02:56:00.050+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 5 / 20
+2026-10-24T02:56:02.078+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 6 / 20
+2026-10-24T02:56:04.103+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 7 / 20
+2026-10-24T02:56:06.128+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 8 / 20
+2026-10-24T02:56:08.155+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 9 / 20
+2026-10-24T02:56:10.181+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 10 / 20
+2026-10-24T02:56:12.207+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 11 / 20
+2026-10-24T02:56:14.233+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 12 / 20
+2026-10-24T02:56:16.260+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 13 / 20
+2026-10-24T02:56:18.286+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 14 / 20
+2026-10-24T02:56:20.312+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 15 / 20
+2026-10-24T02:56:22.337+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 16 / 20
+2026-10-24T02:56:24.361+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 17 / 20
+2026-10-24T02:56:26.387+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 18 / 20
+2026-10-24T02:56:28.414+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 19 / 20
+2026-10-24T02:56:30.441+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 20 / 20
+2026-10-24T02:56:32.469+08:00 DEBUG   [specexec.py:_validate_tree:475] Num of accepted tokens: 21
+2026-10-24T02:56:32.488+08:00 DEBUG   [specexec.py:_grow_tree:168] Growing tree
+2026-10-24T02:56:32.488+08:00 DEBUG   [specexec.py:_grow_tree:221] Trimming tree
+2026-10-24T02:56:32.498+08:00 DEBUG   [specexec.py:_validate_tree:377] Validating tree
+2026-10-24T02:56:32.499+08:00 DEBUG   [proactive.py:_get_best_bonus_token_candidate:99] Getting best bonus token candidate...
+2026-10-24T02:56:34.525+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 1 / 20
+2026-10-24T02:56:36.550+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 2 / 20
+2026-10-24T02:56:38.575+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 3 / 20
+2026-10-24T02:56:40.601+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 4 / 20
+2026-10-24T02:56:42.626+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 5 / 20
+2026-10-24T02:56:44.651+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 6 / 20
+2026-10-24T02:56:46.678+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 7 / 20
+2026-10-24T02:56:48.703+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 8 / 20
+2026-10-24T02:56:50.728+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 9 / 20
+2026-10-24T02:56:52.754+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 10 / 20
+2026-10-24T02:56:54.779+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 11 / 20
+2026-10-24T02:56:56.804+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 12 / 20
+2026-10-24T02:56:58.829+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 13 / 20
+2026-10-24T02:57:00.855+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 14 / 20
+2026-10-24T02:57:02.882+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 15 / 20
+2026-10-24T02:57:04.907+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 16 / 20
+2026-10-24T02:57:06.932+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 17 / 20
+2026-10-24T02:57:08.957+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 18 / 20
+2026-10-24T02:57:10.982+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 19 / 20
+2026-10-24T02:57:13.007+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 20 / 20
+2026-10-24T02:57:15.034+08:00 DEBUG   [specexec.py:_validate_tree:475] Num of accepted tokens: 11
+2026-10-24T02:57:15.054+08:00 DEBUG   [specexec.py:_grow_tree:168] Growing tree
+2026-10-24T02:57:15.054+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 0 / 20
+2026-10-24T02:57:15.054+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:57:17.079+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:57:17.080+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 1 / 20
+2026-10-24T02:57:17.080+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:57:19.103+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:57:19.104+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 2 / 20
+2026-10-24T02:57:19.104+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:57:21.128+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:57:21.129+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 3 / 20
+2026-10-24T02:57:21.129+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:57:23.155+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:57:23.157+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 4 / 20
+2026-10-24T02:57:23.157+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:57:25.181+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:57:25.183+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 5 / 20
+2026-10-24T02:57:25.183+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:57:27.209+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:57:27.210+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 6 / 20
+2026-10-24T02:57:27.210+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:57:29.235+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:57:29.236+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 7 / 20
+2026-10-24T02:57:29.237+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:57:31.261+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:57:31.262+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 8 / 20
+2026-10-24T02:57:31.262+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:57:33.288+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:57:33.289+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 9 / 20
+2026-10-24T02:57:33.289+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:57:35.313+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:57:35.314+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 10 / 20
+2026-10-24T02:57:35.314+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:57:37.339+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:57:37.340+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 11 / 20
+2026-10-24T02:57:37.341+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:57:39.364+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:57:39.366+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 12 / 20
+2026-10-24T02:57:39.366+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:57:41.390+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:57:41.392+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 13 / 20
+2026-10-24T02:57:41.392+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:57:43.417+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:57:43.418+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 14 / 20
+2026-10-24T02:57:43.418+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:57:45.442+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:57:45.443+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 15 / 20
+2026-10-24T02:57:45.443+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:57:47.469+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:57:47.471+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 16 / 20
+2026-10-24T02:57:47.471+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:57:49.495+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:57:49.496+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 17 / 20
+2026-10-24T02:57:49.496+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:57:51.520+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:57:51.521+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 18 / 20
+2026-10-24T02:57:51.521+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:57:53.546+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:57:53.547+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 19 / 20
+2026-10-24T02:57:53.547+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:57:55.571+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:57:55.572+08:00 DEBUG   [specexec.py:_grow_tree:221] Trimming tree
+2026-10-24T02:57:55.582+08:00 DEBUG   [specexec.py:_validate_tree:377] Validating tree
+2026-10-24T02:57:55.583+08:00 DEBUG   [proactive.py:_get_best_bonus_token_candidate:99] Getting best bonus token candidate...
+2026-10-24T02:57:57.610+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 1 / 20
+2026-10-24T02:57:59.635+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 2 / 20
+2026-10-24T02:58:01.661+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 3 / 20
+2026-10-24T02:58:03.688+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 4 / 20
+2026-10-24T02:58:05.712+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 5 / 20
+2026-10-24T02:58:07.736+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 6 / 20
+2026-10-24T02:58:09.762+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 7 / 20
+2026-10-24T02:58:11.788+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 8 / 20
+2026-10-24T02:58:13.813+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 9 / 20
+2026-10-24T02:58:15.838+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 10 / 20
+2026-10-24T02:58:17.863+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 11 / 20
+2026-10-24T02:58:19.888+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 12 / 20
+2026-10-24T02:58:21.912+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 13 / 20
+2026-10-24T02:58:23.938+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 14 / 20
+2026-10-24T02:58:25.962+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 15 / 20
+2026-10-24T02:58:27.987+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 16 / 20
+2026-10-24T02:58:30.013+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 17 / 20
+2026-10-24T02:58:32.038+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 18 / 20
+2026-10-24T02:58:34.065+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 19 / 20
+2026-10-24T02:58:36.091+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 20 / 20
+2026-10-24T02:58:38.117+08:00 DEBUG   [specexec.py:_validate_tree:475] Num of accepted tokens: 1
+2026-10-24T02:58:38.137+08:00 DEBUG   [specexec.py:_grow_tree:168] Growing tree
+2026-10-24T02:58:38.137+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 0 / 20
+2026-10-24T02:58:38.137+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:58:40.163+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:58:40.164+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 1 / 20
+2026-10-24T02:58:40.164+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:58:42.188+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:58:42.190+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 2 / 20
+2026-10-24T02:58:42.190+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:58:44.214+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:58:44.216+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 3 / 20
+2026-10-24T02:58:44.216+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:58:46.240+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:58:46.241+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 4 / 20
+2026-10-24T02:58:46.241+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:58:48.266+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:58:48.268+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 5 / 20
+2026-10-24T02:58:48.268+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:58:50.292+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:58:50.294+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 6 / 20
+2026-10-24T02:58:50.294+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:58:52.318+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:58:52.319+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 7 / 20
+2026-10-24T02:58:52.319+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:58:54.344+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:58:54.345+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 8 / 20
+2026-10-24T02:58:54.345+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:58:56.369+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:58:56.370+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 9 / 20
+2026-10-24T02:58:56.370+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:58:58.394+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:58:58.395+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 10 / 20
+2026-10-24T02:58:58.395+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:59:00.419+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:59:00.421+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 11 / 20
+2026-10-24T02:59:00.421+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:59:02.445+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:59:02.446+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 12 / 20
+2026-10-24T02:59:02.446+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:59:04.472+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:59:04.473+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 13 / 20
+2026-10-24T02:59:04.473+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:59:06.497+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:59:06.498+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 14 / 20
+2026-10-24T02:59:06.498+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:59:08.522+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:59:08.524+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 15 / 20
+2026-10-24T02:59:08.524+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:59:10.547+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:59:10.549+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 16 / 20
+2026-10-24T02:59:10.549+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:59:12.572+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:59:12.574+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 17 / 20
+2026-10-24T02:59:12.574+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:59:14.599+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:59:14.600+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 18 / 20
+2026-10-24T02:59:14.600+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:59:16.626+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:59:16.628+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 19 / 20
+2026-10-24T02:59:16.628+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T02:59:18.652+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T02:59:18.654+08:00 DEBUG   [specexec.py:_grow_tree:221] Trimming tree
+2026-10-24T02:59:18.663+08:00 DEBUG   [specexec.py:_validate_tree:377] Validating tree
+2026-10-24T02:59:18.664+08:00 DEBUG   [proactive.py:_get_best_bonus_token_candidate:99] Getting best bonus token candidate...
+2026-10-24T02:59:20.691+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 1 / 20
+2026-10-24T02:59:22.716+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 2 / 20
+2026-10-24T02:59:24.741+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 3 / 20
+2026-10-24T02:59:26.767+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 4 / 20
+2026-10-24T02:59:28.794+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 5 / 20
+2026-10-24T02:59:30.821+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 6 / 20
+2026-10-24T02:59:32.847+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 7 / 20
+2026-10-24T02:59:34.872+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 8 / 20
+2026-10-24T02:59:36.896+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 9 / 20
+2026-10-24T02:59:38.922+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 10 / 20
+2026-10-24T02:59:40.948+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 11 / 20
+2026-10-24T02:59:42.973+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 12 / 20
+2026-10-24T02:59:45.000+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 13 / 20
+2026-10-24T02:59:47.026+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 14 / 20
+2026-10-24T02:59:49.053+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 15 / 20
+2026-10-24T02:59:51.078+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 16 / 20
+2026-10-24T02:59:53.103+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 17 / 20
+2026-10-24T02:59:55.128+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 18 / 20
+2026-10-24T02:59:57.152+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 19 / 20
+2026-10-24T02:59:59.176+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 20 / 20
+2026-10-24T03:00:01.205+08:00 DEBUG   [specexec.py:_validate_tree:475] Num of accepted tokens: 1
+2026-10-24T03:00:01.225+08:00 DEBUG   [specexec.py:_grow_tree:168] Growing tree
+2026-10-24T03:00:01.225+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 0 / 20
+2026-10-24T03:00:01.225+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:00:03.251+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:00:03.252+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 1 / 20
+2026-10-24T03:00:03.253+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:00:05.277+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:00:05.278+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 2 / 20
+2026-10-24T03:00:05.278+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:00:07.302+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:00:07.303+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 3 / 20
+2026-10-24T03:00:07.303+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:00:09.327+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:00:09.328+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 4 / 20
+2026-10-24T03:00:09.329+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:00:11.353+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:00:11.354+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 5 / 20
+2026-10-24T03:00:11.354+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:00:13.378+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:00:13.380+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 6 / 20
+2026-10-24T03:00:13.380+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:00:15.404+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:00:15.405+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 7 / 20
+2026-10-24T03:00:15.405+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:00:17.430+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:00:17.432+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 8 / 20
+2026-10-24T03:00:17.432+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:00:19.457+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:00:19.458+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 9 / 20
+2026-10-24T03:00:19.458+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:00:21.482+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:00:21.483+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 10 / 20
+2026-10-24T03:00:21.483+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:00:23.507+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:00:23.508+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 11 / 20
+2026-10-24T03:00:23.508+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:00:25.533+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:00:25.534+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 12 / 20
+2026-10-24T03:00:25.534+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:00:27.558+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:00:27.560+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 13 / 20
+2026-10-24T03:00:27.560+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:00:29.584+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:00:29.585+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 14 / 20
+2026-10-24T03:00:29.585+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:00:31.611+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:00:31.613+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 15 / 20
+2026-10-24T03:00:31.613+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:00:33.639+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:00:33.640+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 16 / 20
+2026-10-24T03:00:33.640+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:00:35.665+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:00:35.667+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 17 / 20
+2026-10-24T03:00:35.667+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:00:37.692+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:00:37.693+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 18 / 20
+2026-10-24T03:00:37.693+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:00:39.717+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:00:39.719+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 19 / 20
+2026-10-24T03:00:39.719+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:00:41.744+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:00:41.745+08:00 DEBUG   [specexec.py:_grow_tree:221] Trimming tree
+2026-10-24T03:00:41.754+08:00 DEBUG   [specexec.py:_validate_tree:377] Validating tree
+2026-10-24T03:00:41.755+08:00 DEBUG   [proactive.py:_get_best_bonus_token_candidate:99] Getting best bonus token candidate...
+2026-10-24T03:00:43.780+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 1 / 20
+2026-10-24T03:00:45.806+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 2 / 20
+2026-10-24T03:00:47.833+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 3 / 20
+2026-10-24T03:00:49.859+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 4 / 20
+2026-10-24T03:00:51.885+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 5 / 20
+2026-10-24T03:00:53.910+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 6 / 20
+2026-10-24T03:00:55.937+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 7 / 20
+2026-10-24T03:00:57.963+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 8 / 20
+2026-10-24T03:00:59.990+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 9 / 20
+2026-10-24T03:01:02.017+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 10 / 20
+2026-10-24T03:01:04.043+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 11 / 20
+2026-10-24T03:01:06.069+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 12 / 20
+2026-10-24T03:01:08.095+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 13 / 20
+2026-10-24T03:01:10.121+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 14 / 20
+2026-10-24T03:01:12.148+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 15 / 20
+2026-10-24T03:01:14.174+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 16 / 20
+2026-10-24T03:01:16.200+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 17 / 20
+2026-10-24T03:01:18.226+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 18 / 20
+2026-10-24T03:01:20.252+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 19 / 20
+2026-10-24T03:01:22.279+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 20 / 20
+2026-10-24T03:01:24.307+08:00 DEBUG   [specexec.py:_validate_tree:475] Num of accepted tokens: 1
+2026-10-24T03:01:24.327+08:00 DEBUG   [specexec.py:_grow_tree:168] Growing tree
+2026-10-24T03:01:24.327+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 0 / 20
+2026-10-24T03:01:24.327+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:01:26.353+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:01:26.354+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 1 / 20
+2026-10-24T03:01:26.355+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:01:28.379+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:01:28.380+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 2 / 20
+2026-10-24T03:01:28.380+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:01:30.405+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:01:30.407+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 3 / 20
+2026-10-24T03:01:30.407+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:01:32.433+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:01:32.434+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 4 / 20
+2026-10-24T03:01:32.434+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:01:34.459+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:01:34.460+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 5 / 20
+2026-10-24T03:01:34.460+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:01:36.485+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:01:36.487+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 6 / 20
+2026-10-24T03:01:36.487+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:01:38.510+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:01:38.511+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 7 / 20
+2026-10-24T03:01:38.511+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:01:40.536+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:01:40.538+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 8 / 20
+2026-10-24T03:01:40.538+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:01:42.563+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:01:42.565+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 9 / 20
+2026-10-24T03:01:42.565+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:01:44.589+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:01:44.591+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 10 / 20
+2026-10-24T03:01:44.591+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:01:46.617+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:01:46.618+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 11 / 20
+2026-10-24T03:01:46.618+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:01:48.642+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:01:48.643+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 12 / 20
+2026-10-24T03:01:48.644+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:01:50.668+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:01:50.669+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 13 / 20
+2026-10-24T03:01:50.669+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:01:52.694+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:01:52.695+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 14 / 20
+2026-10-24T03:01:52.695+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:01:54.720+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:01:54.721+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 15 / 20
+2026-10-24T03:01:54.721+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:01:56.746+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:01:56.747+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 16 / 20
+2026-10-24T03:01:56.747+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:01:58.770+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:01:58.772+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 17 / 20
+2026-10-24T03:01:58.772+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:02:00.797+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:02:00.798+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 18 / 20
+2026-10-24T03:02:00.798+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:02:02.824+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:02:02.825+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 19 / 20
+2026-10-24T03:02:02.825+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:02:04.849+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:02:04.850+08:00 DEBUG   [specexec.py:_grow_tree:221] Trimming tree
+2026-10-24T03:02:04.859+08:00 DEBUG   [specexec.py:_validate_tree:377] Validating tree
+2026-10-24T03:02:04.860+08:00 DEBUG   [proactive.py:_get_best_bonus_token_candidate:99] Getting best bonus token candidate...
+2026-10-24T03:02:06.887+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 1 / 20
+2026-10-24T03:02:08.913+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 2 / 20
+2026-10-24T03:02:10.940+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 3 / 20
+2026-10-24T03:02:12.967+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 4 / 20
+2026-10-24T03:02:14.993+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 5 / 20
+2026-10-24T03:02:17.019+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 6 / 20
+2026-10-24T03:02:19.045+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 7 / 20
+2026-10-24T03:02:21.072+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 8 / 20
+2026-10-24T03:02:23.097+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 9 / 20
+2026-10-24T03:02:25.124+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 10 / 20
+2026-10-24T03:02:27.151+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 11 / 20
+2026-10-24T03:02:29.176+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 12 / 20
+2026-10-24T03:02:31.202+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 13 / 20
+2026-10-24T03:02:33.227+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 14 / 20
+2026-10-24T03:02:35.252+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 15 / 20
+2026-10-24T03:02:37.278+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 16 / 20
+2026-10-24T03:02:39.305+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 17 / 20
+2026-10-24T03:02:41.331+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 18 / 20
+2026-10-24T03:02:43.357+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 19 / 20
+2026-10-24T03:02:45.382+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 20 / 20
+2026-10-24T03:02:47.410+08:00 DEBUG   [specexec.py:_validate_tree:475] Num of accepted tokens: 8
+2026-10-24T03:02:47.431+08:00 DEBUG   [specexec.py:_grow_tree:168] Growing tree
+2026-10-24T03:02:47.431+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 0 / 20
+2026-10-24T03:02:47.431+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:02:49.456+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:02:49.458+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 1 / 20
+2026-10-24T03:02:49.458+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:02:51.482+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:02:51.483+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 2 / 20
+2026-10-24T03:02:51.483+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:02:53.509+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:02:53.510+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 3 / 20
+2026-10-24T03:02:53.510+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:02:55.534+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:02:55.536+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 4 / 20
+2026-10-24T03:02:55.536+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:02:57.561+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:02:57.562+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 5 / 20
+2026-10-24T03:02:57.562+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:02:59.587+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:02:59.588+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 6 / 20
+2026-10-24T03:02:59.588+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:03:01.613+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:03:01.615+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 7 / 20
+2026-10-24T03:03:01.615+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:03:03.641+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:03:03.642+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 8 / 20
+2026-10-24T03:03:03.642+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:03:05.666+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:03:05.667+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 9 / 20
+2026-10-24T03:03:05.667+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:03:07.693+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:03:07.694+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 10 / 20
+2026-10-24T03:03:07.694+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:03:09.718+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:03:09.719+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 11 / 20
+2026-10-24T03:03:09.719+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:03:11.744+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:03:11.745+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 12 / 20
+2026-10-24T03:03:11.745+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:03:13.769+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:03:13.770+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 13 / 20
+2026-10-24T03:03:13.770+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:03:15.795+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:03:15.796+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 14 / 20
+2026-10-24T03:03:15.796+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:03:17.822+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:03:17.823+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 15 / 20
+2026-10-24T03:03:17.823+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:03:19.847+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:03:19.848+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 16 / 20
+2026-10-24T03:03:19.849+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:03:21.874+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:03:21.876+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 17 / 20
+2026-10-24T03:03:21.876+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:03:23.900+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:03:23.902+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 18 / 20
+2026-10-24T03:03:23.902+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:03:25.926+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:03:25.928+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 19 / 20
+2026-10-24T03:03:25.928+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:03:27.952+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:03:27.953+08:00 DEBUG   [specexec.py:_grow_tree:221] Trimming tree
+2026-10-24T03:03:27.963+08:00 DEBUG   [specexec.py:_validate_tree:377] Validating tree
+2026-10-24T03:03:27.964+08:00 DEBUG   [proactive.py:_get_best_bonus_token_candidate:99] Getting best bonus token candidate...
+2026-10-24T03:03:29.989+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 1 / 20
+2026-10-24T03:03:32.014+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 2 / 20
+2026-10-24T03:03:34.041+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 3 / 20
+2026-10-24T03:03:36.067+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 4 / 20
+2026-10-24T03:03:38.092+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 5 / 20
+2026-10-24T03:03:40.117+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 6 / 20
+2026-10-24T03:03:42.143+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 7 / 20
+2026-10-24T03:03:44.169+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 8 / 20
+2026-10-24T03:03:46.195+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 9 / 20
+2026-10-24T03:03:48.222+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 10 / 20
+2026-10-24T03:03:50.247+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 11 / 20
+2026-10-24T03:03:52.273+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 12 / 20
+2026-10-24T03:03:54.298+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 13 / 20
+2026-10-24T03:03:56.324+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 14 / 20
+2026-10-24T03:03:58.352+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 15 / 20
+2026-10-24T03:04:00.377+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 16 / 20
+2026-10-24T03:04:02.404+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 17 / 20
+2026-10-24T03:04:04.430+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 18 / 20
+2026-10-24T03:04:06.456+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 19 / 20
+2026-10-24T03:04:08.483+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 20 / 20
+2026-10-24T03:04:10.509+08:00 DEBUG   [specexec.py:_validate_tree:475] Num of accepted tokens: 21
+2026-10-24T03:04:10.531+08:00 DEBUG   [specexec.py:_grow_tree:168] Growing tree
+2026-10-24T03:04:10.531+08:00 DEBUG   [specexec.py:_grow_tree:221] Trimming tree
+2026-10-24T03:04:10.541+08:00 DEBUG   [specexec.py:_validate_tree:377] Validating tree
+2026-10-24T03:04:10.541+08:00 DEBUG   [proactive.py:_get_best_bonus_token_candidate:99] Getting best bonus token candidate...
+2026-10-24T03:04:12.569+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 1 / 20
+2026-10-24T03:04:14.595+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 2 / 20
+2026-10-24T03:04:16.622+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 3 / 20
+2026-10-24T03:04:18.650+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 4 / 20
+2026-10-24T03:04:20.675+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 5 / 20
+2026-10-24T03:04:22.701+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 6 / 20
+2026-10-24T03:04:24.726+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 7 / 20
+2026-10-24T03:04:26.751+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 8 / 20
+2026-10-24T03:04:28.779+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 9 / 20
+2026-10-24T03:04:30.805+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 10 / 20
+2026-10-24T03:04:32.833+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 11 / 20
+2026-10-24T03:04:34.859+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 12 / 20
+2026-10-24T03:04:36.884+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 13 / 20
+2026-10-24T03:04:38.911+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 14 / 20
+2026-10-24T03:04:40.937+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 15 / 20
+2026-10-24T03:04:42.962+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 16 / 20
+2026-10-24T03:04:44.987+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 17 / 20
+2026-10-24T03:04:47.013+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 18 / 20
+2026-10-24T03:04:49.039+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 19 / 20
+2026-10-24T03:04:51.064+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 20 / 20
+2026-10-24T03:04:53.090+08:00 DEBUG   [specexec.py:_validate_tree:475] Num of accepted tokens: 2
+2026-10-24T03:04:53.113+08:00 DEBUG   [specexec.py:_grow_tree:168] Growing tree
+2026-10-24T03:04:53.113+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 0 / 20
+2026-10-24T03:04:53.113+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:04:55.139+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:04:55.141+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 1 / 20
+2026-10-24T03:04:55.141+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:04:57.165+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:04:57.166+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 2 / 20
+2026-10-24T03:04:57.166+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:04:59.190+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:04:59.192+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 3 / 20
+2026-10-24T03:04:59.192+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:05:01.217+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:05:01.218+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 4 / 20
+2026-10-24T03:05:01.218+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:05:03.246+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:05:03.247+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 5 / 20
+2026-10-24T03:05:03.247+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:05:05.272+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:05:05.273+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 6 / 20
+2026-10-24T03:05:05.273+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:05:07.297+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:05:07.298+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 7 / 20
+2026-10-24T03:05:07.298+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:05:09.323+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:05:09.324+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 8 / 20
+2026-10-24T03:05:09.324+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:05:11.348+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:05:11.349+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 9 / 20
+2026-10-24T03:05:11.349+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:05:13.374+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:05:13.375+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 10 / 20
+2026-10-24T03:05:13.375+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:05:15.400+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:05:15.401+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 11 / 20
+2026-10-24T03:05:15.401+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:05:17.427+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:05:17.428+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 12 / 20
+2026-10-24T03:05:17.428+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:05:19.453+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:05:19.454+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 13 / 20
+2026-10-24T03:05:19.454+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:05:21.478+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:05:21.480+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 14 / 20
+2026-10-24T03:05:21.480+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:05:23.504+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:05:23.505+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 15 / 20
+2026-10-24T03:05:23.505+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:05:25.530+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:05:25.531+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 16 / 20
+2026-10-24T03:05:25.532+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:05:27.555+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:05:27.556+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 17 / 20
+2026-10-24T03:05:27.556+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:05:29.581+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:05:29.583+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 18 / 20
+2026-10-24T03:05:29.583+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:05:31.607+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:05:31.608+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 19 / 20
+2026-10-24T03:05:31.608+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:05:33.633+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:05:33.635+08:00 DEBUG   [specexec.py:_grow_tree:221] Trimming tree
+2026-10-24T03:05:33.644+08:00 DEBUG   [specexec.py:_validate_tree:377] Validating tree
+2026-10-24T03:05:33.645+08:00 DEBUG   [proactive.py:_get_best_bonus_token_candidate:99] Getting best bonus token candidate...
+2026-10-24T03:05:35.671+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 1 / 20
+2026-10-24T03:05:37.696+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 2 / 20
+2026-10-24T03:05:39.723+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 3 / 20
+2026-10-24T03:05:41.748+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 4 / 20
+2026-10-24T03:05:43.774+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 5 / 20
+2026-10-24T03:05:45.800+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 6 / 20
+2026-10-24T03:05:47.826+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 7 / 20
+2026-10-24T03:05:49.851+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 8 / 20
+2026-10-24T03:05:51.877+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 9 / 20
+2026-10-24T03:05:53.904+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 10 / 20
+2026-10-24T03:05:55.929+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 11 / 20
+2026-10-24T03:05:57.956+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 12 / 20
+2026-10-24T03:05:59.983+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 13 / 20
+2026-10-24T03:06:02.009+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 14 / 20
+2026-10-24T03:06:04.035+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 15 / 20
+2026-10-24T03:06:06.061+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 16 / 20
+2026-10-24T03:06:08.085+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 17 / 20
+2026-10-24T03:06:10.111+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 18 / 20
+2026-10-24T03:06:12.137+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 19 / 20
+2026-10-24T03:06:14.164+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 20 / 20
+2026-10-24T03:06:16.189+08:00 DEBUG   [specexec.py:_validate_tree:475] Num of accepted tokens: 1
+2026-10-24T03:06:16.211+08:00 DEBUG   [specexec.py:_grow_tree:168] Growing tree
+2026-10-24T03:06:16.211+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 0 / 20
+2026-10-24T03:06:16.212+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:06:18.238+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:06:18.239+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 1 / 20
+2026-10-24T03:06:18.239+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:06:20.263+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:06:20.265+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 2 / 20
+2026-10-24T03:06:20.265+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:06:22.289+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:06:22.291+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 3 / 20
+2026-10-24T03:06:22.291+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:06:24.316+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:06:24.318+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 4 / 20
+2026-10-24T03:06:24.318+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:06:26.343+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:06:26.344+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 5 / 20
+2026-10-24T03:06:26.344+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:06:28.368+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:06:28.369+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 6 / 20
+2026-10-24T03:06:28.369+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:06:30.394+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:06:30.395+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 7 / 20
+2026-10-24T03:06:30.395+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:06:32.419+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:06:32.420+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 8 / 20
+2026-10-24T03:06:32.420+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:06:34.446+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:06:34.447+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 9 / 20
+2026-10-24T03:06:34.447+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:06:36.471+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:06:36.472+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 10 / 20
+2026-10-24T03:06:36.472+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:06:38.498+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:06:38.499+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 11 / 20
+2026-10-24T03:06:38.499+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:06:40.525+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:06:40.526+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 12 / 20
+2026-10-24T03:06:40.526+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:06:42.550+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:06:42.552+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 13 / 20
+2026-10-24T03:06:42.552+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:06:44.577+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:06:44.579+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 14 / 20
+2026-10-24T03:06:44.579+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:06:46.604+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:06:46.605+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 15 / 20
+2026-10-24T03:06:46.606+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:06:48.630+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:06:48.632+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 16 / 20
+2026-10-24T03:06:48.632+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:06:50.657+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:06:50.658+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 17 / 20
+2026-10-24T03:06:50.658+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:06:52.682+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:06:52.684+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 18 / 20
+2026-10-24T03:06:52.684+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:06:54.709+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:06:54.710+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 19 / 20
+2026-10-24T03:06:54.710+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:06:56.736+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:06:56.737+08:00 DEBUG   [specexec.py:_grow_tree:221] Trimming tree
+2026-10-24T03:06:56.746+08:00 DEBUG   [specexec.py:_validate_tree:377] Validating tree
+2026-10-24T03:06:56.747+08:00 DEBUG   [proactive.py:_get_best_bonus_token_candidate:99] Getting best bonus token candidate...
+2026-10-24T03:06:58.774+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 1 / 20
+2026-10-24T03:07:00.799+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 2 / 20
+2026-10-24T03:07:02.825+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 3 / 20
+2026-10-24T03:07:04.850+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 4 / 20
+2026-10-24T03:07:06.876+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 5 / 20
+2026-10-24T03:07:08.901+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 6 / 20
+2026-10-24T03:07:10.928+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 7 / 20
+2026-10-24T03:07:12.953+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 8 / 20
+2026-10-24T03:07:14.979+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 9 / 20
+2026-10-24T03:07:17.005+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 10 / 20
+2026-10-24T03:07:19.031+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 11 / 20
+2026-10-24T03:07:21.058+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 12 / 20
+2026-10-24T03:07:23.084+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 13 / 20
+2026-10-24T03:07:25.109+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 14 / 20
+2026-10-24T03:07:27.135+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 15 / 20
+2026-10-24T03:07:29.160+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 16 / 20
+2026-10-24T03:07:31.186+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 17 / 20
+2026-10-24T03:07:33.212+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 18 / 20
+2026-10-24T03:07:35.237+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 19 / 20
+2026-10-24T03:07:37.264+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 20 / 20
+2026-10-24T03:07:39.291+08:00 DEBUG   [specexec.py:_validate_tree:475] Num of accepted tokens: 7
+2026-10-24T03:07:39.315+08:00 DEBUG   [specexec.py:_grow_tree:168] Growing tree
+2026-10-24T03:07:39.315+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 0 / 20
+2026-10-24T03:07:39.315+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:07:41.342+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:07:41.343+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 1 / 20
+2026-10-24T03:07:41.343+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:07:43.367+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:07:43.369+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 2 / 20
+2026-10-24T03:07:43.369+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:07:45.393+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:07:45.394+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 3 / 20
+2026-10-24T03:07:45.395+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:07:47.419+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:07:47.421+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 4 / 20
+2026-10-24T03:07:47.421+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:07:49.444+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:07:49.445+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 5 / 20
+2026-10-24T03:07:49.445+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:07:51.470+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:07:51.472+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 6 / 20
+2026-10-24T03:07:51.472+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:07:53.495+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:07:53.497+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 7 / 20
+2026-10-24T03:07:53.497+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:07:55.520+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:07:55.522+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 8 / 20
+2026-10-24T03:07:55.522+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:07:57.546+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:07:57.547+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 9 / 20
+2026-10-24T03:07:57.548+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:07:59.572+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:07:59.573+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 10 / 20
+2026-10-24T03:07:59.573+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:08:01.598+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:08:01.600+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 11 / 20
+2026-10-24T03:08:01.600+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:08:03.627+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:08:03.629+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 12 / 20
+2026-10-24T03:08:03.629+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:08:05.655+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:08:05.656+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 13 / 20
+2026-10-24T03:08:05.656+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:08:07.681+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:08:07.682+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 14 / 20
+2026-10-24T03:08:07.682+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:08:09.706+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:08:09.708+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 15 / 20
+2026-10-24T03:08:09.708+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:08:11.732+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:08:11.733+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 16 / 20
+2026-10-24T03:08:11.734+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:08:13.758+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:08:13.759+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 17 / 20
+2026-10-24T03:08:13.759+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:08:15.785+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:08:15.786+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 18 / 20
+2026-10-24T03:08:15.786+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:08:17.811+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:08:17.813+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 19 / 20
+2026-10-24T03:08:17.813+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:08:19.837+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:08:19.838+08:00 DEBUG   [specexec.py:_grow_tree:221] Trimming tree
+2026-10-24T03:08:19.847+08:00 DEBUG   [specexec.py:_validate_tree:377] Validating tree
+2026-10-24T03:08:19.848+08:00 DEBUG   [proactive.py:_get_best_bonus_token_candidate:99] Getting best bonus token candidate...
+2026-10-24T03:08:21.874+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 1 / 20
+2026-10-24T03:08:23.900+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 2 / 20
+2026-10-24T03:08:25.926+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 3 / 20
+2026-10-24T03:08:27.952+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 4 / 20
+2026-10-24T03:08:29.977+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 5 / 20
+2026-10-24T03:08:32.006+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 6 / 20
+2026-10-24T03:08:34.031+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 7 / 20
+2026-10-24T03:08:36.057+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 8 / 20
+2026-10-24T03:08:38.084+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 9 / 20
+2026-10-24T03:08:40.111+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 10 / 20
+2026-10-24T03:08:42.137+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 11 / 20
+2026-10-24T03:08:44.163+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 12 / 20
+2026-10-24T03:08:46.189+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 13 / 20
+2026-10-24T03:08:48.217+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 14 / 20
+2026-10-24T03:08:50.243+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 15 / 20
+2026-10-24T03:08:52.269+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 16 / 20
+2026-10-24T03:08:54.295+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 17 / 20
+2026-10-24T03:08:56.320+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 18 / 20
+2026-10-24T03:08:58.347+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 19 / 20
+2026-10-24T03:09:00.373+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 20 / 20
+2026-10-24T03:09:02.403+08:00 DEBUG   [specexec.py:_validate_tree:475] Num of accepted tokens: 2
+2026-10-24T03:09:02.426+08:00 DEBUG   [specexec.py:_grow_tree:168] Growing tree
+2026-10-24T03:09:02.426+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 0 / 20
+2026-10-24T03:09:02.426+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:09:04.452+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:09:04.453+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 1 / 20
+2026-10-24T03:09:04.453+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:09:06.478+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:09:06.479+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 2 / 20
+2026-10-24T03:09:06.479+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:09:08.503+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:09:08.504+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 3 / 20
+2026-10-24T03:09:08.505+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:09:10.528+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:09:10.529+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 4 / 20
+2026-10-24T03:09:10.529+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:09:12.554+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:09:12.555+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 5 / 20
+2026-10-24T03:09:12.555+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:09:14.580+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:09:14.581+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 6 / 20
+2026-10-24T03:09:14.581+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:09:16.606+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:09:16.607+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 7 / 20
+2026-10-24T03:09:16.607+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:09:18.634+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:09:18.635+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 8 / 20
+2026-10-24T03:09:18.635+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:09:20.660+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:09:20.661+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 9 / 20
+2026-10-24T03:09:20.661+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:09:22.685+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:09:22.687+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 10 / 20
+2026-10-24T03:09:22.687+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:09:24.710+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:09:24.711+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 11 / 20
+2026-10-24T03:09:24.711+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:09:26.735+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:09:26.736+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 12 / 20
+2026-10-24T03:09:26.736+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:09:28.763+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:09:28.764+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 13 / 20
+2026-10-24T03:09:28.764+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:09:30.789+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:09:30.790+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 14 / 20
+2026-10-24T03:09:30.790+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:09:32.816+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:09:32.817+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 15 / 20
+2026-10-24T03:09:32.818+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:09:34.842+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:09:34.844+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 16 / 20
+2026-10-24T03:09:34.844+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:09:36.868+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:09:36.870+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 17 / 20
+2026-10-24T03:09:36.870+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:09:38.894+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:09:38.896+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 18 / 20
+2026-10-24T03:09:38.896+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:09:40.921+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:09:40.922+08:00 DEBUG   [specexec.py:_grow_tree:181] Growing tree: 19 / 20
+2026-10-24T03:09:40.922+08:00 DEBUG   [specexec.py:_process_candidates:227] Processing candidates
+2026-10-24T03:09:42.946+08:00 DEBUG   [specexec.py:_get_next_beams:293] Getting next beams
+2026-10-24T03:09:42.948+08:00 DEBUG   [specexec.py:_grow_tree:221] Trimming tree
+2026-10-24T03:09:42.957+08:00 DEBUG   [specexec.py:_validate_tree:377] Validating tree
+2026-10-24T03:09:42.958+08:00 DEBUG   [proactive.py:_get_best_bonus_token_candidate:99] Getting best bonus token candidate...
+2026-10-24T03:09:44.983+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 1 / 20
+2026-10-24T03:09:47.009+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 2 / 20
+2026-10-24T03:09:49.034+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 3 / 20
+2026-10-24T03:09:51.059+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 4 / 20
+2026-10-24T03:09:53.084+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 5 / 20
+2026-10-24T03:09:55.110+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 6 / 20
+2026-10-24T03:09:57.136+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 7 / 20
+2026-10-24T03:09:59.163+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 8 / 20
+2026-10-24T03:10:01.190+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 9 / 20
+2026-10-24T03:10:03.216+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 10 / 20
+2026-10-24T03:10:05.242+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 11 / 20
+2026-10-24T03:10:07.267+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 12 / 20
+2026-10-24T03:10:09.294+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 13 / 20
+2026-10-24T03:10:11.320+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 14 / 20
+2026-10-24T03:10:13.346+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 15 / 20
+2026-10-24T03:10:15.371+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 16 / 20
+2026-10-24T03:10:17.397+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 17 / 20
+2026-10-24T03:10:19.424+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 18 / 20
+2026-10-24T03:10:21.448+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 19 / 20
+2026-10-24T03:10:23.474+08:00 DEBUG   [proactive.py:draft:57] Growing tree proactively: 20 / 20
+2026-10-24T03:10:25.500+08:00 DEBUG   [specexec.py:_validate_tree:475] Num of accepted tokens: 3

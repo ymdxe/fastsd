@@ -1,0 +1,27 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  cpu-static-integration:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository and SpecEdge submodule
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Run repository-wide integration checks
+        run: python scripts/run_tests.py --strict-official

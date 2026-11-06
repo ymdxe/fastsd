@@ -1,0 +1,25 @@
+{
+  "ready": true,
+  "pid": 2805897,
+  "loaded_epoch": 1792870346.8491116,
+  "model": "/mnt/nfs0/zhangh/models/Qwen3-1.7B",
+  "dtype": "float32",
+  "physical_gpu": 1,
+  "weight_offload": false,
+  "hf_device_map": {
+    "": "cuda:0"
+  },
+  "max_len": 3072,
+  "max_batch_size": 8,
+  "cuda_graphs": false,
+  "phase": "formal",
+  "gammas": {
+    "node1": 4,
+    "node3": 4
+  },
+  "token_budget": null,
+  "client_kv_storage": "cpu",
+  "active_batch_kv_storage": "cuda:0",
+  "gpu_memory_allocated_bytes": 12519446016,
+  "gpu_memory_reserved_bytes": 14407434240
+}

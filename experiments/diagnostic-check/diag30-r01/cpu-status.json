@@ -1,0 +1,45 @@
+{
+  "state": "passed",
+  "started_epoch_s": 1793523484.5487165,
+  "bundle_id": "09a35f71d1b1d37992989b384f96453ba6ba2caad50b31467929992ed23ea39e",
+  "validated_content_sha256": "09a35f71d1b1d37992989b384f96453ba6ba2caad50b31467929992ed23ea39e",
+  "tests_run": 106,
+  "failures": 0,
+  "errors": 0,
+  "skipped": [
+    [
+      "test_budget_and_cpu_prepare_skip_speculation_but_demand_works (test_round2_cache.TransferIsolationTests.test_budget_and_cpu_prepare_skip_speculation_but_demand_works)",
+      "requires CUDA"
+    ],
+    [
+      "test_collector_cannot_drop_a_demand_before_its_first_submission (test_round2_cache.TransferIsolationTests.test_collector_cannot_drop_a_demand_before_its_first_submission)",
+      "requires CUDA"
+    ],
+    [
+      "test_measured_overlap_disturbance_falls_back_after_three_observations (test_round2_cache.TransferIsolationTests.test_measured_overlap_disturbance_falls_back_after_three_observations)",
+      "requires CUDA"
+    ],
+    [
+      "test_partial_ticket_is_claimed_once_and_cancelled_storage_drains (test_round2_cache.TransferIsolationTests.test_partial_ticket_is_claimed_once_and_cancelled_storage_drains)",
+      "requires CUDA"
+    ],
+    [
+      "test_prefetch_b_does_not_add_dependency_to_compute_a (test_round2_cache.TransferIsolationTests.test_prefetch_b_does_not_add_dependency_to_compute_a)",
+      "requires CUDA"
+    ],
+    [
+      "test_protect_forward_drains_only_submitted_chunk_and_blocks_more_dma (test_round2_cache.TransferIsolationTests.test_protect_forward_drains_only_submitted_chunk_and_blocks_more_dma)",
+      "requires CUDA"
+    ],
+    [
+      "test_cuda_worker_with_async_offload_and_reload (test_review_engine.ReviewEngineTests.test_cuda_worker_with_async_offload_and_reload)",
+      "requires CUDA"
+    ],
+    [
+      "test_flash_attention_sd_and_fastsd_preserve_worker_lifecycle (test_review_engine.ReviewEngineTests.test_flash_attention_sd_and_fastsd_preserve_worker_lifecycle)",
+      "requires CUDA"
+    ]
+  ],
+  "torch": "2.9.0+cu128",
+  "finished_epoch_s": 1793523527.3825874
+}

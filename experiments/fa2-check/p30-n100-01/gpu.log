@@ -1,0 +1,108 @@
+{"state": "preflight"}
+{"state": "waiting_for_fixed_gpu"}
+{"state": "gpu_attention_cache"}
+test_fp32_reference_batch1_8_16_prefill_decode_verify (test_flash_varlen.FlashAttentionTests.test_fp32_reference_batch1_8_16_prefill_decode_verify) ... ok
+test_no_future_or_cross_request_reads (test_flash_varlen.FlashAttentionTests.test_no_future_or_cross_request_reads) ... ok
+test_workspace_capacity_and_cross_stream_fence (test_flash_varlen.FlashAttentionTests.test_workspace_capacity_and_cross_stream_fence) ... ok
+test_chunked_prefill_decode_gamma4_8_reject_and_cleanup (test_flash_varlen.FlashModelCacheTests.test_chunked_prefill_decode_gamma4_8_reject_and_cleanup) ... ok
+test_full_and_chunked_prefill (test_flash_varlen.FlashModelCacheTests.test_full_and_chunked_prefill) ... ok
+test_real_transfer_drops_gpu_storage_and_fences_new_forward (test_flash_varlen.FlashModelCacheTests.test_real_transfer_drops_gpu_storage_and_fences_new_forward) ... ok
+test_async_roundtrip_event_and_source_lifetime (test_cache_transfer.CacheTransferTests.test_async_roundtrip_event_and_source_lifetime) ... ok
+test_cuda_varlen_gqa_and_rollback_match_dense (test_cache_transfer.CacheTransferTests.test_cuda_varlen_gqa_and_rollback_match_dense) ... ok
+test_dormant_window_is_allowed_actual_sliding_is_rejected (test_round2_cache.AttentionCompatibilityTests.test_dormant_window_is_allowed_actual_sliding_is_rejected) ... ok
+test_pending_event_is_not_ready_until_all_chunks_recorded (test_round2_cache.CacheProtocolTests.test_pending_event_is_not_ready_until_all_chunks_recorded) ... ok
+test_reservation_claim_keeps_content_version_and_epoch_reuse_invalidates (test_round2_cache.CacheProtocolTests.test_reservation_claim_keeps_content_version_and_epoch_reuse_invalidates) ... ok
+test_slow_preparation_does_not_hold_registry_lock_or_replace_formal (test_round2_cache.CacheProtocolTests.test_slow_preparation_does_not_hold_registry_lock_or_replace_formal) ... ok
+test_budget_and_cpu_prepare_skip_speculation_but_demand_works (test_round2_cache.TransferIsolationTests.test_budget_and_cpu_prepare_skip_speculation_but_demand_works) ... ok
+test_collector_cannot_drop_a_demand_before_its_first_submission (test_round2_cache.TransferIsolationTests.test_collector_cannot_drop_a_demand_before_its_first_submission) ... ok
+test_measured_overlap_disturbance_falls_back_after_three_observations (test_round2_cache.TransferIsolationTests.test_measured_overlap_disturbance_falls_back_after_three_observations) ... ok
+test_partial_ticket_is_claimed_once_and_cancelled_storage_drains (test_round2_cache.TransferIsolationTests.test_partial_ticket_is_claimed_once_and_cancelled_storage_drains) ... ok
+test_prefetch_b_does_not_add_dependency_to_compute_a (test_round2_cache.TransferIsolationTests.test_prefetch_b_does_not_add_dependency_to_compute_a) ... ok
+test_protect_forward_drains_only_submitted_chunk_and_blocks_more_dma (test_round2_cache.TransferIsolationTests.test_protect_forward_drains_only_submitted_chunk_and_blocks_more_dma) ... ok
+test_all_service_modes_share_round_controller_without_pipeline (test_review_engine.ReviewEngineTests.test_all_service_modes_share_round_controller_without_pipeline) ... ok
+test_baseline_release (test_review_engine.ReviewEngineTests.test_baseline_release) ... ok
+test_cuda_worker_with_async_offload_and_reload (test_review_engine.ReviewEngineTests.test_cuda_worker_with_async_offload_and_reload) ... ok
+test_flash_attention_sd_and_fastsd_preserve_worker_lifecycle (test_review_engine.ReviewEngineTests.test_flash_attention_sd_and_fastsd_preserve_worker_lifecycle) ... ok
+test_padded_chunked_rounds_and_repeated_sessions (test_review_engine.ReviewEngineTests.test_padded_chunked_rounds_and_repeated_sessions) ... ok
+test_varlen_chunked_rounds_and_repeated_sessions (test_review_engine.ReviewEngineTests.test_varlen_chunked_rounds_and_repeated_sessions) ... ok
+
+----------------------------------------------------------------------
+Ran 24 tests in 7.707s
+
+OK
+{"state": "loading_qwen3_8b"}
+Loading checkpoint shards:   0%|          | 0/5 [00:00<?, ?it/s]Loading checkpoint shards:  20%|██        | 1/5 [00:00<00:03,  1.27it/s]Loading checkpoint shards:  40%|████      | 2/5 [00:01<00:02,  1.30it/s]Loading checkpoint shards:  60%|██████    | 3/5 [00:02<00:01,  1.32it/s]Loading checkpoint shards:  80%|████████  | 4/5 [00:02<00:00,  1.44it/s]Loading checkpoint shards: 100%|██████████| 5/5 [00:03<00:00,  1.92it/s]Loading checkpoint shards: 100%|██████████| 5/5 [00:03<00:00,  1.61it/s]
+{"state": "performance", "progress": {"variant": "legacy", "batch": 1}}
+{"state": "performance", "progress": {"variant": "legacy", "batch": 8}}
+{"state": "performance", "progress": {"variant": "legacy", "batch": 16}}
+{"state": "performance", "progress": {"variant": "resident_sdpa", "batch": 1}}
+{"state": "performance", "progress": {"variant": "resident_sdpa", "batch": 8}}
+{"state": "performance", "progress": {"variant": "resident_sdpa", "batch": 16}}
+{"state": "performance", "progress": {"variant": "resident_fa2", "batch": 1}}
+{"state": "performance", "progress": {"variant": "resident_fa2", "batch": 8}}
+{"state": "performance", "progress": {"variant": "resident_fa2", "batch": 16}}
+{"state": "greedy164", "progress": {"variant": "legacy", "completed": 4, "total": 164, "forward_steps": 40, "elapsed_s": 12.302482001003227, "generated_tokens": 583}}
+{"state": "greedy164", "progress": {"variant": "legacy", "completed": 14, "total": 164, "forward_steps": 80, "elapsed_s": 26.607983565001632, "generated_tokens": 1223}}
+{"state": "greedy164", "progress": {"variant": "legacy", "completed": 22, "total": 164, "forward_steps": 120, "elapsed_s": 40.336110563002876, "generated_tokens": 1863}}
+{"state": "greedy164", "progress": {"variant": "legacy", "completed": 32, "total": 164, "forward_steps": 160, "elapsed_s": 55.183639566996135, "generated_tokens": 2503}}
+{"state": "greedy164", "progress": {"variant": "legacy", "completed": 39, "total": 164, "forward_steps": 200, "elapsed_s": 69.24993255600566, "generated_tokens": 3143}}
+{"state": "greedy164", "progress": {"variant": "legacy", "completed": 51, "total": 164, "forward_steps": 240, "elapsed_s": 82.32435204500507, "generated_tokens": 3783}}
+{"state": "greedy164", "progress": {"variant": "legacy", "completed": 62, "total": 164, "forward_steps": 280, "elapsed_s": 94.60542336999788, "generated_tokens": 4423}}
+{"state": "greedy164", "progress": {"variant": "legacy", "completed": 73, "total": 164, "forward_steps": 320, "elapsed_s": 107.52588596200803, "generated_tokens": 5063}}
+{"state": "greedy164", "progress": {"variant": "legacy", "completed": 82, "total": 164, "forward_steps": 360, "elapsed_s": 120.69879697600845, "generated_tokens": 5703}}
+{"state": "greedy164", "progress": {"variant": "legacy", "completed": 90, "total": 164, "forward_steps": 400, "elapsed_s": 134.57950625800004, "generated_tokens": 6343}}
+{"state": "greedy164", "progress": {"variant": "legacy", "completed": 99, "total": 164, "forward_steps": 440, "elapsed_s": 147.70182917600323, "generated_tokens": 6983}}
+{"state": "greedy164", "progress": {"variant": "legacy", "completed": 109, "total": 164, "forward_steps": 480, "elapsed_s": 161.19230678099848, "generated_tokens": 7623}}
+{"state": "greedy164", "progress": {"variant": "legacy", "completed": 119, "total": 164, "forward_steps": 520, "elapsed_s": 175.4537943739997, "generated_tokens": 8263}}
+{"state": "greedy164", "progress": {"variant": "legacy", "completed": 128, "total": 164, "forward_steps": 560, "elapsed_s": 188.98544355599734, "generated_tokens": 8903}}
+{"state": "greedy164", "progress": {"variant": "legacy", "completed": 141, "total": 164, "forward_steps": 600, "elapsed_s": 202.800117812003, "generated_tokens": 9542}}
+{"state": "greedy164", "progress": {"variant": "legacy", "completed": 147, "total": 164, "forward_steps": 640, "elapsed_s": 216.37858592299744, "generated_tokens": 10182}}
+{"state": "greedy164", "progress": {"variant": "legacy", "completed": 153, "total": 164, "forward_steps": 680, "elapsed_s": 229.43833869999798, "generated_tokens": 10755}}
+{"state": "greedy164", "progress": {"variant": "legacy", "completed": 156, "total": 164, "forward_steps": 720, "elapsed_s": 239.45022989499557, "generated_tokens": 11132}}
+{"state": "greedy164", "progress": {"variant": "legacy", "completed": 159, "total": 164, "forward_steps": 760, "elapsed_s": 247.85041870300483, "generated_tokens": 11404}}
+{"state": "greedy164", "progress": {"variant": "legacy", "completed": 162, "total": 164, "forward_steps": 800, "elapsed_s": 252.19297850700968, "generated_tokens": 11508}}
+{"state": "greedy164", "progress": {"variant": "legacy", "completed": 163, "total": 164, "forward_steps": 840, "elapsed_s": 255.02086453900847, "generated_tokens": 11559}}
+{"state": "greedy164", "progress": {"variant": "resident_sdpa", "completed": 4, "total": 164, "forward_steps": 40, "elapsed_s": 4.748179540009005, "generated_tokens": 583}}
+{"state": "greedy164", "progress": {"variant": "resident_sdpa", "completed": 14, "total": 164, "forward_steps": 80, "elapsed_s": 9.007330053005717, "generated_tokens": 1223}}
+{"state": "greedy164", "progress": {"variant": "resident_sdpa", "completed": 22, "total": 164, "forward_steps": 120, "elapsed_s": 13.241135029005818, "generated_tokens": 1863}}
+{"state": "greedy164", "progress": {"variant": "resident_sdpa", "completed": 32, "total": 164, "forward_steps": 160, "elapsed_s": 17.66410045500379, "generated_tokens": 2503}}
+{"state": "greedy164", "progress": {"variant": "resident_sdpa", "completed": 39, "total": 164, "forward_steps": 200, "elapsed_s": 22.023805762000848, "generated_tokens": 3143}}
+{"state": "greedy164", "progress": {"variant": "resident_sdpa", "completed": 51, "total": 164, "forward_steps": 240, "elapsed_s": 26.359052682004403, "generated_tokens": 3783}}
+{"state": "greedy164", "progress": {"variant": "resident_sdpa", "completed": 62, "total": 164, "forward_steps": 280, "elapsed_s": 30.57016327000747, "generated_tokens": 4423}}
+{"state": "greedy164", "progress": {"variant": "resident_sdpa", "completed": 73, "total": 164, "forward_steps": 320, "elapsed_s": 34.73200026500854, "generated_tokens": 5063}}
+{"state": "greedy164", "progress": {"variant": "resident_sdpa", "completed": 82, "total": 164, "forward_steps": 360, "elapsed_s": 38.98881047000759, "generated_tokens": 5703}}
+{"state": "greedy164", "progress": {"variant": "resident_sdpa", "completed": 90, "total": 164, "forward_steps": 400, "elapsed_s": 43.10377005900955, "generated_tokens": 6343}}
+{"state": "greedy164", "progress": {"variant": "resident_sdpa", "completed": 99, "total": 164, "forward_steps": 440, "elapsed_s": 47.29187226599606, "generated_tokens": 6983}}
+{"state": "greedy164", "progress": {"variant": "resident_sdpa", "completed": 109, "total": 164, "forward_steps": 480, "elapsed_s": 51.4939863680047, "generated_tokens": 7623}}
+{"state": "greedy164", "progress": {"variant": "resident_sdpa", "completed": 119, "total": 164, "forward_steps": 520, "elapsed_s": 55.71271449000051, "generated_tokens": 8263}}
+{"state": "greedy164", "progress": {"variant": "resident_sdpa", "completed": 128, "total": 164, "forward_steps": 560, "elapsed_s": 60.033169592003105, "generated_tokens": 8903}}
+{"state": "greedy164", "progress": {"variant": "resident_sdpa", "completed": 141, "total": 164, "forward_steps": 600, "elapsed_s": 64.89065297800698, "generated_tokens": 9542}}
+{"state": "greedy164", "progress": {"variant": "resident_sdpa", "completed": 147, "total": 164, "forward_steps": 640, "elapsed_s": 69.2500797679968, "generated_tokens": 10182}}
+{"state": "greedy164", "progress": {"variant": "resident_sdpa", "completed": 153, "total": 164, "forward_steps": 680, "elapsed_s": 73.17084562800301, "generated_tokens": 10755}}
+{"state": "greedy164", "progress": {"variant": "resident_sdpa", "completed": 156, "total": 164, "forward_steps": 720, "elapsed_s": 76.20004245599557, "generated_tokens": 11132}}
+{"state": "greedy164", "progress": {"variant": "resident_sdpa", "completed": 159, "total": 164, "forward_steps": 760, "elapsed_s": 78.69614021699817, "generated_tokens": 11404}}
+{"state": "greedy164", "progress": {"variant": "resident_sdpa", "completed": 162, "total": 164, "forward_steps": 800, "elapsed_s": 80.36295644500933, "generated_tokens": 11508}}
+{"state": "greedy164", "progress": {"variant": "resident_sdpa", "completed": 163, "total": 164, "forward_steps": 840, "elapsed_s": 81.75154086800467, "generated_tokens": 11559}}
+{"state": "greedy164", "progress": {"variant": "resident_fa2", "completed": 4, "total": 164, "forward_steps": 40, "elapsed_s": 3.90736929999548, "generated_tokens": 583}}
+{"state": "greedy164", "progress": {"variant": "resident_fa2", "completed": 15, "total": 164, "forward_steps": 80, "elapsed_s": 8.236236505996203, "generated_tokens": 1223}}
+{"state": "greedy164", "progress": {"variant": "resident_fa2", "completed": 22, "total": 164, "forward_steps": 120, "elapsed_s": 12.570479490997968, "generated_tokens": 1863}}
+{"state": "greedy164", "progress": {"variant": "resident_fa2", "completed": 32, "total": 164, "forward_steps": 160, "elapsed_s": 16.369537371996557, "generated_tokens": 2503}}
+{"state": "greedy164", "progress": {"variant": "resident_fa2", "completed": 39, "total": 164, "forward_steps": 200, "elapsed_s": 20.164347029000055, "generated_tokens": 3143}}
+{"state": "greedy164", "progress": {"variant": "resident_fa2", "completed": 51, "total": 164, "forward_steps": 240, "elapsed_s": 23.942358975997195, "generated_tokens": 3783}}
+{"state": "greedy164", "progress": {"variant": "resident_fa2", "completed": 62, "total": 164, "forward_steps": 280, "elapsed_s": 27.707004923999193, "generated_tokens": 4423}}
+{"state": "greedy164", "progress": {"variant": "resident_fa2", "completed": 73, "total": 164, "forward_steps": 320, "elapsed_s": 31.370650528988335, "generated_tokens": 5063}}
+{"state": "greedy164", "progress": {"variant": "resident_fa2", "completed": 82, "total": 164, "forward_steps": 360, "elapsed_s": 35.16047557099955, "generated_tokens": 5703}}
+{"state": "greedy164", "progress": {"variant": "resident_fa2", "completed": 90, "total": 164, "forward_steps": 400, "elapsed_s": 38.9927211739996, "generated_tokens": 6343}}
+{"state": "greedy164", "progress": {"variant": "resident_fa2", "completed": 97, "total": 164, "forward_steps": 440, "elapsed_s": 42.794198837989825, "generated_tokens": 6983}}
+{"state": "greedy164", "progress": {"variant": "resident_fa2", "completed": 107, "total": 164, "forward_steps": 480, "elapsed_s": 46.63517905399203, "generated_tokens": 7623}}
+{"state": "greedy164", "progress": {"variant": "resident_fa2", "completed": 117, "total": 164, "forward_steps": 520, "elapsed_s": 50.47597102398868, "generated_tokens": 8262}}
+{"state": "greedy164", "progress": {"variant": "resident_fa2", "completed": 126, "total": 164, "forward_steps": 560, "elapsed_s": 54.3300135039899, "generated_tokens": 8902}}
+{"state": "greedy164", "progress": {"variant": "resident_fa2", "completed": 139, "total": 164, "forward_steps": 600, "elapsed_s": 58.22373026199057, "generated_tokens": 9539}}
+{"state": "greedy164", "progress": {"variant": "resident_fa2", "completed": 144, "total": 164, "forward_steps": 640, "elapsed_s": 62.061177292998764, "generated_tokens": 10178}}
+{"state": "greedy164", "progress": {"variant": "resident_fa2", "completed": 149, "total": 164, "forward_steps": 680, "elapsed_s": 65.86100323399296, "generated_tokens": 10817}}
+{"state": "greedy164", "progress": {"variant": "resident_fa2", "completed": 154, "total": 164, "forward_steps": 720, "elapsed_s": 69.26572919699538, "generated_tokens": 11340}}
+{"state": "greedy164", "progress": {"variant": "resident_fa2", "completed": 158, "total": 164, "forward_steps": 760, "elapsed_s": 71.95817165999324, "generated_tokens": 11687}}
+{"state": "greedy164", "progress": {"variant": "resident_fa2", "completed": 162, "total": 164, "forward_steps": 800, "elapsed_s": 73.8160419689957, "generated_tokens": 11825}}
+{"state": "greedy164", "progress": {"variant": "resident_fa2", "completed": 163, "total": 164, "forward_steps": 840, "elapsed_s": 75.40623910698923, "generated_tokens": 11892}}
+{"formal_launch_allowed": false}
+{"state": "blocked_output_difference", "formal_launch_allowed": false, "finished_epoch_s": 1793468839.1410475}

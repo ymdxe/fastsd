@@ -1,0 +1,9 @@
+{
+  "run": "fastsd-g4-l1",
+  "node": "node1",
+  "finished": true,
+  "failed": true,
+  "error": "RuntimeError('Worker failure [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]')",
+  "traceback": "Traceback (most recent call last):\n  File \"/home/zhangh/workspace/fastsd/experiments/1024-fp32-g4-l1-10-cpu32/node_agent.py\", line 139, in main\n    try:run(job)\n        ^^^^^^^^\n  File \"/home/zhangh/workspace/fastsd/experiments/1024-fp32-g4-l1-10-cpu32/node_agent.py\", line 117, in run\n    if failed:raise RuntimeError('Worker failure '+str(codes))\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nRuntimeError: Worker failure [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]\n",
+  "epoch": 1792836107.5543556
+}

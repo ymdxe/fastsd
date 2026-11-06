@@ -1,0 +1,2 @@
+{"req_idx": 0, "step": 0, "gamma": 2, "accepted_draft_tokens": 2, "verified_output_tokens_before_cap": 3, "retained_output_tokens": 3, "proactive_reused": true, "cycle_ms": 26749.049748294055, "hit_eos": false}
+{"req_idx": 0, "step": 1, "gamma": 2, "accepted_draft_tokens": 2, "verified_output_tokens_before_cap": 3, "retained_output_tokens": 1, "proactive_reused": true, "cycle_ms": 4332.4546394869685, "hit_eos": false}

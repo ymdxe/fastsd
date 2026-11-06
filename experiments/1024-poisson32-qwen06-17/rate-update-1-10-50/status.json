@@ -1,0 +1,18 @@
+{
+  "status": "cancelled_by_user_subset",
+  "active_run_preserved": "fastsd-g20-l1-a2",
+  "rates": [
+    1,
+    10,
+    50
+  ],
+  "boundary_cell": "standard-g20-l1",
+  "epoch": 1792822900.1119256,
+  "last_arrival_s": {
+    "1.0": 1297.8997972076475,
+    "10.0": 129.78997972076473,
+    "50.0": 25.957995944152948
+  },
+  "minimum_serial_schedule_hours": 3.634119432181413,
+  "cpu_nodes_staged": true
+}

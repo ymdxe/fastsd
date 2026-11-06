@@ -1,0 +1,2 @@
+{"timestamp": 1792748743.3672826, "ready": 23, "completed": 0, "rpc_counts": {}, "loadavg": [21.11, 31.58, 48.37]}
+{"timestamp": 1792748885.6866043, "ready": 32, "completed": 0, "rpc_counts": {"/session/init": 32, "/prefill": 32, "/verify": 3}, "loadavg": [38.23, 33.03, 46.37]}

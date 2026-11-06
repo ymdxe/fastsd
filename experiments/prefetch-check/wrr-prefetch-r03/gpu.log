@@ -1,0 +1,16 @@
+test_budget_and_cpu_prepare_skip_speculation_but_demand_works (test_round2_cache.TransferIsolationTests.test_budget_and_cpu_prepare_skip_speculation_but_demand_works) ... ok
+test_collector_cannot_drop_a_demand_before_its_first_submission (test_round2_cache.TransferIsolationTests.test_collector_cannot_drop_a_demand_before_its_first_submission) ... ok
+test_measured_overlap_disturbance_falls_back_after_three_observations (test_round2_cache.TransferIsolationTests.test_measured_overlap_disturbance_falls_back_after_three_observations) ... ok
+test_partial_ticket_is_claimed_once_and_cancelled_storage_drains (test_round2_cache.TransferIsolationTests.test_partial_ticket_is_claimed_once_and_cancelled_storage_drains) ... ok
+test_prefetch_b_does_not_add_dependency_to_compute_a (test_round2_cache.TransferIsolationTests.test_prefetch_b_does_not_add_dependency_to_compute_a) ... ok
+test_protect_forward_drains_only_submitted_chunk_and_blocks_more_dma (test_round2_cache.TransferIsolationTests.test_protect_forward_drains_only_submitted_chunk_and_blocks_more_dma) ... ok
+test_chunk_budget_coalesces_small_layers_without_exceeding_bytes (test_paper_prefetch.PaperTransferTests.test_chunk_budget_coalesces_small_layers_without_exceeding_bytes) ... ok
+test_new_candidate_can_prepare_after_admission_and_execution (test_paper_prefetch.PaperTransferTests.test_new_candidate_can_prepare_after_admission_and_execution) ... ok
+test_paper_overlap_never_silently_changes_method (test_paper_prefetch.PaperTransferTests.test_paper_overlap_never_silently_changes_method) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.163s
+
+OK
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading checkpoint shards:   0%|          | 0/5 [00:00<?, ?it/s]Loading checkpoint shards: 100%|██████████| 5/5 [00:00<00:00, 86.89it/s]

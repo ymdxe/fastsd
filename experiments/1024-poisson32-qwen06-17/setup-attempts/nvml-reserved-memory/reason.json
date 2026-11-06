@@ -1,0 +1,4 @@
+{
+  "reason": "NVML v1 counts driver reservation; nvidia-smi confirms idle GPU1. No Target or draft job had started.",
+  "epoch": 1792817015.325225
+}

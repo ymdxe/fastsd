@@ -1,0 +1,36 @@
+{
+  "command": [
+    "/home/hdd/zhangh/envs/new_fastsd/bin/python",
+    "-u",
+    "/home/hdd3/zhangh/workspace/fastsd/experiments/1024-hetero-16draft/specedge/server_adapter.py",
+    "--host",
+    "127.0.0.1",
+    "--port",
+    "18625",
+    "--output",
+    "/home/hdd3/zhangh/workspace/fastsd/experiments/1024-hetero-16draft/specedge/target",
+    "--management-port",
+    "18626",
+    "--model",
+    "/home/hdd3/zhangh/workspace/fastsd/experiments/1024-hetero-16draft/model-view/Qwen3-32B",
+    "--batch-size",
+    "8",
+    "--max-len",
+    "768",
+    "--phase",
+    "smoke",
+    "--sync-clients",
+    "1",
+    "--node1-gamma",
+    "2",
+    "--node3-gamma",
+    "2"
+  ],
+  "environment": {
+    "CUDA_VISIBLE_DEVICES": "3",
+    "OMP_NUM_THREADS": "8",
+    "HF_HUB_OFFLINE": "1"
+  },
+  "method": "specedge_cpu_adapted_single_chain",
+  "started_epoch": 1792780001.9101264
+}

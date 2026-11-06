@@ -1,0 +1,184 @@
+{
+  "resident_sdpa": {
+    "exact": true,
+    "compared": 164,
+    "differing_tasks": 0,
+    "first_divergence": null,
+    "differences": []
+  },
+  "resident_fa2": {
+    "exact": false,
+    "compared": 164,
+    "differing_tasks": 20,
+    "first_divergence": {
+      "source_id": "HumanEval/1",
+      "first_token_index": 14,
+      "reference_token": 271,
+      "actual_token": 198,
+      "reference_length": 88,
+      "actual_length": 87
+    },
+    "differences": [
+      {
+        "source_id": "HumanEval/1",
+        "first_token_index": 14,
+        "reference_token": 271,
+        "actual_token": 198,
+        "reference_length": 88,
+        "actual_length": 87
+      },
+      {
+        "source_id": "HumanEval/19",
+        "first_token_index": 23,
+        "reference_token": 18614,
+        "actual_token": 4230,
+        "reference_length": 212,
+        "actual_length": 212
+      },
+      {
+        "source_id": "HumanEval/39",
+        "first_token_index": 0,
+        "reference_token": 1654,
+        "actual_token": 750,
+        "reference_length": 156,
+        "actual_length": 200
+      },
+      {
+        "source_id": "HumanEval/64",
+        "first_token_index": 114,
+        "reference_token": 738,
+        "actual_token": 5360,
+        "reference_length": 174,
+        "actual_length": 184
+      },
+      {
+        "source_id": "HumanEval/84",
+        "first_token_index": 3,
+        "reference_token": 2629,
+        "actual_token": 220,
+        "reference_length": 22,
+        "actual_length": 28
+      },
+      {
+        "source_id": "HumanEval/89",
+        "first_token_index": 17,
+        "reference_token": 2331,
+        "actual_token": 6407,
+        "reference_length": 73,
+        "actual_length": 87
+      },
+      {
+        "source_id": "HumanEval/99",
+        "first_token_index": 82,
+        "reference_token": 470,
+        "actual_token": 770,
+        "reference_length": 87,
+        "actual_length": 90
+      },
+      {
+        "source_id": "HumanEval/107",
+        "first_token_index": 13,
+        "reference_token": 198,
+        "actual_token": 271,
+        "reference_length": 76,
+        "actual_length": 76
+      },
+      {
+        "source_id": "HumanEval/108",
+        "first_token_index": 50,
+        "reference_token": 1393,
+        "actual_token": 369,
+        "reference_length": 89,
+        "actual_length": 80
+      },
+      {
+        "source_id": "HumanEval/110",
+        "first_token_index": 70,
+        "reference_token": 1205,
+        "actual_token": 1752,
+        "reference_length": 221,
+        "actual_length": 223
+      },
+      {
+        "source_id": "HumanEval/118",
+        "first_token_index": 14,
+        "reference_token": 7287,
+        "actual_token": 8,
+        "reference_length": 60,
+        "actual_length": 62
+      },
+      {
+        "source_id": "HumanEval/119",
+        "first_token_index": 75,
+        "reference_token": 2467,
+        "actual_token": 22165,
+        "reference_length": 156,
+        "actual_length": 163
+      },
+      {
+        "source_id": "HumanEval/124",
+        "first_token_index": 194,
+        "reference_token": 323,
+        "actual_token": 510,
+        "reference_length": 209,
+        "actual_length": 254
+      },
+      {
+        "source_id": "HumanEval/126",
+        "first_token_index": 22,
+        "reference_token": 10343,
+        "actual_token": 60,
+        "reference_length": 31,
+        "actual_length": 41
+      },
+      {
+        "source_id": "HumanEval/127",
+        "first_token_index": 28,
+        "reference_token": 262,
+        "actual_token": 1066,
+        "reference_length": 100,
+        "actual_length": 104
+      },
+      {
+        "source_id": "HumanEval/134",
+        "first_token_index": 40,
+        "reference_token": 198,
+        "actual_token": 320,
+        "reference_length": 96,
+        "actual_length": 105
+      },
+      {
+        "source_id": "HumanEval/136",
+        "first_token_index": 30,
+        "reference_token": 1066,
+        "actual_token": 262,
+        "reference_length": 65,
+        "actual_length": 64
+      },
+      {
+        "source_id": "HumanEval/137",
+        "first_token_index": 2,
+        "reference_token": 11402,
+        "actual_token": 264,
+        "reference_length": 59,
+        "actual_length": 87
+      },
+      {
+        "source_id": "HumanEval/147",
+        "first_token_index": 0,
+        "reference_token": 262,
+        "actual_token": 750,
+        "reference_length": 88,
+        "actual_length": 250
+      },
+      {
+        "source_id": "HumanEval/148",
+        "first_token_index": 52,
+        "reference_token": 8649,
+        "actual_token": 15983,
+        "reference_length": 176,
+        "actual_length": 178
+      }
+    ]
+  }
+}

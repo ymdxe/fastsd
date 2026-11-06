@@ -1,0 +1,17 @@
+{"time": 1792757204.31415, "elapsed": 0.002992867026478052, "ready": 0, "completed": 0, "rpc_count": 0, "loadavg": [2.24, 20.6, 27.87], "mem_available_kb": 1114529248}
+{"time": 1792757239.864225, "elapsed": 35.55317916814238, "ready": 8, "completed": 0, "rpc_count": 0, "loadavg": [6.36, 19.52, 27.24], "mem_available_kb": 1081017816}
+{"time": 1792757269.8971224, "elapsed": 65.58611588412896, "ready": 18, "completed": 0, "rpc_count": 0, "loadavg": [8.84, 18.91, 26.79], "mem_available_kb": 1045581984}
+{"time": 1792757299.9303074, "elapsed": 95.61927171424031, "ready": 27, "completed": 0, "rpc_count": 0, "loadavg": [9.97, 18.32, 26.35], "mem_available_kb": 1010374036}
+{"time": 1792757329.966205, "elapsed": 125.65521895419806, "ready": 32, "completed": 0, "rpc_count": 64, "loadavg": [13.27, 18.18, 26.04], "mem_available_kb": 996157168}
+{"time": 1792757360.007126, "elapsed": 155.69614467024803, "ready": 32, "completed": 0, "rpc_count": 64, "loadavg": [20.78, 19.53, 26.24], "mem_available_kb": 996111556}
+{"time": 1792757390.0433657, "elapsed": 185.73238546494395, "ready": 32, "completed": 0, "rpc_count": 64, "loadavg": [25.33, 20.75, 26.43], "mem_available_kb": 995926920}
+{"time": 1792757420.0843174, "elapsed": 215.77333342889324, "ready": 32, "completed": 0, "rpc_count": 64, "loadavg": [28.09, 21.86, 26.62], "mem_available_kb": 995508932}
+{"time": 1792757450.120894, "elapsed": 245.8099067369476, "ready": 32, "completed": 0, "rpc_count": 75, "loadavg": [29.39, 22.78, 26.78], "mem_available_kb": 994599180}
+{"time": 1792757480.1623485, "elapsed": 275.8513625981286, "ready": 32, "completed": 0, "rpc_count": 92, "loadavg": [30.22, 23.61, 26.93], "mem_available_kb": 993835148}
+{"time": 1792757510.1992877, "elapsed": 305.8883040579967, "ready": 32, "completed": 0, "rpc_count": 114, "loadavg": [28.41, 23.83, 26.9], "mem_available_kb": 993568604}
+{"time": 1792757540.2410874, "elapsed": 335.9301025108434, "ready": 32, "completed": 0, "rpc_count": 146, "loadavg": [29.17, 24.43, 27.0], "mem_available_kb": 993276040}
+{"time": 1792757570.2781694, "elapsed": 365.96718365326524, "ready": 32, "completed": 0, "rpc_count": 158, "loadavg": [30.16, 25.12, 27.14], "mem_available_kb": 992912012}
+{"time": 1792757600.3140528, "elapsed": 396.0030600130558, "ready": 32, "completed": 8, "rpc_count": 186, "loadavg": [28.89, 25.33, 27.15], "mem_available_kb": 1023139564}
+{"time": 1792757630.3513026, "elapsed": 426.04031323920935, "ready": 32, "completed": 18, "rpc_count": 207, "loadavg": [25.67, 24.92, 26.96], "mem_available_kb": 1057875392}
+{"time": 1792757660.3882284, "elapsed": 456.07724304217845, "ready": 32, "completed": 26, "rpc_count": 217, "loadavg": [19.61, 23.55, 26.44], "mem_available_kb": 1091346804}
+{"time": 1792757690.425604, "elapsed": 486.11461909813806, "ready": 32, "completed": 30, "rpc_count": 222, "loadavg": [13.07, 21.6, 25.7], "mem_available_kb": 1106572292}

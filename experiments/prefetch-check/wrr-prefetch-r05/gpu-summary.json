@@ -1,0 +1,78 @@
+{
+  "bundle_id": "6948c5cc560823ef49eb967065b26b70361c34c782583420883212089064f4e4",
+  "validated_content_sha256": "6948c5cc560823ef49eb967065b26b70361c34c782583420883212089064f4e4",
+  "tests_run": 9,
+  "real_model_probe": {
+    "model": "/home/hdd/zhangh/models/Qwen3-8B",
+    "dtype": "bfloat16",
+    "attention_backend": "sdpa_per_sequence",
+    "probe_batch_size": 16,
+    "probe_gamma": 8,
+    "prefetch_ticket_id": 126543289945904,
+    "target_forward_ms": 339.86151123046875,
+    "worker_metrics": {
+      "prefetch_async_submitted": 1,
+      "prefetch_async_dropped": 0,
+      "prefetch_async_completed": 1,
+      "prefetch_async_moved": 1,
+      "prefetch_async_failed": 0,
+      "prefetch_async_skipped_stale": 0,
+      "prefetch_async_superseded": 0,
+      "prefetch_async_missing_cache": 0,
+      "prefetch_pending_underflow": 0,
+      "prefetch_async_last_error": null,
+      "prefetch_preparation_retries": 7
+    },
+    "transfer_metrics": {
+      "copies": 2.0,
+      "d2h_bytes": 18874368.0,
+      "prefetch_drain_ms": 0.0016739941202104092,
+      "prefetch_inflight_bytes": 0,
+      "prefetch_reserved_bytes": 18874368,
+      "prefetch_dma_inflight_bytes": 0,
+      "h2d_bytes": 18874368.0,
+      "speculative_submitted_bytes": 18874368.0
+    },
+    "exact_probability_and_kv_match": true,
+    "probe_scope": "One controlled real-model batch; full campaign validates actual traffic separately.",
+    "real_cuda_overlap_ms": 2.9013671875,
+    "prefetch_cuda_spans": 5
+  },
+  "cuda_spans": 21,
+  "negative_control": {
+    "compute_ms": [
+      7623.52978515625,
+      7651.33642578125
+    ],
+    "copy_ms": [
+      7651.33837890625,
+      7652.2431640625
+    ],
+    "intersection_ms": 0
+  },
+  "positive_control": {
+    "compute_ms": [
+      7673.4619140625,
+      7701.4619140625
+    ],
+    "copy_ms": [
+      7673.82470703125,
+      7674.77294921875
+    ],
+    "intersection_ms": 0.9482421875
+  },
+  "observer": {
+    "emitted": 55,
+    "written": 68,
+    "dropped": 0,
+    "emit_host_ns": 1425371,
+    "writer_cpu_ns": 33743048,
+    "writer_errors": 0,
+    "writer_error": null,
+    "writer_alive_at_close": false,
+    "unresolved_cuda_spans": 0,
+    "cuda_limit_drops": 0,
+    "scope": "Observer overhead is recorded, not subtracted from experiment latency."
+  },
+  "probe_scope": "Synthetic clock and actual transfer validation; does not assert production overlap or output equality"
+}

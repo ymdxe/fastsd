@@ -1,0 +1,8 @@
+{
+  "pid": 2027321,
+  "pgid": 2027321,
+  "start_ticks": 18622940,
+  "uid": 1074,
+  "started_epoch_s": 1793539751.7803066,
+  "script": "/home/hdd3/zhangh/workspace/fastsd/wrr-prefetch-validation-20261101/wrr-prefetch-r02/validate_cpu.py"
+}

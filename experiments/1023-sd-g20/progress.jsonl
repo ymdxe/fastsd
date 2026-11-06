@@ -1,0 +1,21 @@
+{"time": 1792756545.4379096, "elapsed": 0.0028641601093113422, "ready": 0, "completed": 0, "rpc_count": 0, "loadavg": [21.29, 28.96, 27.53], "mem_available_kb": 1084961324}
+{"time": 1792756579.9795182, "elapsed": 34.54379876004532, "ready": 7, "completed": 0, "rpc_count": 0, "loadavg": [30.46, 30.35, 28.05], "mem_available_kb": 1033547800}
+{"time": 1792756610.0153117, "elapsed": 64.58037864090875, "ready": 14, "completed": 0, "rpc_count": 0, "loadavg": [51.47, 35.47, 29.83], "mem_available_kb": 1056840396}
+{"time": 1792756640.0464103, "elapsed": 94.61146394908428, "ready": 21, "completed": 0, "rpc_count": 0, "loadavg": [55.93, 38.08, 30.87], "mem_available_kb": 1027435876}
+{"time": 1792756670.0795233, "elapsed": 124.64455174701288, "ready": 27, "completed": 0, "rpc_count": 0, "loadavg": [60.15, 40.81, 32.01], "mem_available_kb": 1003931140}
+{"time": 1792756691.3308365, "ready": 32, "clocks": 0, "completed": 0, "rpc_count": 32, "loadavg": [56.07, 41.1, 32.29]}
+{"time": 1792756700.1146467, "elapsed": 154.6797909969464, "ready": 32, "completed": 0, "rpc_count": 36, "loadavg": [51.59, 40.66, 32.25], "mem_available_kb": 990845060}
+{"time": 1792756730.1490347, "elapsed": 184.7141638249159, "ready": 32, "completed": 0, "rpc_count": 51, "loadavg": [59.68, 43.56, 33.47], "mem_available_kb": 989403956}
+{"time": 1792756760.1648166, "elapsed": 214.7300033350475, "ready": 32, "completed": 0, "rpc_count": 64, "loadavg": [61.88, 45.87, 34.57], "mem_available_kb": 996631800}
+{"time": 1792756790.1886485, "elapsed": 244.7538367579691, "ready": 32, "completed": 0, "rpc_count": 64, "loadavg": [50.23, 44.57, 34.5], "mem_available_kb": 996525884}
+{"time": 1792756820.2217584, "elapsed": 274.78694652812555, "ready": 32, "completed": 0, "rpc_count": 64, "loadavg": [43.34, 43.44, 34.44], "mem_available_kb": 996129848}
+{"time": 1792756850.2432206, "elapsed": 304.8084039608948, "ready": 32, "completed": 0, "rpc_count": 68, "loadavg": [38.95, 42.36, 34.37], "mem_available_kb": 995240988}
+{"time": 1792756880.2739837, "elapsed": 334.83916864497587, "ready": 32, "completed": 0, "rpc_count": 77, "loadavg": [36.08, 41.34, 34.29], "mem_available_kb": 994567616}
+{"time": 1792756910.3077111, "elapsed": 364.8728952850215, "ready": 32, "completed": 0, "rpc_count": 97, "loadavg": [34.48, 40.45, 34.21], "mem_available_kb": 994078892}
+{"time": 1792756940.3404443, "elapsed": 394.9056223728694, "ready": 32, "completed": 0, "rpc_count": 119, "loadavg": [33.57, 39.66, 34.15], "mem_available_kb": 993733156}
+{"time": 1792756970.3733106, "elapsed": 424.93849174585193, "ready": 32, "completed": 4, "rpc_count": 139, "loadavg": [32.3, 38.78, 34.03], "mem_available_kb": 1008557312}
+{"time": 1792757000.4050689, "elapsed": 454.9702524249442, "ready": 32, "completed": 9, "rpc_count": 159, "loadavg": [29.74, 37.55, 33.78], "mem_available_kb": 1027202168}
+{"time": 1792757030.4167142, "elapsed": 484.9818990500644, "ready": 32, "completed": 22, "rpc_count": 178, "loadavg": [24.32, 35.54, 33.23], "mem_available_kb": 1076364956}
+{"time": 1792757060.453314, "elapsed": 515.0184995611198, "ready": 32, "completed": 30, "rpc_count": 188, "loadavg": [17.13, 32.75, 32.37], "mem_available_kb": 1106607292}
+{"time": 1792757090.4657648, "elapsed": 545.0309489448555, "ready": 32, "completed": 30, "rpc_count": 189, "loadavg": [11.47, 29.89, 31.44], "mem_available_kb": 1106582940}
+{"time": 1792757120.494033, "elapsed": 575.059219181072, "ready": 32, "completed": 31, "rpc_count": 191, "loadavg": [7.66, 27.21, 30.49], "mem_available_kb": 1110383144}

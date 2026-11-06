@@ -9,6 +9,7 @@ import unittest
 from src.fastsd_scheduler import (
     TaskLengthClassifier, WorkItem, length_category, plan_iteration, predict_next_plan,
 )
+from src.cache_residency import CPU_RESIDENT, GPU_RESIDENT
 from src.scheduler_runtime import (
     SchedulerQueues, ShutdownRequested, TargetSchedulerRuntime,
 )
@@ -94,6 +95,13 @@ class EnginePredictionIntegrationTests(unittest.TestCase):
             _sort_queues_if_dirty=lambda *args: sorted_calls.append(args),
             plan_iteration=plan_iteration, predict_next_plan=predict_next_plan,
             prefetch_enabled=True, last_prediction={"signature": None},
+            accept_stats_version=[0], plan_sequence={"tick": 1},
+            # ACTIVE manager with CPU-resident caches: prefetch may be issued.
+            residency_manager=SimpleNamespace(
+                enabled=True, active=True, state_of=lambda pid: CPU_RESIDENT,
+                cpu_resident_count=lambda: 1),
+            CPU_RESIDENT=CPU_RESIDENT, GPU_RESIDENT=GPU_RESIDENT,
+            sample_pressure=lambda: False,
             residency=SimpleNamespace(protected_snapshot=lambda: set()),
             prefetch_coordinator=SimpleNamespace(refresh=lambda pids: submitted.append(list(pids))),
         )

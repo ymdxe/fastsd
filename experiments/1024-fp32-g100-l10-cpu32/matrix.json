@@ -1,0 +1,26 @@
+[
+  {
+    "id": "fastsd-g100-l10",
+    "method": "fastsd",
+    "gamma": 100,
+    "rate": 10.0,
+    "cap": 1024,
+    "expected_requests": 1319
+  },
+  {
+    "id": "standard-g100-l10",
+    "method": "standard",
+    "gamma": 100,
+    "rate": 10.0,
+    "cap": 1024,
+    "expected_requests": 1319
+  },
+  {
+    "id": "specedge-g100-l10",
+    "method": "specedge",
+    "gamma": 100,
+    "rate": 10.0,
+    "cap": 1024,
+    "expected_requests": 1319
+  }
+]

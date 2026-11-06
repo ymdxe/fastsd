@@ -1,0 +1,17 @@
+{
+  "scope": "four_method_16draft_repaired_wrr",
+  "formal_output_equivalence": false,
+  "passed": true,
+  "gates": {
+    "cpu_contracts": true,
+    "trace_contracts": true,
+    "observer_contracts": true,
+    "gpu_event_transfer_probe": true,
+    "real_model_prefetch_overlap": true
+  },
+  "validated_content_sha256": "c72a8607fb1e3c218e16ab513fc0e1e314628d87ed294f95295ef7c5ad4b613c",
+  "parent_bundle_id": "99f4d63d5094dfa75142423d6a293df157211a48b896fa44e9dae14471566529",
+  "cpu_evidence_sha256": "7918f90536af0d800fc207b8730709d8557a55f1601acdf49a9d03796fc70584",
+  "gpu_evidence_sha256": "b7625fef9ad467b4630785fca1876deba5064c0a32899f5d88896894a8102f67",
+  "created_epoch_s": 1793552328.3507462
+}

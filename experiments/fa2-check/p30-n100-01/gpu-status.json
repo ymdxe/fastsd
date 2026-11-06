@@ -1,0 +1,57 @@
+{
+  "state": "blocked_output_difference",
+  "started_epoch_s": 1793468370.466538,
+  "formal_launch_allowed": false,
+  "gpu_uuid": "GPU-422501a2-5189-7f5b-5ce6-95464276b27f",
+  "gates": {
+    "dependency_abi": true,
+    "cpu_contracts": true,
+    "gpu_attention_cache": true,
+    "performance": true,
+    "humaneval164_exact_greedy": false
+  },
+  "progress": {
+    "variant": "resident_fa2",
+    "completed": 163,
+    "total": 164,
+    "forward_steps": 840,
+    "elapsed_s": 75.40623910698923,
+    "generated_tokens": 11892
+  },
+  "updated_epoch_s": 1793468839.141049,
+  "bundle_id": "b91a75c6614d5b96f3e5e37cfd50c85f45dc09239b1d6bb4cc404544e8e2bc91",
+  "validated_content_sha256": "b91a75c6614d5b96f3e5e37cfd50c85f45dc09239b1d6bb4cc404544e8e2bc91",
+  "dependency_build": {
+    "state": "complete",
+    "pid": 3636455,
+    "version": "2.8.3",
+    "environment": "/home/hdd/zhangh/envs/fastsd_fa2_283_py314_20261031",
+    "started_utc": "2026-10-31T16:59:32.720808+00:00",
+    "free_bytes_before": 74821693440,
+    "updated_utc": "2026-10-31T17:25:39.782221+00:00",
+    "source_sha256": "1e71dd64a9e0280e0447b8a0c2541bad4bf6ac65bdeaa2f90e51a9e57de0370d",
+    "source_url": "https://files.pythonhosted.org/packages/3b/b2/8d76c41ad7974ee264754709c22963447f7f8134613fd9ce80984ed0dab7/flash_attn-2.8.3.tar.gz",
+    "source_root": "/home/hdd/zhangh/tmp/config1_fa2_20261031/source/flash_attn-2.8.3",
+    "max_jobs": 8,
+    "nvcc_threads": 2,
+    "free_bytes_after": 74202836992,
+    "cuda_runtime": "12.8",
+    "gpu_test_performed": false
+  },
+  "effective_runtime_options": {
+    "kv_block_tokens": 128,
+    "native_gqa": true,
+    "torch_num_threads": 1,
+    "formal_heavy_profiler": false
+  },
+  "first_divergence": {
+    "variant": "resident_fa2",
+    "source_id": "HumanEval/1",
+    "first_token_index": 14,
+    "reference_token": 271,
+    "actual_token": 198,
+    "reference_length": 88,
+    "actual_length": 87
+  },
+  "finished_epoch_s": 1793468839.1410475
+}

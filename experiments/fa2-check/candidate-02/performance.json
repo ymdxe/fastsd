@@ -1,0 +1,305 @@
+[
+  {
+    "variant": "legacy",
+    "batch": 1,
+    "history_start": 256,
+    "clean_iterations": 16,
+    "clean_wall_s": 0.7722733510017861,
+    "clean_decode_tokens_per_s": 20.71805271960368,
+    "attention_calls_per_forward": 36.0,
+    "profiled_one_step": {
+      "host_wall_ms": {
+        "kv_h2d": 7.490667005185969,
+        "attention": 3.0909850320313126,
+        "full_forward": 35.98312499525491,
+        "kv_d2h": 7.439829001668841
+      },
+      "stream_elapsed_ms": {
+        "kv_h2d": 7.455167770385742,
+        "attention": 1.676447999663651,
+        "full_forward": 36.48291015625,
+        "kv_d2h": 6.933631896972656
+      }
+    },
+    "peak_allocated_bytes": 16524502016,
+    "peak_reserved_bytes": 16645095424,
+    "kv_transfer_bytes": {
+      "kv_h2d_bytes": 664289280,
+      "kv_d2h_bytes": 666796032,
+      "kv_transfer_calls": 34
+    },
+    "workspace": null
+  },
+  {
+    "variant": "legacy",
+    "batch": 8,
+    "history_start": 256,
+    "clean_iterations": 16,
+    "clean_wall_s": 3.242464424998616,
+    "clean_decode_tokens_per_s": 39.47614629574684,
+    "attention_calls_per_forward": 288.0,
+    "profiled_one_step": {
+      "host_wall_ms": {
+        "kv_h2d": 66.62037299247459,
+        "attention": 25.34334392112214,
+        "full_forward": 107.90915798861533,
+        "kv_d2h": 67.85758299520239
+      },
+      "stream_elapsed_ms": {
+        "kv_h2d": 66.5564193725586,
+        "attention": 19.66639991477132,
+        "full_forward": 107.89004516601562,
+        "kv_d2h": 67.83539581298828
+      }
+    },
+    "peak_allocated_bytes": 17215794688,
+    "peak_reserved_bytes": 17918066688,
+    "kv_transfer_bytes": {
+      "kv_h2d_bytes": 5366956032,
+      "kv_d2h_bytes": 5387010048,
+      "kv_transfer_calls": 272
+    },
+    "workspace": null
+  },
+  {
+    "variant": "legacy",
+    "batch": 16,
+    "history_start": 256,
+    "clean_iterations": 16,
+    "clean_wall_s": 6.184574703001999,
+    "clean_decode_tokens_per_s": 41.39330710578002,
+    "attention_calls_per_forward": 576.0,
+    "profiled_one_step": {
+      "host_wall_ms": {
+        "kv_h2d": 122.80273000942543,
+        "attention": 37.967155905789696,
+        "full_forward": 141.05797100637574,
+        "kv_d2h": 154.16101399750914
+      },
+      "stream_elapsed_ms": {
+        "kv_h2d": 122.75714874267578,
+        "attention": 27.738688074052334,
+        "full_forward": 141.032958984375,
+        "kv_d2h": 154.13587951660156
+      }
+    },
+    "peak_allocated_bytes": 18006590976,
+    "peak_reserved_bytes": 19283312640,
+    "kv_transfer_bytes": {
+      "kv_h2d_bytes": 10736418816,
+      "kv_d2h_bytes": 10776526848,
+      "kv_transfer_calls": 544
+    },
+    "workspace": null
+  },
+  {
+    "variant": "resident_sdpa",
+    "batch": 1,
+    "history_start": 256,
+    "clean_iterations": 16,
+    "clean_wall_s": 0.5073728270072024,
+    "clean_decode_tokens_per_s": 31.534995861678006,
+    "attention_calls_per_forward": 36.0,
+    "profiled_one_step": {
+      "host_wall_ms": {
+        "kv_h2d": 0.04152300243731588,
+        "attention": 3.0227969837142155,
+        "full_forward": 33.1782849971205,
+        "kv_d2h": 0.020038991351611912
+      },
+      "stream_elapsed_ms": {
+        "kv_h2d": 0.01228800043463707,
+        "attention": 0.9145600022748113,
+        "full_forward": 33.57984161376953,
+        "kv_d2h": 0.002047999994829297
+      }
+    },
+    "peak_allocated_bytes": 16484246528,
+    "peak_reserved_bytes": 16632512512,
+    "kv_transfer_bytes": {
+      "kv_h2d_bytes": 0,
+      "kv_d2h_bytes": 0,
+      "kv_transfer_calls": 0
+    },
+    "workspace": null
+  },
+  {
+    "variant": "resident_sdpa",
+    "batch": 8,
+    "history_start": 256,
+    "clean_iterations": 16,
+    "clean_wall_s": 1.4515228789969115,
+    "clean_decode_tokens_per_s": 88.18324661093568,
+    "attention_calls_per_forward": 288.0,
+    "profiled_one_step": {
+      "host_wall_ms": {
+        "kv_h2d": 0.08305400842800736,
+        "attention": 27.977258898317814,
+        "full_forward": 113.48628198902588,
+        "kv_d2h": 0.03312699845992029
+      },
+      "stream_elapsed_ms": {
+        "kv_h2d": 0.019360000267624855,
+        "attention": 21.765408366918564,
+        "full_forward": 113.46739196777344,
+        "kv_d2h": 0.014527999795973301
+      }
+    },
+    "peak_allocated_bytes": 16890654208,
+    "peak_reserved_bytes": 17513316352,
+    "kv_transfer_bytes": {
+      "kv_h2d_bytes": 0,
+      "kv_d2h_bytes": 0,
+      "kv_transfer_calls": 0
+    },
+    "workspace": null
+  },
+  {
+    "variant": "resident_sdpa",
+    "batch": 16,
+    "history_start": 256,
+    "clean_iterations": 16,
+    "clean_wall_s": 2.1424812829936855,
+    "clean_decode_tokens_per_s": 119.4876249477856,
+    "attention_calls_per_forward": 576.0,
+    "profiled_one_step": {
+      "host_wall_ms": {
+        "kv_h2d": 0.058124001952819526,
+        "attention": 50.37130594428163,
+        "full_forward": 165.69589999562595,
+        "kv_d2h": 0.030144001357257366
+      },
+      "stream_elapsed_ms": {
+        "kv_h2d": 0.02038400061428547,
+        "attention": 39.10844795405865,
+        "full_forward": 165.67706298828125,
+        "kv_d2h": 0.014175999909639359
+      }
+    },
+    "peak_allocated_bytes": 17356162560,
+    "peak_reserved_bytes": 18475909120,
+    "kv_transfer_bytes": {
+      "kv_h2d_bytes": 0,
+      "kv_d2h_bytes": 0,
+      "kv_transfer_calls": 0
+    },
+    "workspace": null
+  },
+  {
+    "variant": "resident_fa2",
+    "batch": 1,
+    "history_start": 256,
+    "clean_iterations": 16,
+    "clean_wall_s": 0.6424935949908104,
+    "clean_decode_tokens_per_s": 24.90297199029486,
+    "attention_calls_per_forward": 36.0,
+    "profiled_one_step": {
+      "host_wall_ms": {
+        "kv_h2d": 0.028645998099818826,
+        "kv_pack": 3.185555979143828,
+        "attention": 5.6116800114978105,
+        "full_forward": 41.43424201174639,
+        "kv_d2h": 0.02012000186368823
+      },
+      "stream_elapsed_ms": {
+        "kv_h2d": 0.013024000450968742,
+        "kv_pack": 1.6942080035805702,
+        "attention": 5.127680018544197,
+        "full_forward": 41.85599899291992,
+        "kv_d2h": 0.0010239999974146485
+      }
+    },
+    "peak_allocated_bytes": 16487909376,
+    "peak_reserved_bytes": 16634609664,
+    "kv_transfer_bytes": {
+      "kv_h2d_bytes": 0,
+      "kv_d2h_bytes": 0,
+      "kv_transfer_calls": 0
+    },
+    "workspace": {
+      "attention_calls": 684,
+      "workspace_allocations": 7,
+      "packed_query_tokens": 9864,
+      "packed_kv_tokens": 181260,
+      "workspace_bytes": 3670032
+    }
+  },
+  {
+    "variant": "resident_fa2",
+    "batch": 8,
+    "history_start": 256,
+    "clean_iterations": 16,
+    "clean_wall_s": 1.0060277939919615,
+    "clean_decode_tokens_per_s": 127.23306529344532,
+    "attention_calls_per_forward": 36.0,
+    "profiled_one_step": {
+      "host_wall_ms": {
+        "kv_h2d": 0.026807989343069494,
+        "kv_pack": 8.590568031650037,
+        "attention": 6.563506089150906,
+        "full_forward": 66.17345999984536,
+        "kv_d2h": 0.025824003387242556
+      },
+      "stream_elapsed_ms": {
+        "kv_h2d": 0.011264000087976456,
+        "kv_pack": 7.724896013736725,
+        "attention": 6.135424017906189,
+        "full_forward": 66.16252899169922,
+        "kv_d2h": 0.010528000071644783
+      }
+    },
+    "peak_allocated_bytes": 16918958592,
+    "peak_reserved_bytes": 17515413504,
+    "kv_transfer_bytes": {
+      "kv_h2d_bytes": 0,
+      "kv_d2h_bytes": 0,
+      "kv_transfer_calls": 0
+    },
+    "workspace": {
+      "attention_calls": 684,
+      "workspace_allocations": 7,
+      "packed_query_tokens": 79668,
+      "packed_kv_tokens": 1464444,
+      "workspace_bytes": 27263048
+    }
+  },
+  {
+    "variant": "resident_fa2",
+    "batch": 16,
+    "history_start": 256,
+    "clean_iterations": 16,
+    "clean_wall_s": 1.4653024340077536,
+    "clean_decode_tokens_per_s": 174.70796066298308,
+    "attention_calls_per_forward": 36.0,
+    "profiled_one_step": {
+      "host_wall_ms": {
+        "kv_h2d": 0.02843700349330902,
+        "kv_pack": 14.536682952893898,
+        "attention": 6.327176990453154,
+        "full_forward": 94.68481299700215,
+        "kv_d2h": 0.023995002266019583
+      },
+      "stream_elapsed_ms": {
+        "kv_h2d": 0.011264000087976456,
+        "kv_pack": 13.689088076353073,
+        "attention": 5.912991970777512,
+        "full_forward": 94.6737289428711,
+        "kv_d2h": 0.010143999941647053
+      }
+    },
+    "peak_allocated_bytes": 17410157056,
+    "peak_reserved_bytes": 18532532224,
+    "kv_transfer_bytes": {
+      "kv_h2d_bytes": 0,
+      "kv_d2h_bytes": 0,
+      "kv_transfer_calls": 0
+    },
+    "workspace": {
+      "attention_calls": 684,
+      "workspace_allocations": 9,
+      "packed_query_tokens": 159372,
+      "packed_kv_tokens": 2929572,
+      "workspace_bytes": 52953224
+    }
+  }
+]

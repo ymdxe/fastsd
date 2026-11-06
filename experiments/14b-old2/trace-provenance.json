@@ -1,0 +1,109 @@
+{
+  "dataset_provenance": {
+    "humaneval": {
+      "source": "D:\\zhangh\\projects\\fastsd\\实验\\fastsd-wrr-prefetch-fix-20261101\\repo\\data\\humaneval.jsonl",
+      "sha256": "4af02c8ebe474d41a2d6a994679524567ef895cbfed77c7a4618680bbd813ad5"
+    },
+    "gsm8k": {
+      "source": "D:\\zhangh\\projects\\fastsd\\实验\\fastsd-wrr-prefetch-fix-20261101\\repo\\data\\gsm8k.jsonl",
+      "sha256": "f0eb4527e0a64e03db1eeba22a4cdd5806f14b8d8eeb41b2224151de64855ee5"
+    },
+    "mt_bench": {
+      "source": "D:\\zhangh\\projects\\fastsd\\实验\\fastsd-wrr-prefetch-fix-20261101\\repo\\data\\mt_bench.jsonl",
+      "sha256": "a39d5d01675239a264ef5265ad1fe63975d888124ab72687b83aacd7515e1ec0"
+    },
+    "mgsm_bn": {
+      "url": "https://raw.githubusercontent.com/google-research/url-nlp/main/mgsm/mgsm_bn.tsv",
+      "sha256": "6b00bc7cc635547e866989284afa924d789b5affa2eb8de623c385dd943ad977",
+      "rows": 250
+    },
+    "mgsm_de": {
+      "url": "https://raw.githubusercontent.com/google-research/url-nlp/main/mgsm/mgsm_de.tsv",
+      "sha256": "4dfea30fede44b813e2e496f5f0534049e83c7cc8aed6e00600b30ec62053626",
+      "rows": 250
+    },
+    "mgsm_en": {
+      "url": "https://raw.githubusercontent.com/google-research/url-nlp/main/mgsm/mgsm_en.tsv",
+      "sha256": "50021d0f28cc957edcb44e7806425b1c7fbd648ddcb9e0a8ec689d10e57d40fa",
+      "rows": 250
+    },
+    "mgsm_es": {
+      "url": "https://raw.githubusercontent.com/google-research/url-nlp/main/mgsm/mgsm_es.tsv",
+      "sha256": "5bd27ebdf00140cec845c5298dc17715f5cd57d8edda6df1976db40bf3f0750a",
+      "rows": 250
+    },
+    "mgsm_fr": {
+      "url": "https://raw.githubusercontent.com/google-research/url-nlp/main/mgsm/mgsm_fr.tsv",
+      "sha256": "36207c1c03fd7cd3ea491441eb755408199f94e4a647851df531bbaedc99d606",
+      "rows": 250
+    },
+    "mgsm_ja": {
+      "url": "https://raw.githubusercontent.com/google-research/url-nlp/main/mgsm/mgsm_ja.tsv",
+      "sha256": "59a2b50debe77981fd784cb3b2bef1505e3abf2a37116dc9d7a366ab029b4637",
+      "rows": 250
+    },
+    "mgsm_ru": {
+      "url": "https://raw.githubusercontent.com/google-research/url-nlp/main/mgsm/mgsm_ru.tsv",
+      "sha256": "6bd30fd2e80c5bac23f566fb4ae0e6a55a19578401fbf9a01fb21beb3645fef8",
+      "rows": 250
+    },
+    "mgsm_sw": {
+      "url": "https://raw.githubusercontent.com/google-research/url-nlp/main/mgsm/mgsm_sw.tsv",
+      "sha256": "2bac828d77229e65d7c7197b1ad4a2cb5b1fe99b163f2cbdd66501de6a2115c4",
+      "rows": 250
+    },
+    "mgsm_te": {
+      "url": "https://raw.githubusercontent.com/google-research/url-nlp/main/mgsm/mgsm_te.tsv",
+      "sha256": "dd6b1452c244bb2e4ba254c01ea84137f80c1cefc57d69c23b0ed88b9c0f36b7",
+      "rows": 250
+    },
+    "mgsm_th": {
+      "url": "https://raw.githubusercontent.com/google-research/url-nlp/main/mgsm/mgsm_th.tsv",
+      "sha256": "f3932dc5ad8e9d0ea82b017adc1e1461dd647af861e7166d6741986602a0cfd6",
+      "rows": 250
+    },
+    "mgsm_zh": {
+      "url": "https://raw.githubusercontent.com/google-research/url-nlp/main/mgsm/mgsm_zh.tsv",
+      "sha256": "b2fa63151022370a0de1f4211c8c284eae74b0f5a3b003b1d5982c0d4a73f661",
+      "rows": 250
+    }
+  },
+  "assignment_sha256": "3f9534c54f6cbc490a1b5e15de518a3e8803635dd4251c12fadd29ce8f4e9e35",
+  "trace_files_sha256": {
+    "gsm8k.jsonl": "4c141ea6f04bd26a46f2320c84f8d1429114442798a63b7c9231d11085fda670",
+    "humaneval.jsonl": "feda4292fbc407495ec2870ba4f0c0892ad0574e30ddc0174b848a576ab4672a",
+    "mgsm.jsonl": "328ef276170c3fe20d459af8102c3ba76278acbf5afcc3d1321deca92d7e6857",
+    "mt_bench.jsonl": "217870385ded2a84cef80fff5bb480c9864f9a467b5ef112db9e06c41833a5ca"
+  },
+  "retained_results": {
+    "c1-14b-humaneval-target_only-p60": {
+      "run_id": "c1-14b-humaneval-target_only-p60-1103T104120Z",
+      "raw_root": "D:\\zhangh\\projects\\fastsd\\实验\\config1-14b-full4-p60-20261103\\results\\raw",
+      "collection_suffix": "1103T104120Z",
+      "bundle_id": "aabc3d6c496706d806a6ebe98540243a7b3f894e6b43dfc36ad56b97bd033e40",
+      "summary_sha256": "5f7deb1882d7fb5f508e6371cedfc29ae73e5284d9945675675d0d478e3e6013",
+      "completed_requests": 164,
+      "total_output_tokens": 9059
+    },
+    "c1-14b-humaneval-sd-p60": {
+      "run_id": "c1-14b-humaneval-sd-p60-1103T104120Z",
+      "raw_root": "D:\\zhangh\\projects\\fastsd\\实验\\config1-14b-full4-p60-20261103\\results\\raw",
+      "collection_suffix": "1103T104120Z",
+      "bundle_id": "aabc3d6c496706d806a6ebe98540243a7b3f894e6b43dfc36ad56b97bd033e40",
+      "summary_sha256": "16d64507239f664a9f2c08efc5d6ff050b37c897f7377a05830a7ee3c82a42e1",
+      "completed_requests": 164,
+      "total_output_tokens": 9102
+    }
+  },
+  "recovery": {
+    "parent_root": "D:\\zhangh\\projects\\fastsd\\实验\\config1-14b-full4-p60-20261103",
+    "parent_bundle_id": "aabc3d6c496706d806a6ebe98540243a7b3f894e6b43dfc36ad56b97bd033e40",
+    "parent_suffix": "1103T104120Z",
+    "failure": "SpecEdge target diagnostic_trace import path missing before common T0",
+    "change": "Initialize suite runtime import path in SpecEdge target entry; preserve all workload and model settings",
+    "unexecuted_conditions": 14,
+    "retained_conditions": 2,
+    "remaining_requests": 17244,
+    "created_utc": "2026-11-03T11:31:56.412460+00:00"
+  }
+}

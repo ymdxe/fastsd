@@ -1,0 +1,16 @@
+{
+  "physical_gpu": 1,
+  "gpu_uuid": "GPU-422501a2-5189-7f5b-5ce6-95464276b27f",
+  "energy_j": 1001046.035365897,
+  "energy_Wh": 278.0683431571936,
+  "duration_s": 11402.245131731033,
+  "sampled_duration_s": 11402.245131731033,
+  "average_power_w": 87.7937655085234,
+  "joules_per_token": 2.841951162040254,
+  "joules_per_request": 758.9431655541297,
+  "start_epoch": 1792850097.3134463,
+  "end_epoch": 1792861499.558578,
+  "sample_interval_ms": 100,
+  "samples": 113337,
+  "measurement": "physical GPU total board power, including its idle intervals in the campaign window; loading excluded"
+}

@@ -1,0 +1,25 @@
+{
+  "state": "complete",
+  "source_sha": "c167b90cacc12c05e6a87baa63616ad7b4809044",
+  "bundle_id": "aabc3d6c496706d806a6ebe98540243a7b3f894e6b43dfc36ad56b97bd033e40",
+  "started_epoch_s": 1793702681.897838,
+  "pid": 2371538,
+  "formal_output_equivalence": false,
+  "cuda_tests": {
+    "run": 3,
+    "skipped": 0,
+    "passed": true
+  },
+  "real_model": {
+    "model": "/mnt/nfs0/zhangh/models/Qwen3-14B",
+    "dtype": "bfloat16",
+    "backend": "sdpa_per_sequence",
+    "exact_probability_and_kv_match": true,
+    "prefix_tokens": 128,
+    "continuation_tokens": 8,
+    "peak_allocated_bytes": 29739676160,
+    "scope": "Single functional KV offload/reload and continuation; no performance or corpus equivalence claim"
+  },
+  "passed": true,
+  "finished_epoch_s": 1793702883.0993028
+}

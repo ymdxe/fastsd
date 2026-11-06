@@ -49,10 +49,15 @@ class ReviewRuntimeTests(unittest.TestCase):
         self.assertEqual(second.verify_slices[0].offset, 4)
         self.assertEqual(a.cursor, 0)
 
-    def test_continuing_cache_is_retained_until_pressure(self):
+    def test_residency_is_the_default_and_continuing_chunks_are_retained(self):
         for stage in ("prefill", "verify"):
-            self.assertFalse(should_offload_target_cache(stage, continuing=True))
-            self.assertTrue(should_offload_target_cache(stage, continuing=True, memory_pressure=True))
+            # No pressure -> residency, never offload.
+            self.assertFalse(should_offload_target_cache(stage))
+            # Pressure -> offload, unless the next chunk needs it immediately.
+            self.assertTrue(should_offload_target_cache(stage, memory_pressure=True))
+            self.assertFalse(
+                should_offload_target_cache(stage, continuing=True, memory_pressure=True))
+        self.assertFalse(should_offload_target_cache("other", memory_pressure=True))
 
     def test_release_waits_for_forward_and_expires_idle_sessions(self):
         protected, busy, cleaned, replies = {"active"}, {"queued"}, [], []

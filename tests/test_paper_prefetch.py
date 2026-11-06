@@ -158,7 +158,7 @@ class PrefetchPollingTests(unittest.TestCase):
         for _ in range(5):
             worker._background_progress()
         self.assertEqual(transfers.advances, 5)
-        self.assertEqual(worker._poll_timeout(), .001)
+        self.assertEqual(worker._poll_timeout(), worker.COPYING_POLL_SECONDS)
         ticket.copy_state = 'ready'
         self.assertEqual(worker._poll_timeout(), .05)
 

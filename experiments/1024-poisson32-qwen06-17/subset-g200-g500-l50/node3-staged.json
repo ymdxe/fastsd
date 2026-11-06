@@ -1,0 +1,27 @@
+{
+  "node": "node3",
+  "rates": [
+    50.0
+  ],
+  "gamma": [
+    200,
+    500
+  ],
+  "scope_directory": "subset-g200-g500-l50",
+  "bundle_sha256": "98e264610e98a28f46cbcabe9347fed4e761bc764d9a92f05de488bb6cc11b3d",
+  "inference_unchanged": true,
+  "files_changed": [
+    "README.zh.md",
+    "campaign.py",
+    "finalize.py",
+    "manifest.json",
+    "matrix.json",
+    "prepare.py",
+    "prepare_subset.py",
+    "report.py",
+    "stop_for_subset.py",
+    "validate.py",
+    "validation.json"
+  ],
+  "lambda1_sha256": "178fc4b37c309eb8bf7d2026d9733cd169599cf9838024157f28fb468d9ad27b"
+}

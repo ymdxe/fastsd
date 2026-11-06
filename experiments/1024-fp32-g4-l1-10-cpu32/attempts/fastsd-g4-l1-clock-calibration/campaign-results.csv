@@ -1,0 +1,7 @@
+run,status,completed,tokens,arrival_ttft_mean_s,service_ttft_mean_s,tpot_mean_ms,energy_J,J_per_token,kv_prefetch_moved,kv_prefetch_failed,kv_demand_hit_rate
+fastsd-g4-l1,failed,156,41591,180.1050257482262,3.4082134952768683,470.41297841488773,,,8398,0,0.6430113096779764
+standard-g4-l1,pending,0,0,,,,,,,,
+specedge-g4-l1,pending,0,0,,,,,,,,
+fastsd-g4-l10,pending,0,0,,,,,,,,
+standard-g4-l10,pending,0,0,,,,,,,,
+specedge-g4-l10,pending,0,0,,,,,,,,

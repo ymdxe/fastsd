@@ -1,0 +1,11 @@
+{
+  "node": "node3",
+  "python": "/home/zhangh/envs/fastsd_cpu/bin/python",
+  "epoch": 1792780072.0839632,
+  "loadavg": [
+    102.82,
+    104.05,
+    106.32
+  ],
+  "meminfo": "MemTotal:       1584709632 kB\nMemFree:        552643200 kB\nMemAvailable:   838417932 kB\nBuffers:          514760 kB\nCached:         317178016 kB\nSwapCached:            0 kB\nActive:         913561964 kB\nInactive:       54832380 kB\nActive(anon):   709653336 kB\nInactive(anon):  1508444 kB\nActive(file):   203908628 kB\nInactive(file): 53323936 kB\nUnevictable:           0 kB\nMlocked:               0 kB\nSwapTotal:             0 kB\nSwapFree:              0 kB\nDirty:                36 kB\nWriteback:             0 kB\nAnonPages:      289645560 kB\nMapped:         56982428 kB\nShmem:          60459984 kB\nSlab:           32921680 kB\nSReclaimable:   30634548 kB\nSUnreclaim:      2287132 kB\nKernelStack:       89568 kB\nPageTables:       884928 kB\nNFS_Unstable:          0 kB\nBounce:                0 kB\nWritebackTmp:          0 kB\nCommitLimit:    792354816 kB\nCommitted_AS:   400808816 kB\nVmallocTotal:   34359738367 kB\nVmallocUsed:     3620284 kB\nVmallocChunk:   30769661948 kB\nPercpu:           125952 kB\nHardwareCorrupted:     0 kB\nAnonHugePages:  164511744 kB\nCmaTotal:              0 kB\nCmaFree:               0 kB\nHugePages_Total:       0\nHugePages_Free:        0\nHugePages_Rsvd:        0\nHugePages_Surp:        0\nHugepagesize:       2048 kB\nDirectMap4k:      813224 kB\nDirectMap2M:    18745344 kB\nDirectMap1G:    4763680768 kB\n"
+}

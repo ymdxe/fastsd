@@ -1,0 +1,194 @@
+{
+  "worker-00": {
+    "pid": 209930,
+    "threads": 2,
+    "interop_threads": 1,
+    "dtype": "torch.float32",
+    "torch": "2.6.0+cpu",
+    "affinity": [
+      0,
+      6
+    ],
+    "epoch": 1792861531.1987429
+  },
+  "worker-01": {
+    "pid": 209931,
+    "threads": 2,
+    "interop_threads": 1,
+    "dtype": "torch.float32",
+    "torch": "2.6.0+cpu",
+    "affinity": [
+      1,
+      3
+    ],
+    "epoch": 1792861531.1514218
+  },
+  "worker-02": {
+    "pid": 209932,
+    "threads": 2,
+    "interop_threads": 1,
+    "dtype": "torch.float32",
+    "torch": "2.6.0+cpu",
+    "affinity": [
+      8,
+      10
+    ],
+    "epoch": 1792861531.1940958
+  },
+  "worker-03": {
+    "pid": 209933,
+    "threads": 2,
+    "interop_threads": 1,
+    "dtype": "torch.float32",
+    "torch": "2.6.0+cpu",
+    "affinity": [
+      5,
+      7
+    ],
+    "epoch": 1792861531.1476507
+  },
+  "worker-04": {
+    "pid": 209935,
+    "threads": 2,
+    "interop_threads": 1,
+    "dtype": "torch.float32",
+    "torch": "2.6.0+cpu",
+    "affinity": [
+      12,
+      14
+    ],
+    "epoch": 1792861531.1960917
+  },
+  "worker-05": {
+    "pid": 209937,
+    "threads": 2,
+    "interop_threads": 1,
+    "dtype": "torch.float32",
+    "torch": "2.6.0+cpu",
+    "affinity": [
+      9,
+      11
+    ],
+    "epoch": 1792861531.1516583
+  },
+  "worker-06": {
+    "pid": 209938,
+    "threads": 2,
+    "interop_threads": 1,
+    "dtype": "torch.float32",
+    "torch": "2.6.0+cpu",
+    "affinity": [
+      16,
+      18
+    ],
+    "epoch": 1792861531.1986845
+  },
+  "worker-07": {
+    "pid": 209942,
+    "threads": 2,
+    "interop_threads": 1,
+    "dtype": "torch.float32",
+    "torch": "2.6.0+cpu",
+    "affinity": [
+      13,
+      15
+    ],
+    "epoch": 1792861531.1474073
+  },
+  "worker-08": {
+    "pid": 209943,
+    "threads": 2,
+    "interop_threads": 1,
+    "dtype": "torch.float32",
+    "torch": "2.6.0+cpu",
+    "affinity": [
+      20,
+      22
+    ],
+    "epoch": 1792861531.2274697
+  },
+  "worker-09": {
+    "pid": 209946,
+    "threads": 2,
+    "interop_threads": 1,
+    "dtype": "torch.float32",
+    "torch": "2.6.0+cpu",
+    "affinity": [
+      17,
+      23
+    ],
+    "epoch": 1792861531.151659
+  },
+  "worker-10": {
+    "pid": 209948,
+    "threads": 2,
+    "interop_threads": 1,
+    "dtype": "torch.float32",
+    "torch": "2.6.0+cpu",
+    "affinity": [
+      24,
+      26
+    ],
+    "epoch": 1792861531.1932514
+  },
+  "worker-11": {
+    "pid": 209950,
+    "threads": 2,
+    "interop_threads": 1,
+    "dtype": "torch.float32",
+    "torch": "2.6.0+cpu",
+    "affinity": [
+      25,
+      27
+    ],
+    "epoch": 1792861531.1478078
+  },
+  "worker-12": {
+    "pid": 209956,
+    "threads": 2,
+    "interop_threads": 1,
+    "dtype": "torch.float32",
+    "torch": "2.6.0+cpu",
+    "affinity": [
+      28,
+      34
+    ],
+    "epoch": 1792861531.1934617
+  },
+  "worker-13": {
+    "pid": 209959,
+    "threads": 2,
+    "interop_threads": 1,
+    "dtype": "torch.float32",
+    "torch": "2.6.0+cpu",
+    "affinity": [
+      29,
+      31
+    ],
+    "epoch": 1792861531.1471395
+  },
+  "worker-14": {
+    "pid": 209961,
+    "threads": 2,
+    "interop_threads": 1,
+    "dtype": "torch.float32",
+    "torch": "2.6.0+cpu",
+    "affinity": [
+      30,
+      36
+    ],
+    "epoch": 1792861531.1907208
+  },
+  "worker-15": {
+    "pid": 209963,
+    "threads": 2,
+    "interop_threads": 1,
+    "dtype": "torch.float32",
+    "torch": "2.6.0+cpu",
+    "affinity": [
+      33,
+      35
+    ],
+    "epoch": 1792861531.1480975
+  }
+}

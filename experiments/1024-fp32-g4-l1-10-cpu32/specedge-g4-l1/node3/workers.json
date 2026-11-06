@@ -1,0 +1,226 @@
+{
+  "worker-07": {
+    "pid": 25306,
+    "threads": 4,
+    "interop_threads": 1,
+    "dtype": "torch.float32",
+    "torch": "2.2.1+cpu",
+    "affinity": [
+      77,
+      78,
+      80,
+      81
+    ],
+    "load_seconds": 2.557175536174327
+  },
+  "worker-13": {
+    "pid": 25312,
+    "threads": 4,
+    "interop_threads": 1,
+    "dtype": "torch.float32",
+    "torch": "2.2.1+cpu",
+    "affinity": [
+      39,
+      40,
+      41,
+      42
+    ],
+    "load_seconds": 1.13293795613572
+  },
+  "worker-06": {
+    "pid": 25305,
+    "threads": 4,
+    "interop_threads": 1,
+    "dtype": "torch.float32",
+    "torch": "2.2.1+cpu",
+    "affinity": [
+      53,
+      54,
+      55,
+      56
+    ],
+    "load_seconds": 3.036168448626995
+  },
+  "worker-00": {
+    "pid": 25299,
+    "threads": 4,
+    "interop_threads": 1,
+    "dtype": "torch.float32",
+    "torch": "2.2.1+cpu",
+    "affinity": [
+      0,
+      2,
+      3,
+      4
+    ],
+    "load_seconds": 1.895816364325583
+  },
+  "worker-15": {
+    "pid": 25314,
+    "threads": 4,
+    "interop_threads": 1,
+    "dtype": "torch.float32",
+    "torch": "2.2.1+cpu",
+    "affinity": [
+      88,
+      89,
+      90,
+      91
+    ],
+    "load_seconds": 1.8057268261909485
+  },
+  "worker-09": {
+    "pid": 25308,
+    "threads": 4,
+    "interop_threads": 1,
+    "dtype": "torch.float32",
+    "torch": "2.2.1+cpu",
+    "affinity": [
+      35,
+      36,
+      37,
+      38
+    ],
+    "load_seconds": 1.1005711108446121
+  },
+  "worker-05": {
+    "pid": 25304,
+    "threads": 4,
+    "interop_threads": 1,
+    "dtype": "torch.float32",
+    "torch": "2.2.1+cpu",
+    "affinity": [
+      31,
+      32,
+      33,
+      34
+    ],
+    "load_seconds": 1.1228790497407317
+  },
+  "worker-04": {
+    "pid": 25303,
+    "threads": 4,
+    "interop_threads": 1,
+    "dtype": "torch.float32",
+    "torch": "2.2.1+cpu",
+    "affinity": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "load_seconds": 1.1548805120401084
+  },
+  "worker-08": {
+    "pid": 25307,
+    "threads": 4,
+    "interop_threads": 1,
+    "dtype": "torch.float32",
+    "torch": "2.2.1+cpu",
+    "affinity": [
+      10,
+      11,
+      12,
+      13
+    ],
+    "load_seconds": 1.1350701549090445
+  },
+  "worker-03": {
+    "pid": 25302,
+    "threads": 4,
+    "interop_threads": 1,
+    "dtype": "torch.float32",
+    "torch": "2.2.1+cpu",
+    "affinity": [
+      72,
+      74,
+      75,
+      76
+    ],
+    "load_seconds": 1.6115581528283656
+  },
+  "worker-14": {
+    "pid": 25313,
+    "threads": 4,
+    "interop_threads": 1,
+    "dtype": "torch.float32",
+    "torch": "2.2.1+cpu",
+    "affinity": [
+      64,
+      65,
+      66,
+      67
+    ],
+    "load_seconds": 1.951624473091215
+  },
+  "worker-11": {
+    "pid": 25310,
+    "threads": 4,
+    "interop_threads": 1,
+    "dtype": "torch.float32",
+    "torch": "2.2.1+cpu",
+    "affinity": [
+      82,
+      83,
+      85,
+      86
+    ],
+    "load_seconds": 2.467646236065775
+  },
+  "worker-12": {
+    "pid": 25311,
+    "threads": 4,
+    "interop_threads": 1,
+    "dtype": "torch.float32",
+    "torch": "2.2.1+cpu",
+    "affinity": [
+      14,
+      15,
+      17,
+      18
+    ],
+    "load_seconds": 1.4021754590794444
+  },
+  "worker-02": {
+    "pid": 25301,
+    "threads": 4,
+    "interop_threads": 1,
+    "dtype": "torch.float32",
+    "torch": "2.2.1+cpu",
+    "affinity": [
+      48,
+      49,
+      50,
+      52
+    ],
+    "load_seconds": 1.7002159557305276
+  },
+  "worker-01": {
+    "pid": 25300,
+    "threads": 4,
+    "interop_threads": 1,
+    "dtype": "torch.float32",
+    "torch": "2.2.1+cpu",
+    "affinity": [
+      24,
+      27,
+      29,
+      30
+    ],
+    "load_seconds": 1.7425126880407333
+  },
+  "worker-10": {
+    "pid": 25309,
+    "threads": 4,
+    "interop_threads": 1,
+    "dtype": "torch.float32",
+    "torch": "2.2.1+cpu",
+    "affinity": [
+      57,
+      60,
+      61,
+      63
+    ],
+    "load_seconds": 2.5297293541952968
+  }
+}

@@ -1,0 +1,21 @@
+fastsd-g4-l1 completed 0 ready 0 done []
+fastsd-g4-l1 completed 0 ready 32 done []
+fastsd-g4-l1 completed 11 ready 32 done []
+fastsd-g4-l1 completed 27 ready 32 done []
+fastsd-g4-l1 completed 43 ready 32 done []
+fastsd-g4-l1 completed 61 ready 32 done []
+fastsd-g4-l1 completed 74 ready 32 done []
+fastsd-g4-l1 completed 86 ready 32 done []
+fastsd-g4-l1 completed 100 ready 32 done []
+fastsd-g4-l1 completed 112 ready 32 done []
+fastsd-g4-l1 completed 125 ready 32 done []
+fastsd-g4-l1 completed 138 ready 32 done []
+fastsd-g4-l1 completed 149 ready 32 done []
+Traceback (most recent call last):
+  File "/home/hdd3/zhangh/workspace/fastsd/experiments/1024-fp32-g4-l1-10-cpu32/run_gpu.py", line 25, in main
+    campaign.main()
+  File "/home/hdd3/zhangh/workspace/fastsd/experiments/1024-fp32-g4-l1-10-cpu32/campaign.py", line 188, in main
+    run(cell,n,handle)
+  File "/home/hdd3/zhangh/workspace/fastsd/experiments/1024-fp32-g4-l1-10-cpu32/campaign.py", line 126, in run
+    if state['abort']:raise RuntimeError('CPU worker failure: '+str(state['abort']))
+RuntimeError: CPU worker failure: RuntimeError('Worker failure [None, None, None, None, None, None, None, None, 1, None, None, None, None, None, None, None]')

@@ -1,0 +1,414 @@
+INFO:     Started server process [2096809]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:18635 (Press CTRL+C to quit)
+[93mLoading tokenizer of /mnt/nfs0/zhangh/models/Qwen3-1.7B...[0m
+[93mLoading target model: /mnt/nfs0/zhangh/models/Qwen3-1.7B[0m
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards:  50%|█████     | 1/2 [00:11<00:11, 11.03s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:13<00:00,  6.00s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:13<00:00,  6.75s/it]
+INFO:     127.0.0.1:39168 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44114 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44122 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44126 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44138 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44146 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44160 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44176 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44182 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44114 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44114 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44114 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44114 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44114 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44198 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44214 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44230 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44238 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44198 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44198 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44198 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44244 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44198 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44198 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44262 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44252 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44278 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44290 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44320 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44296 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44322 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44294 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44312 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44326 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44342 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44324 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44122 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44356 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44370 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44378 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44394 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44404 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44406 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44412 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44122 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44122 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44122 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44122 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44214 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44214 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44214 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44214 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44214 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44262 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44262 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44262 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44262 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44262 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44356 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44356 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44356 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44356 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44356 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44230 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44230 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44230 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44230 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44230 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44126 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44126 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44126 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44126 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44126 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44378 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44378 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44378 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44378 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44378 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44278 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44278 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44278 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44278 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44278 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44138 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44138 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44138 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44138 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44138 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44394 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44394 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44394 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44394 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44394 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44290 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44290 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44290 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44290 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44290 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44252 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44252 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44252 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44252 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44252 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44326 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44326 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44326 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44326 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44326 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44296 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44296 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44296 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44296 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44296 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44146 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44146 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44146 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44146 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44146 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44404 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44404 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44404 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44404 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44404 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44320 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44320 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44320 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44320 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44320 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44176 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44176 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44176 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44176 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44176 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44322 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44322 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44322 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44322 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44322 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44312 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44312 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44312 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44312 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44312 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44182 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44182 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44182 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44182 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44182 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44412 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44412 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44412 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44412 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44412 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44160 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44160 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44160 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44160 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44160 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44370 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44370 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44370 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44370 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44370 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44324 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44324 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44324 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44324 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44324 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44406 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44406 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44406 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44406 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44406 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44238 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44238 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44238 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44238 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44238 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44294 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44294 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44294 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44294 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44294 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44342 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44342 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44342 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44342 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44342 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44244 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44244 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44244 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44244 - "GET /clock/sync HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44244 - "GET /clock/sync HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:43756 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43756 - "POST /prefill/arrival HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:43758 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43758 - "POST /prefill/arrival HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:43762 - "POST /session/init HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:43764 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43762 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43764 - "POST /prefill/arrival HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:43776 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43776 - "POST /prefill/arrival HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:43786 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43786 - "POST /prefill/arrival HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:43802 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43802 - "POST /prefill/arrival HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:43814 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43814 - "POST /prefill/arrival HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:43818 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43818 - "POST /prefill/arrival HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:43824 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43824 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43834 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43834 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43846 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43846 - "POST /verify HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:43862 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43862 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47502 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47502 - "POST /verify HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:47504 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47504 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47506 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47506 - "POST /verify HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:47518 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47518 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43834 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43846 - "POST /verify HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:47522 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47522 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47532 - "POST /prefill HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:47534 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47532 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47534 - "POST /prefill/arrival HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:47538 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47538 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47550 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47550 - "POST /verify HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:47556 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47556 - "POST /prefill/arrival HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:47560 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47560 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47502 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47506 - "POST /verify HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:47582 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47582 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47566 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47566 - "POST /verify HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:47600 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47600 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47590 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47590 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47616 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47616 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47628 - "POST /verify HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:47634 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47634 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47646 - "POST /verify HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:47650 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47650 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47652 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47666 - "POST /verify HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:36734 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36734 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36750 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36758 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36758 - "POST /verify HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:36774 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36774 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36784 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36796 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36796 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36812 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36812 - "POST /verify HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:36816 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36816 - "POST /prefill/arrival HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:36838 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36822 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36838 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36852 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36856 - "POST /verify HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:36858 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36858 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36872 - "POST /verify HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:36884 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36884 - "POST /prefill/arrival HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:36890 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36890 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36902 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36904 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36902 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36910 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36910 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36916 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36918 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36922 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36922 - "POST /verify HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:36932 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36932 - "POST /prefill/arrival HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:36946 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36946 - "POST /prefill/arrival HTTP/1.1" 200 OK
+Initializing new session...
+INFO:     127.0.0.1:36950 - "POST /session/init HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36950 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36956 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35132 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35146 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35150 - "POST /prefill HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35154 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35150 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35166 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35176 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35188 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35196 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35204 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35214 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35226 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35228 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35236 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35248 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35262 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35274 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35290 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35294 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35306 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35320 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37326 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37340 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37342 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37352 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37364 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37374 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37378 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37380 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37394 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37406 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37410 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37424 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37434 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37448 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37460 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37474 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37488 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37502 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37510 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37522 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37526 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37532 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37544 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37532 - "POST /prefill/arrival HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51962 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51972 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51984 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51988 - "POST /verify HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51998 - "POST /exit HTTP/1.1" 200 OK
+[93mprocess prefill tasks from: ['c135c6e145db4200acac3654b23051b8'][0m
+[93mprocess prefill tasks from: ['9e8f6729a9bc4a06bc7a64086bf42479'][0m
+[93mprocess prefill tasks from: ['927baf2f4327483098c11217527f0626'][0m
+[93mprocess prefill tasks from: ['bc80e2156a7e4b25b7bd356577826001'][0m
+[93mprocess prefill tasks from: ['d51a4cd4d28f4a6baf6d8ef41b851265'][0m
+[93mprocess prefill tasks from: ['e258d4a3685c42d9b20addb19d0b59f4'][0m
+[93mprocess prefill tasks from: ['cb2a7c31ad344013bdbcfe6c926c86a8'][0m
+[93mprocess prefill tasks from: ['4514634e7f904e139b5b6846db935064'][0m
+[93mprocess prefill tasks from: ['60db0087a515401794ad575265459a77'][0m
+[93mprocess prefill tasks from: ['4001ac2a0d37414db969bb7f31be7dc1'][0m
+[93mprocess prefill tasks from: ['b5084552ec804c9b81b90a8944a42241'][0m
+[93mprocess prefill tasks from: ['f7e3d8a44280420ea44480b8a0782023'][0m
+[93mprocess prefill tasks from: ['c648f9c7108f43f0ad8c6fba94b1b267'][0m
+[93mprocess prefill tasks from: ['e0f27612944741668a96d2b9ddd8acbb'][0m
+[93mprocess prefill tasks from: ['08f1c9029b7a48eb9045467c6cfbe48c'][0m
+[93mprocess prefill tasks from: ['e248470d8f7f47b495a096240f09b842'][0m
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [2096809]

@@ -1,0 +1,52 @@
+{
+  "epoch": 1792828201.6913636,
+  "gpus": [
+    {
+      "index": 0,
+      "uuid": "GPU-341a3faf-c619-5dcd-4bc3-2019cb13e921",
+      "name": "NVIDIA RTX A6000",
+      "total_mib": 49140,
+      "used_mib": 31886,
+      "utilization_pct": 99,
+      "power_w": 298.93
+    },
+    {
+      "index": 1,
+      "uuid": "GPU-422501a2-5189-7f5b-5ce6-95464276b27f",
+      "name": "NVIDIA RTX A6000",
+      "total_mib": 49140,
+      "used_mib": 15,
+      "utilization_pct": 0,
+      "power_w": 17.12
+    },
+    {
+      "index": 2,
+      "uuid": "GPU-131d576e-3215-d317-dab1-4b1e4fbc0fca",
+      "name": "NVIDIA RTX A6000",
+      "total_mib": 49140,
+      "used_mib": 33350,
+      "utilization_pct": 100,
+      "power_w": 298.52
+    },
+    {
+      "index": 3,
+      "uuid": "GPU-86c3cb6f-384f-586a-7ea1-49f21e6bd516",
+      "name": "NVIDIA RTX A6000",
+      "total_mib": 49140,
+      "used_mib": 29593,
+      "utilization_pct": 100,
+      "power_w": 259.42
+    }
+  ],
+  "selected_gpu": {
+    "index": 1,
+    "uuid": "GPU-422501a2-5189-7f5b-5ce6-95464276b27f",
+    "name": "NVIDIA RTX A6000",
+    "total_mib": 49140,
+    "used_mib": 15,
+    "utilization_pct": 0,
+    "power_w": 17.12
+  },
+  "meminfo": "MemTotal:       527939708 kB\nMemFree:        21015832 kB\nMemAvailable:   435494160 kB\nBuffers:         3374588 kB\nCached:         363965712 kB\nSwapCached:        43400 kB\nActive:         164028908 kB\nInactive:       277849764 kB\nActive(anon):   50422284 kB\nInactive(anon): 24321736 kB\nActive(file):   113606624 kB\nInactive(file): 253528028 kB\nUnevictable:      193284 kB\nMlocked:          190196 kB\nSwapTotal:       2097148 kB\nSwapFree:            284 kB\nZswap:                 0 kB\nZswapped:              0 kB\nDirty:              5044 kB\nWriteback:             0 kB\nAnonPages:      74687444 kB\nMapped:          6441940 kB\nShmem:            174760 kB\nKReclaimable:   54203120 kB\nSlab:           59561232 kB\nSReclaimable:   54203120 kB\nSUnreclaim:      5358112 kB\nKernelStack:      333360 kB\nPageTables:       684752 kB\nSecPageTables:         0 kB\nNFS_Unstable:          0 kB\nBounce:                0 kB\nWritebackTmp:          0 kB\nCommitLimit:    266067000 kB\nCommitted_AS:   271265876 kB\nVmallocTotal:   13743895347199 kB\nVmallocUsed:      816812 kB\nVmallocChunk:          0 kB\nPercpu:           746880 kB\nHardwareCorrupted:     0 kB\nAnonHugePages:    776192 kB\nShmemHugePages:        0 kB\nShmemPmdMapped:        0 kB\nFileHugePages:         0 kB\nFilePmdMapped:         0 kB\nUnaccepted:            0 kB\nHugePages_Total:       0\nHugePages_Free:        0\nHugePages_Rsvd:        0\nHugePages_Surp:        0\nHugepagesize:       2048 kB\nHugetlb:               0 kB\nDirectMap4k:    78516224 kB\nDirectMap2M:    397139968 kB\nDirectMap1G:    62914560 kB\n",
+  "disk_free_gib": 923.0509986877441
+}

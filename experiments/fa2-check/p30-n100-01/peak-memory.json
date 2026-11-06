@@ -1,0 +1,15 @@
+{
+  "active_requests": 16,
+  "context_tokens": 2048,
+  "kv_bytes": 4831838208,
+  "peak_allocated_bytes": 26125686272,
+  "peak_reserved_bytes": 29339156480,
+  "workspace": {
+    "attention_calls": 2304,
+    "workspace_allocations": 131,
+    "packed_query_tokens": 1179648,
+    "packed_kv_tokens": 38338560,
+    "workspace_bytes": 138412168
+  },
+  "memory_fraction": 0.85
+}

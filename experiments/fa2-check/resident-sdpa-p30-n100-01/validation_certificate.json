@@ -1,0 +1,199 @@
+{
+  "passed": true,
+  "validated_content_sha256": "f5448cbc40b9909a8beb896397f66b5421ca51355637c9951dcf16486ef50cd0",
+  "bundle_id": "f5448cbc40b9909a8beb896397f66b5421ca51355637c9951dcf16486ef50cd0",
+  "dependency_runtime": {
+    "python": "3.14.7 (main, Aug  7 2026, 02:26:00) [Clang 22.1.3 ]",
+    "torch": "2.9.0+cu128",
+    "torch_cuda": "12.8",
+    "transformers": "4.57.1",
+    "flash_attn": "2.8.3",
+    "extension": "/home/hdd/zhangh/envs/fastsd_fa2_283_py314_20261031/lib/python3.14/site-packages/flash_attn_2_cuda.cpython-314-x86_64-linux-gnu.so",
+    "extension_sha256": "5e4c2f853fbb13a5aa74d057614bdcd0a2797ca1dee423fcaa1cd39ea84954e1",
+    "environment": "/home/hdd/zhangh/envs/fastsd_fa2_283_py314_20261031"
+  },
+  "dependency_build": {
+    "state": "complete",
+    "pid": 3636455,
+    "version": "2.8.3",
+    "environment": "/home/hdd/zhangh/envs/fastsd_fa2_283_py314_20261031",
+    "started_utc": "2026-10-31T16:59:32.720808+00:00",
+    "free_bytes_before": 74821693440,
+    "updated_utc": "2026-10-31T17:25:39.782221+00:00",
+    "source_sha256": "1e71dd64a9e0280e0447b8a0c2541bad4bf6ac65bdeaa2f90e51a9e57de0370d",
+    "source_url": "https://files.pythonhosted.org/packages/3b/b2/8d76c41ad7974ee264754709c22963447f7f8134613fd9ce80984ed0dab7/flash_attn-2.8.3.tar.gz",
+    "source_root": "/home/hdd/zhangh/tmp/config1_fa2_20261031/source/flash_attn-2.8.3",
+    "max_jobs": 8,
+    "nvcc_threads": 2,
+    "free_bytes_after": 74202836992,
+    "cuda_runtime": "12.8",
+    "gpu_test_performed": false
+  },
+  "gates": {
+    "dependency_abi": true,
+    "cpu_contracts": true,
+    "gpu_attention_cache": true,
+    "performance": true,
+    "humaneval164_exact_greedy": true
+  },
+  "peak_memory": {
+    "active_requests": 16,
+    "context_tokens": 2048,
+    "kv_bytes": 4831838208,
+    "peak_allocated_bytes": 26015136256,
+    "peak_reserved_bytes": 28907143168,
+    "workspace": null,
+    "memory_fraction": 0.85
+  },
+  "performance": [
+    {
+      "variant": "resident_sdpa",
+      "batch": 1,
+      "history_start": 256,
+      "clean_iterations": 16,
+      "clean_wall_s": 0.5026102010160685,
+      "clean_decode_tokens_per_s": 31.83381468910632,
+      "attention_calls_per_forward": 36.0,
+      "profiled_one_step": {
+        "host_wall_ms": {
+          "kv_h2d": 0.06206100806593895,
+          "attention": 3.170501993736252,
+          "full_forward": 34.91659299470484,
+          "kv_d2h": 0.021926010958850384
+        },
+        "stream_elapsed_ms": {
+          "kv_h2d": 0.016383999958634377,
+          "attention": 1.3180160047486424,
+          "full_forward": 35.29619216918945,
+          "kv_d2h": 0.0010239999974146485
+        }
+      },
+      "peak_allocated_bytes": 16475726848,
+      "peak_reserved_bytes": 16611540992,
+      "kv_transfer_bytes": {
+        "kv_h2d_bytes": 0,
+        "kv_d2h_bytes": 0,
+        "kv_transfer_calls": 0
+      },
+      "workspace": null
+    },
+    {
+      "variant": "resident_sdpa",
+      "batch": 8,
+      "history_start": 256,
+      "clean_iterations": 16,
+      "clean_wall_s": 1.0735163110075518,
+      "clean_decode_tokens_per_s": 119.2343317819412,
+      "attention_calls_per_forward": 288.0,
+      "profiled_one_step": {
+        "host_wall_ms": {
+          "kv_h2d": 0.03983601345680654,
+          "attention": 19.619615690317005,
+          "full_forward": 79.33258698903956,
+          "kv_d2h": 0.02220200258307159
+        },
+        "stream_elapsed_ms": {
+          "kv_h2d": 0.012032000347971916,
+          "attention": 14.188703961670399,
+          "full_forward": 79.31916809082031,
+          "kv_d2h": 0.010143999941647053
+        }
+      },
+      "peak_allocated_bytes": 16882849280,
+      "peak_reserved_bytes": 17492344832,
+      "kv_transfer_bytes": {
+        "kv_h2d_bytes": 0,
+        "kv_d2h_bytes": 0,
+        "kv_transfer_calls": 0
+      },
+      "workspace": null
+    },
+    {
+      "variant": "resident_sdpa",
+      "batch": 16,
+      "history_start": 256,
+      "clean_iterations": 16,
+      "clean_wall_s": 1.7076060060062446,
+      "clean_decode_tokens_per_s": 149.91748629341834,
+      "attention_calls_per_forward": 576.0,
+      "profiled_one_step": {
+        "host_wall_ms": {
+          "kv_h2d": 0.05646800855174661,
+          "attention": 38.494358042953536,
+          "full_forward": 127.05209798878059,
+          "kv_d2h": 0.03681299858726561
+        },
+        "stream_elapsed_ms": {
+          "kv_h2d": 0.025599999353289604,
+          "attention": 28.56806398462504,
+          "full_forward": 127.03743743896484,
+          "kv_d2h": 0.010239999741315842
+        }
+      },
+      "peak_allocated_bytes": 17347642880,
+      "peak_reserved_bytes": 18454937600,
+      "kv_transfer_bytes": {
+        "kv_h2d_bytes": 0,
+        "kv_d2h_bytes": 0,
+        "kv_transfer_calls": 0
+      },
+      "workspace": null
+    }
+  ],
+  "greedy_summaries": [
+    {
+      "variant": "resident_sdpa",
+      "requests": 164,
+      "elapsed_s": 81.94131669899798,
+      "generated_tokens": 11589,
+      "kv_transfer_calls": 0,
+      "peak_allocated_bytes": 17329833472,
+      "peak_reserved_bytes": 17720934400
+    }
+  ],
+  "comparisons": {
+    "resident_sdpa": {
+      "exact": true,
+      "compared": 164,
+      "differing_tasks": 0,
+      "first_divergence": null,
+      "differences": []
+    }
+  },
+  "selected_attention_backend": "sdpa_per_sequence",
+  "selected_kv_policy": "gpu_resident",
+  "legacy_reference_reuse": {
+    "source_candidate": "p30-n100-01",
+    "source_content_digest": "b91a75c6614d5b96f3e5e37cfd50c85f45dc09239b1d6bb4cc404544e8e2bc91",
+    "source_evidence": "D:\\zhangh\\projects\\fastsd\\实验\\config1-humaneval-fa2-p30-n100-20261031\\launch\\evidence\\p30-n100-01",
+    "files": {
+      "greedy-legacy.jsonl": "23d6fa5264001e50ddce994947beb09d72f263e7ab74b4fcfea1914336c9e488",
+      "greedy-legacy-summary.json": "75fba29e49c8883ef4c97873481b8d284f4c40f75d1280c1d8843d7a8afceb32",
+      "greedy-comparison.json": "b18865c1275d96c60b777fa2533a88c520479fbfd48120268b40009f9b3f4731",
+      "gpu-summary.json": "360a57db3d4f22ec665d6ec48e330eb28dc29dec55de1d575b9ca22814aa2594",
+      "dependency-runtime.json": "75a0cb492241472ceb48524184f7389e0fdfeb4be8e0053a776a596f02f1a0b7"
+    },
+    "generation_config": {
+      "source_sha": "ef6192d27c7de3c3da63c043ddfdf9b2702fd2bc",
+      "target_model": "/home/hdd/zhangh/models/Qwen3-8B",
+      "tokenizer_model": "/home/hdd/zhangh/models/Qwen3-8B",
+      "dtype": "bfloat16",
+      "max_tokens": 400,
+      "batch_size": 16,
+      "token_budget": 512,
+      "seed": 1234,
+      "max_context_length": 2048,
+      "eos_token_ids": [
+        151645,
+        151643
+      ],
+      "pad_token_id": 151643,
+      "gpu_python": "/home/hdd/zhangh/envs/fastsd_fa2_283_py314_20261031/bin/python",
+      "gpu_uuid": "GPU-422501a2-5189-7f5b-5ce6-95464276b27f"
+    },
+    "validation_input_sha256": "b8be28baf907a2160c4fa9c8cee518a3e0814813ed04af37884012c97350e4e3",
+    "note": "Legacy outputs are reused evidence from the completed independent legacy run; selected resident-SDPA will be rerun and compared without tolerance relaxation."
+  },
+  "heavy_profiling_in_formal_runs": false,
+  "metadata_polling_unchanged": true
+}

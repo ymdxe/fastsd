@@ -1,0 +1,33 @@
+{
+  "command": [
+    "/home/hdd/zhangh/envs/new_fastsd/bin/python",
+    "-u",
+    "/home/hdd3/zhangh/workspace/fastsd/experiments/1024-fp32-g4-l1-10-cpu32/specedge/server_adapter.py",
+    "--model",
+    "/mnt/nfs0/zhangh/models/Qwen3-1.7B",
+    "--output",
+    "/home/hdd3/zhangh/workspace/fastsd/experiments/1024-fp32-g4-l1-10-cpu32/specedge-g4-l1/target",
+    "--host",
+    "127.0.0.1",
+    "--port",
+    "18635",
+    "--management-port",
+    "18636",
+    "--batch-size",
+    "8",
+    "--max-len",
+    "3072",
+    "--phase",
+    "formal",
+    "--sync-clients",
+    "32",
+    "--node1-gamma",
+    "4",
+    "--node3-gamma",
+    "4"
+  ],
+  "physical_gpu": 1,
+  "gpu_uuid": "GPU-422501a2-5189-7f5b-5ce6-95464276b27f",
+  "source_manifest": "../../manifest.json",
+  "epoch": 1792870337.5668876
+}

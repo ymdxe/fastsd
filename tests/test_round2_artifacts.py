@@ -20,11 +20,17 @@ class RuntimeArtifactTests(unittest.TestCase):
                 verify_runtime(output)
 
     def test_prefetch_comparison_fixes_ahead_gamma_and_scheduler(self):
-        for name in ('off', 'protect_forward', 'overlap', 'cpu_prepare'):
+        for name in ('off', 'overlap', 'cpu_prepare'):
             argv = MATRIX[name]
             self.assertIn('--no-enable_proactive_draft', argv)
             self.assertIn('--no-pipeline_gamma_adapt', argv)
             self.assertEqual(argv[argv.index('--scheduler_policy') + 1], 'fcfs')
+        # protect_forward was removed: overlap is the only speculative mode.
+        self.assertNotIn('protect_forward', MATRIX)
+        for name in ('ahead', 'gamma', 'progress'):
+            self.assertIn('--kv_prefetch_mode', MATRIX[name])
+            self.assertEqual(
+                MATRIX[name][MATRIX[name].index('--kv_prefetch_mode') + 1], 'overlap')
 
 
 if __name__ == '__main__':

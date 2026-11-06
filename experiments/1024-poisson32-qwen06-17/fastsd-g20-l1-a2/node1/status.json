@@ -1,0 +1,9 @@
+{
+  "run": "fastsd-g20-l1-a2",
+  "node": "node1",
+  "finished": true,
+  "failed": true,
+  "error": "RuntimeError('Worker failure [None, None, None, None, None, None, 1, 1, None, None, None, 1, None, None, None, None]')",
+  "traceback": "Traceback (most recent call last):\n  File \"/home/zhangh/workspace/fastsd/experiments/1024-poisson32-qwen06-17/node_agent.py\", line 139, in main\n    try:run(job)\n        ^^^^^^^^\n  File \"/home/zhangh/workspace/fastsd/experiments/1024-poisson32-qwen06-17/node_agent.py\", line 117, in run\n    if failed:raise RuntimeError('Worker failure '+str(codes))\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nRuntimeError: Worker failure [None, None, None, None, None, None, 1, 1, None, None, None, 1, None, None, None, None]\n",
+  "epoch": 1792822665.7294915
+}

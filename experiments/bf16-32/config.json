@@ -1,0 +1,50 @@
+{
+  "source_sha": "ef6192d27c7de3c3da63c043ddfdf9b2702fd2bc",
+  "source_branch": "update-2",
+  "dataset": "mt_bench",
+  "target_model": "/home/hdd/zhangh/models/Qwen3-1.7B",
+  "tokenizer_model": "/home/hdd/zhangh/models/Qwen3-0.6B",
+  "dtype": "bfloat16",
+  "tasks_per_worker": 10,
+  "max_tokens": 32,
+  "rate_per_worker": 0.16666666666666666,
+  "batch_size": 16,
+  "token_budget": 512,
+  "seed": 1234,
+  "clock_uncertainty_limit_ms": 100,
+  "bind_host": "10.66.0.5",
+  "port": 19639,
+  "server_url": "http://127.0.0.1:29639",
+  "network": "CPU localhost:29639 -> task SSH reverse tunnel -> desktop localhost:39639 -> task SSH forward -> GPU 10.66.0.5:19639; not IB direct",
+  "gpu_python": "/home/hdd/zhangh/envs/specedge/bin/python",
+  "gpu_result_root": "/home/hdd3/zhangh/workspace/fastsd/exp/32draft_bf16_20261029",
+  "cpu_result_root": "/home/zhangh/workspace/fastsd/exp/32draft_bf16_20261029",
+  "gpu_memory_fraction": 0.25,
+  "gpu_selection": "user explicitly authorized sharing physical GPU2 with a 1.7B Target",
+  "nodes": {
+    "node1": {
+      "ssh": "cpunode1",
+      "workers": 8,
+      "threads": 8,
+      "gamma": 4,
+      "python": "/home/zhangh/miniconda3/envs/fastsd/bin/python",
+      "model": "/mnt/nfs0/zhangh/models/Qwen3-0.6B"
+    },
+    "node2": {
+      "ssh": "cpunode2",
+      "workers": 8,
+      "threads": 8,
+      "gamma": 4,
+      "python": "/home/zhangh/venvs/fastsd_cpu/bin/python",
+      "model": "/vol1/zhangh/models/Qwen3-0.6B"
+    },
+    "node3": {
+      "ssh": "cpunode3",
+      "workers": 16,
+      "threads": 8,
+      "gamma": 8,
+      "python": "/home/zhangh/envs/fastsd_cpu_py314/bin/python314_glibc",
+      "model": "/mnt/nfs0/zhangh/models/Qwen3-0.6B"
+    }
+  }
+}

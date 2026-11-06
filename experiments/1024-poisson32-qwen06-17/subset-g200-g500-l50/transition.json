@@ -1,0 +1,24 @@
+{
+  "status": "running",
+  "previous_run": "fastsd-g20-l1-a2",
+  "stopped_monitors": [
+    {
+      "pid": 2293599,
+      "script": "rate_handoff.py"
+    },
+    {
+      "pid": 2171025,
+      "script": "finish_monitor.py"
+    }
+  ],
+  "requested_gamma": [
+    200,
+    500
+  ],
+  "requested_rates": [
+    50
+  ],
+  "expected_runs": 6,
+  "epoch": 1792823481.8274407,
+  "active_run": "fastsd-g200-l50"
+}

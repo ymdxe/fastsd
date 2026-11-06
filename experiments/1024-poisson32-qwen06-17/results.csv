@@ -1,0 +1,7 @@
+run,status,completed,tokens,arrival_ttft_mean_s,service_ttft_mean_s,tpot_mean_ms,energy_J,J_per_token,kv_prefetch_moved,kv_prefetch_failed,kv_demand_hit_rate
+fastsd-g200-l50,failed,21,4978,239.0907529729818,139.69393473220546,10128.587302258376,,,43,0,0.04559915164369035
+standard-g200-l50,pending,0,0,,,,,,,,
+specedge-g200-l50,pending,0,0,,,,,,,,
+fastsd-g500-l50,pending,0,0,,,,,,,,
+standard-g500-l50,pending,0,0,,,,,,,,
+specedge-g500-l50,pending,0,0,,,,,,,,

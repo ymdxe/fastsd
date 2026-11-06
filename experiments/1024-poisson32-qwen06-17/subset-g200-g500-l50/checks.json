@@ -1,0 +1,19 @@
+{
+  "ok": true,
+  "matrix_cells": 6,
+  "expected_requests": 7914,
+  "gamma": [
+    200,
+    500
+  ],
+  "lambda": [
+    50
+  ],
+  "inference_files_unchanged": 73,
+  "old_target_exit_status": 0,
+  "no_model_smokes": true,
+  "both_cpu_nodes_staged": true,
+  "all32_workers_ready": true,
+  "new_target_verified": true,
+  "legacy_handoff_cancelled": true
+}

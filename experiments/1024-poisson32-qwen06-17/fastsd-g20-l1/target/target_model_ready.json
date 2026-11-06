@@ -1,0 +1,11 @@
+{
+  "ready": true,
+  "pid": 2097274,
+  "epoch": 1792817052.544242,
+  "model": "/mnt/nfs0/zhangh/models/Qwen3-1.7B",
+  "dtype": "torch.float16",
+  "physical_gpu": 1,
+  "gpu_name": "NVIDIA RTX A6000",
+  "memory_allocated_bytes": 3441164800,
+  "weight_offload": false
+}

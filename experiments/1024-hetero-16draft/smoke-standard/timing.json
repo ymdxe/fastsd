@@ -1,0 +1,16 @@
+{
+  "ready": {
+    "node1-0": 1792772655.5311673
+  },
+  "clock_done": {},
+  "done": {
+    "node1-0": {
+      "epoch": 1792772989.23809,
+      "success": true
+    }
+  },
+  "clock_owner": null,
+  "model_barrier_epoch": 1792772657.5311673,
+  "completed_epoch": 1792772989.23809,
+  "wall_seconds": 331.7069227695465
+}

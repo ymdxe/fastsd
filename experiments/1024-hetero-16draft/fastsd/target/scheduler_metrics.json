@@ -1,0 +1,24 @@
+{
+  "fastsd_scheduler": {
+    "iterations": 135528,
+    "used_tokens": 22162,
+    "plans": 308,
+    "verify_slices": 364,
+    "prefill_slices": 18,
+    "partial_verify": 0,
+    "partial_prefill": 1,
+    "prefetch_plans": 135528,
+    "prefetch_hits": 0,
+    "prefetch_misses": 0,
+    "prefetch_evictions": 0,
+    "prefetch_async_submitted": 0,
+    "prefetch_async_dropped": 0,
+    "prefetch_async_completed": 0,
+    "prefetch_async_moved": 0,
+    "prefetch_async_failed": 0,
+    "timing_updates": 0,
+    "timing_ready_prefill_forwards": 18,
+    "prefill_cancels": 0,
+    "prefetch_async_last_error": null
+  }
+}

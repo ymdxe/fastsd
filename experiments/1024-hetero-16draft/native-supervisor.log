@@ -1,0 +1,28 @@
+{"stage": "standard_running", "epoch": 1792773419.0624003}
+/home/hdd3/zhangh/workspace/fastsd/experiments/1024-hetero-16draft/native_supervisor.py:42: DeprecationWarning: Python 3.14 will, by default, filter extracted tar archives and reject files or modify their metadata. Use the filter argument to control this behavior.
+  archive.extractall(ROOT / method)
+{"stage": "standard_complete", "epoch": 1792775369.243477}
+{"stage": "fastsd_target_loading", "epoch": 1792775379.2668364}
+{"stage": "fastsd_smoke_running", "epoch": 1792775404.270095}
+/home/hdd3/zhangh/workspace/fastsd/experiments/1024-hetero-16draft/native_supervisor.py:42: DeprecationWarning: Python 3.14 will, by default, filter extracted tar archives and reject files or modify their metadata. Use the filter argument to control this behavior.
+  archive.extractall(ROOT / method)
+{"stage": "fastsd_running", "epoch": 1792775764.311203}
+/home/hdd3/zhangh/workspace/fastsd/experiments/1024-hetero-16draft/native_supervisor.py:42: DeprecationWarning: Python 3.14 will, by default, filter extracted tar archives and reject files or modify their metadata. Use the filter argument to control this behavior.
+  archive.extractall(ROOT / method)
+{"stage": "fastsd_complete", "epoch": 1792779989.655928}
+{
+  "status": "completed",
+  "files": [
+    "/home/hdd3/zhangh/workspace/fastsd/experiments/1024-hetero-16draft/results.json",
+    "/home/hdd3/zhangh/workspace/fastsd/experiments/1024-hetero-16draft/results.csv",
+    "/home/hdd3/zhangh/workspace/fastsd/experiments/1024-hetero-16draft/RESULTS.md"
+  ],
+  "output_comparisons": {
+    "fastsd": {
+      "paired_requests": 16,
+      "identical_output_requests": 16
+    }
+  },
+  "issue_count": 0
+}
+{"stage": "native_complete", "epoch": 1792779999.7580094}

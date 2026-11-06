@@ -1,0 +1,145 @@
+{
+  "status": "completed",
+  "dataset": "gsm8k",
+  "source_total_rows": 1319,
+  "selected_rows": 32,
+  "selection": "first 32 source rows, one per draft worker",
+  "target_host": "node1",
+  "draft_host": "node3",
+  "target_url": "http://10.66.0.3:18601",
+  "target_model": "Qwen3-1.7B",
+  "draft_model": "Qwen3-1.7B",
+  "dtype": "float16",
+  "mode": "vanilla/Standard SD greedy protocol, no proactive drafting, no pipeline",
+  "gamma": 4,
+  "max_new_tokens": 16,
+  "warmup_requests": 0,
+  "completed_requests": 32,
+  "failed_requests": 0,
+  "draft_workers": 32,
+  "target_threads": 8,
+  "draft_threads_per_worker": 1,
+  "generated_tokens": 512,
+  "drafted_tokens": 512,
+  "accepted_draft_tokens": 512,
+  "acceptance_rate": 1.0,
+  "rpc_count": 192,
+  "rpc_counts": {
+    "/session/init": 32,
+    "/prefill": 32,
+    "/verify": 128
+  },
+  "health_http_ms_first": 158.78005931153893,
+  "health_http_ms_reused": {
+    "count": 9,
+    "min": 2.4084867909550667,
+    "mean": 3.311926912930277,
+    "p50": 3.181728068739176,
+    "p95": 4.811578616499901,
+    "max": 5.168274976313114
+  },
+  "verify_http_ms": {
+    "count": 128,
+    "min": 203.94514314830303,
+    "mean": 260.87620971520664,
+    "p50": 240.6905188690871,
+    "p95": 409.1570517979561,
+    "max": 740.6614487990737
+  },
+  "verify_cloud_total_ms": {
+    "count": 128,
+    "min": 199.74064826965332,
+    "mean": 256.7043900489807,
+    "p50": 236.15705966949463,
+    "p95": 405.9062838554381,
+    "max": 737.3392581939697
+  },
+  "verify_compute_ms": {
+    "count": 128,
+    "min": 182.7371120452881,
+    "mean": 219.65356543660164,
+    "p50": 222.37050533294678,
+    "p95": 242.55441427230832,
+    "max": 318.52030754089355
+  },
+  "verify_http_minus_cloud_ms": {
+    "count": 128,
+    "min": 3.046991303563118,
+    "mean": 4.171819666225929,
+    "p50": 4.439242882654071,
+    "p95": 4.726962582208216,
+    "max": 5.733852740377188
+  },
+  "verify_cloud_minus_compute_ms": {
+    "count": 128,
+    "min": 2.677440643310547,
+    "mean": 37.050824612379074,
+    "p50": 8.458375930786133,
+    "p95": 205.42517900466902,
+    "max": 524.1234302520752
+  },
+  "prefill_http_ms": {
+    "count": 32,
+    "min": 2044.8490218259394,
+    "mean": 35078.62892161938,
+    "p50": 36730.462142964825,
+    "p95": 61667.683809716254,
+    "max": 64931.67540570721
+  },
+  "session_init_http_ms": {
+    "count": 32,
+    "min": 9.475674014538527,
+    "mean": 17.978519637836143,
+    "p50": 18.140398431569338,
+    "p95": 21.526420046575367,
+    "max": 22.516129072755575
+  },
+  "request_e2e_seconds": {
+    "count": 32,
+    "min": 118.42270541610196,
+    "mean": 201.45378674089443,
+    "p50": 202.89442529901862,
+    "p95": 259.66228603289926,
+    "max": 296.8317650780082
+  },
+  "ttft_seconds": {
+    "count": 32,
+    "min": 89.03338147280738,
+    "mean": 171.83008027887263,
+    "p50": 173.23759370157495,
+    "p95": 230.00957422552165,
+    "max": 266.9849971863441
+  },
+  "first_draft_seconds": {
+    "count": 32,
+    "min": 75.50201182812452,
+    "mean": 136.44557175721275,
+    "p50": 135.50682643032633,
+    "p95": 209.6566728866659,
+    "max": 232.87919714301825
+  },
+  "verify_rounds_per_request": {
+    "count": 32,
+    "min": 4.0,
+    "mean": 4.0,
+    "p50": 4.0,
+    "p95": 4.0,
+    "max": 4.0
+  },
+  "application_request_bytes": 133509,
+  "application_response_bytes": 29961,
+  "estimated_barrier_to_completion_seconds": 296.8793124528602,
+  "estimated_aggregate_tokens_per_second": 1.7246065270421886,
+  "common_window_note": "All times measured on node3. End derived from /session/init start + Edge request E2E; includes prefill and local draft, excludes model loading. Not a formal performance measurement.",
+  "barrier_release_spread_ms": 2.0094518549740314,
+  "remaining_draft_pids": [],
+  "limits": [
+    "32/1319 samples; truncated 16-token communication test, not accuracy evaluation",
+    "Same checkpoint used on both ends; acceptance not representative of 32B target",
+    "node1 torch2.6 vs node3 torch2.2; do not attribute compute gap only to CPU hardware",
+    "HTTP residual includes serialization, transport and runtime overhead; not pure network RTT",
+    "One-way push/pull fields are unavailable for vanilla unsynchronized clocks; zero placeholders in native metrics must be read as NA",
+    "Shared server; CPU affinity is not exclusive reservation",
+    "No warmup; loading synchronized but model compute cold"
+  ]
+}

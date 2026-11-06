@@ -1,0 +1,9 @@
+{"req_idx": 6, "step": 0, "gamma": 100, "accepted_draft_tokens": 7, "verified_output_tokens_before_cap": 8, "retained_output_tokens": 8, "proactive_reused": false, "cycle_ms": 117622.83530924469, "hit_eos": false}
+{"req_idx": 6, "step": 1, "gamma": 100, "accepted_draft_tokens": 1, "verified_output_tokens_before_cap": 2, "retained_output_tokens": 2, "proactive_reused": false, "cycle_ms": 108453.52880749851, "hit_eos": false}
+{"req_idx": 6, "step": 2, "gamma": 100, "accepted_draft_tokens": 49, "verified_output_tokens_before_cap": 50, "retained_output_tokens": 50, "proactive_reused": false, "cycle_ms": 108239.05808944255, "hit_eos": false}
+{"req_idx": 6, "step": 3, "gamma": 100, "accepted_draft_tokens": 10, "verified_output_tokens_before_cap": 11, "retained_output_tokens": 11, "proactive_reused": false, "cycle_ms": 108536.48438490927, "hit_eos": false}
+{"req_idx": 6, "step": 4, "gamma": 100, "accepted_draft_tokens": 99, "verified_output_tokens_before_cap": 100, "retained_output_tokens": 100, "proactive_reused": false, "cycle_ms": 108813.59342858195, "hit_eos": false}
+{"req_idx": 6, "step": 5, "gamma": 100, "accepted_draft_tokens": 14, "verified_output_tokens_before_cap": 15, "retained_output_tokens": 15, "proactive_reused": false, "cycle_ms": 108565.09346142411, "hit_eos": false}
+{"req_idx": 6, "step": 6, "gamma": 100, "accepted_draft_tokens": 42, "verified_output_tokens_before_cap": 43, "retained_output_tokens": 43, "proactive_reused": false, "cycle_ms": 108837.16196287423, "hit_eos": false}
+{"req_idx": 6, "step": 7, "gamma": 100, "accepted_draft_tokens": 25, "verified_output_tokens_before_cap": 26, "retained_output_tokens": 26, "proactive_reused": false, "cycle_ms": 108763.31465505064, "hit_eos": false}
+{"req_idx": 6, "step": 8, "gamma": 100, "accepted_draft_tokens": 3, "verified_output_tokens_before_cap": 4, "retained_output_tokens": 1, "proactive_reused": false, "cycle_ms": 108682.02486075461, "hit_eos": true}

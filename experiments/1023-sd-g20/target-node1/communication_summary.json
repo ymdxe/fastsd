@@ -1,0 +1,153 @@
+{
+  "status": "completed",
+  "method": "Standard SD",
+  "gamma": 20,
+  "max_new_tokens": 64,
+  "adaptive_gamma": false,
+  "requests": 32,
+  "failed_requests": 0,
+  "generated_tokens": 2048,
+  "output_tokens_per_request": {
+    "count": 32,
+    "min": 64.0,
+    "mean": 64.0,
+    "p50": 64.0,
+    "p95": 64.0,
+    "max": 64.0
+  },
+  "rpc_count": 192,
+  "rpc_counts": {
+    "/session/init": 32,
+    "/prefill": 32,
+    "/verify": 128
+  },
+  "observed_verify_gamma_counts": {
+    "20": 128
+  },
+  "request_e2e_seconds": {
+    "count": 32,
+    "min": 264.478387163952,
+    "mean": 328.19862714249757,
+    "p50": 324.4400964016095,
+    "p95": 394.3582828580169,
+    "max": 449.93939202837646
+  },
+  "ttft_seconds": {
+    "count": 32,
+    "min": 140.0703730979003,
+    "mean": 202.8525361297361,
+    "p50": 197.6955947848037,
+    "p95": 268.1160832950379,
+    "max": 324.0598825830966
+  },
+  "first_draft_seconds": {
+    "count": 32,
+    "min": 107.36442836094648,
+    "mean": 168.61312648620515,
+    "p50": 168.5836479938589,
+    "p95": 241.91287835112306,
+    "max": 264.30368535174057
+  },
+  "prefill_http_ms": {
+    "count": 32,
+    "min": 3122.0056377351284,
+    "mean": 33332.65991040389,
+    "p50": 32659.07523385249,
+    "p95": 61863.325891667046,
+    "max": 64836.42990514636
+  },
+  "verify_http_ms": {
+    "count": 128,
+    "min": 636.2129990011454,
+    "mean": 814.9887123363442,
+    "p50": 692.7846015896648,
+    "p95": 1416.3456931477408,
+    "max": 2031.8876351229846
+  },
+  "verify_cloud_total_ms": {
+    "count": 128,
+    "min": 632.7366828918457,
+    "mean": 810.8349684625864,
+    "p50": 687.9938840866089,
+    "p95": 1412.9563808441158,
+    "max": 2028.5866260528564
+  },
+  "verify_compute_ms": {
+    "count": 128,
+    "min": 613.9504909515381,
+    "mean": 663.7999657541513,
+    "p50": 664.330005645752,
+    "p95": 710.0514650344849,
+    "max": 859.2336177825928
+  },
+  "verify_http_minus_cloud_ms": {
+    "count": 128,
+    "min": 2.9505733400583267,
+    "mean": 4.153743873757776,
+    "p50": 4.453963600099087,
+    "p95": 4.777745949104428,
+    "max": 10.472546331584454
+  },
+  "accepted_draft_tokens": 2552,
+  "drafted_tokens": 2560,
+  "acceptance_rate": 0.996875,
+  "verify_rounds_per_request": {
+    "count": 32,
+    "min": 4.0,
+    "mean": 4.0,
+    "p50": 4.0,
+    "p95": 4.0,
+    "max": 4.0
+  },
+  "proactive_reuse_hit_rounds": 0,
+  "proactive_reuse_miss_rounds": 0,
+  "application_request_bytes": 156513,
+  "application_response_bytes": 29856,
+  "clock_uncertainty_ms": null,
+  "estimated_output_window_seconds": 450.0001290393993,
+  "estimated_output_tokens_per_second": 4.551109806061166,
+  "worker_completion_window_seconds": 450.12627047486603,
+  "tokens_per_second_including_worker_completion": 4.549834422770833,
+  "all_workers_finish_minus_last_output_seconds": 0.12614143546670675,
+  "matching_first_16_tokens_vs_old_standard": 32,
+  "timing_definition": "Both windows start at model-ready barrier. Output window ends at max(session/init start + native request E2E), an estimate. Worker window ends at return from native per-worker implementation, including outstanding executor work. Model loading excluded; clock startup and prefill included.",
+  "limits": [
+    "32 questions, one repeat, same 1.7B checkpoint on both hosts; not GSM8K accuracy evaluation",
+    "gamma20 with cap64 cannot be compared directly against prior gamma4/cap16 tests",
+    "FastSD gamma adaptation disabled for this fixed-gamma comparison; other FastSD features remain enabled",
+    "Shared CPU servers; affinity is not exclusive and background load can vary",
+    "CPU Target does not measure GPU KV transfer benefit",
+    "Full gamma drafts can extend beyond the remaining output budget; accepted candidates can exceed retained output tokens",
+    "HTTP minus cloud service includes transport and serialization overhead, not pure network RTT"
+  ],
+  "target_service_stopped": true,
+  "target_scheduler": {
+    "iterations": 0,
+    "used_tokens": 0,
+    "plans": 0,
+    "verify_slices": 0,
+    "prefill_slices": 0,
+    "partial_verify": 0,
+    "partial_prefill": 0,
+    "prefetch_plans": 0,
+    "prefetch_hits": 0,
+    "prefetch_misses": 0,
+    "prefetch_evictions": 0,
+    "prefetch_async_submitted": 0,
+    "prefetch_async_dropped": 0,
+    "prefetch_async_completed": 0,
+    "prefetch_async_moved": 0,
+    "prefetch_async_failed": 0,
+    "timing_updates": 0,
+    "timing_ready_prefill_forwards": 0,
+    "prefill_cancels": 0,
+    "prefetch_async_last_error": null
+  },
+  "proactive_skip_not_full_accept_rounds": 0,
+  "observed_host_load1": {
+    "min": 7.66,
+    "max": 61.88,
+    "mean": 38.466190476190484,
+    "note": "Includes this experiment; not a direct background-load measurement."
+  }
+}

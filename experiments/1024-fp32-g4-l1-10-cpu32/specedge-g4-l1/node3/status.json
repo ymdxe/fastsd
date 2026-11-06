@@ -1,0 +1,38 @@
+{
+  "run": "specedge-g4-l1",
+  "node": "node3",
+  "epoch": 1792886983.19242,
+  "exit_codes": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "finished": true,
+  "failed": false,
+  "completed": 656,
+  "ready": 16,
+  "loadavg": [
+    3.68,
+    5.24,
+    10.7
+  ],
+  "clock_timing": {
+    "recalibrations": 0,
+    "valid_pull_measurements": 0,
+    "unreliable_pull_measurements": 0,
+    "upload_pre_admission_retries": 0
+  }
+}

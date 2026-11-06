@@ -1,0 +1,16 @@
+{
+  "scope": "diagnostic_observation_only",
+  "formal_output_equivalence": false,
+  "passed": true,
+  "gates": {
+    "cpu_contracts": true,
+    "trace_contracts": true,
+    "observer_contracts": true,
+    "gpu_event_transfer_probe": true
+  },
+  "validated_content_sha256": "09a35f71d1b1d37992989b384f96453ba6ba2caad50b31467929992ed23ea39e",
+  "parent_bundle_id": "ccc9060bb78223bd56719603ceb2ea49c7d4c6ab7630d9fb5ce44c040da04e67",
+  "cpu_evidence_sha256": "23d38d6d870f467be05dd35c9d9bd0a6b75ace44de5bf0f4b430980707513bfa",
+  "gpu_evidence_sha256": "c38afb5eb09eaac6a87417b1d8b36167914cffdbabb4b2ce5be6345231f317c0",
+  "created_epoch_s": 1793527797.5241685
+}

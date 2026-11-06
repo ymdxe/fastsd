@@ -1,0 +1,9 @@
+{
+  "run": "fastsd-g20-l1",
+  "node": "node1",
+  "finished": true,
+  "failed": true,
+  "error": "KeyError('EXP_RUN')",
+  "traceback": "Traceback (most recent call last):\n  File \"/home/zhangh/workspace/fastsd/experiments/1024-poisson32-qwen06-17/node_agent.py\", line 138, in main\n    try:run(job)\n        ^^^^^^^^\n  File \"/home/zhangh/workspace/fastsd/experiments/1024-poisson32-qwen06-17/node_agent.py\", line 106, in run\n    row=annotate(row)\n        ^^^^^^^^^^^^^\n  File \"/home/zhangh/workspace/fastsd/experiments/1024-poisson32-qwen06-17/common.py\", line 58, in annotate\n    run=os.environ['EXP_RUN']\n        ~~~~~~~~~~^^^^^^^^^^^\n  File \"<frozen os>\", line 679, in __getitem__\nKeyError: 'EXP_RUN'\n",
+  "epoch": 1792817123.80262
+}

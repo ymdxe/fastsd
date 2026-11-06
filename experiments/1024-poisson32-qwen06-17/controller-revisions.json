@@ -1,0 +1,24 @@
+{
+  "epoch": 1792817188.6401262,
+  "bootstrap_bundle": {
+    "sha256": "8eff590f34b340ac865fd8c7f7f3d95684de64ad3a3b15e292ed4cb8723856a4",
+    "bytes": 1057985,
+    "files": 85
+  },
+  "changed_control_files": {
+    "campaign.py": {
+      "bootstrap_sha256": "0667987f934e4af3b3dd788fdcfc7c8b924bf67f4d3c065e1a0ae0548577e295",
+      "current_sha256": "8fd0faace27b336e52eb3144805c3a1e7153e1389abffe7e59d5788c07a0d785"
+    },
+    "start_control.py": {
+      "bootstrap_sha256": "5cd50f03ace17dcefa5fdaaaf953d62e6b8372524c411d34e5abf665c47dba10",
+      "current_sha256": "c7f40520907d0518097be6f4419dc10f5530bc41e902d0d02386e795ccd789db"
+    }
+  },
+  "added_control_files": {
+    "recover_prelaunch.py": "65b15459a25a5c41a2daa49022695b07ffb77456d3bcfe71247c2293ae43dfd5",
+    "probe_nvml.py": "6be67f71c6c70d331ded45b32ffea23fdf571bdace4fe8df40d88587ce0b0ea3"
+  },
+  "inference_source_unchanged": true,
+  "reason": "NVML v1 idle-memory compatibility fix; setup-only failure preserved in setup-attempts."
+}

@@ -1,0 +1,13 @@
+$ uptime
+ 17:53:19 up 28 days,  3:27,  6 users,  load average: 90.98, 51.96, 49.17
+$ free -h
+              total        used        free      shared  buff/cache   available
+Mem:           1.5T        475G        821G         57G        214G        976G
+Swap:            0B          0B          0B
+$ df -hT /home/zhangh/workspace/fastsd/experiments/1023-32draft-comm
+Filesystem     Type  Size  Used Avail Use% Mounted on
+/dev/nvme1n1p1 ext4  7.0T  6.0T  616G  91% /home
+$ git status --short
+?? .run_cpu_test.py.swp
+?? experiments/
+?? run_cpu_test.py

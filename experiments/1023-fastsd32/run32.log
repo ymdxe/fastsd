@@ -1,0 +1,788 @@
+CUDA extension not installed.
+CUDA extension not installed.
+Detected kernel version 3.10.0, which is below the recommended minimum of 5.5.0; this can cause the process to hang. It is recommended to upgrade the kernel to the minimum version or higher.
+[93mLoading tokenizer of /mnt/nfs0/zhangh/models/Qwen3-1.7B...[0m
+CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 0] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 1] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 2] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 3] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 4] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 5] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:12<00:12, 13.00s/it]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:06<00:06,  6.93s/it]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.61s/it]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:16<00:16, 16.09s/it]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:10<00:10, 10.01s/it]CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 6] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.18s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:15<00:00,  7.00s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:15<00:00,  7.90s/it]
+
+Loading checkpoint shards: 100%|██████████| 2/2 [00:09<00:00,  4.51s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:12<00:00,  5.76s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:09<00:00,  4.87s/it]
+
+Loading checkpoint shards: 100%|██████████| 2/2 [00:12<00:00,  6.40s/it]
+WORKER_READY rank=1 pid=36796 cpus=[32]
+
+Loading checkpoint shards: 100%|██████████| 2/2 [00:06<00:00,  3.14s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:06<00:00,  3.21s/it]
+
+Loading checkpoint shards: 100%|██████████| 2/2 [00:18<00:00,  8.29s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:18<00:00,  9.46s/it]
+WORKER_READY rank=3 pid=37116 cpus=[72]
+WORKER_READY rank=2 pid=36956 cpus=[48]
+WORKER_READY rank=4 pid=37300 cpus=[9]
+WORKER_READY rank=0 pid=36577 cpus=[8]
+
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.62s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.86s/it]
+WORKER_READY rank=5 pid=37488 cpus=[33]
+CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 7] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.26s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.66s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.90s/it]
+WORKER_READY rank=6 pid=37704 cpus=[52]
+CUDA extension not installed.
+CUDA extension not installed.
+
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.25s/it][93m[Edge 8] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.65s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.89s/it]
+WORKER_READY rank=7 pid=37862 cpus=[75]
+CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 9] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]CUDA extension not installed.
+CUDA extension not installed.
+
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.10s/it][93m[Edge 10] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:06<00:06,  6.58s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.60s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.83s/it]
+WORKER_READY rank=9 pid=38271 cpus=[34]
+CUDA extension not installed.
+CUDA extension not installed.
+
+Loading checkpoint shards: 100%|██████████| 2/2 [00:07<00:00,  3.51s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:07<00:00,  3.97s/it]
+WORKER_READY rank=8 pid=38108 cpus=[10]
+[93m[Edge 11] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.24s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.65s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.89s/it]
+WORKER_READY rank=10 pid=38443 cpus=[56]
+CUDA extension not installed.
+CUDA extension not installed.
+
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.24s/it][93m[Edge 12] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.65s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.89s/it]
+WORKER_READY rank=11 pid=38663 cpus=[76]
+CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 13] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]CUDA extension not installed.
+CUDA extension not installed.
+
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.10s/it][93m[Edge 14] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:06<00:06,  6.39s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.60s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.83s/it]
+WORKER_READY rank=13 pid=38991 cpus=[35]
+
+Loading checkpoint shards: 100%|██████████| 2/2 [00:07<00:00,  3.11s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:07<00:00,  3.60s/it]
+WORKER_READY rank=12 pid=38813 cpus=[11]
+CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 15] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.23s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.64s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.88s/it]
+WORKER_READY rank=14 pid=39155 cpus=[57]
+CUDA extension not installed.
+CUDA extension not installed.
+
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.28s/it][93m[Edge 16] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.67s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.91s/it]
+WORKER_READY rank=15 pid=39384 cpus=[77]
+CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 17] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.87s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  2.00s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  2.28s/it]
+WORKER_READY rank=16 pid=39570 cpus=[13]
+CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 18] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.15s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.61s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.84s/it]
+WORKER_READY rank=17 pid=39792 cpus=[36]
+CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 19] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.24s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.65s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.88s/it]
+WORKER_READY rank=18 pid=39970 cpus=[58]
+CUDA extension not installed.
+CUDA extension not installed.
+
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.25s/it][93m[Edge 20] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.65s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.89s/it]
+WORKER_READY rank=19 pid=40166 cpus=[78]
+CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 21] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.89s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  2.00s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  2.28s/it]
+WORKER_READY rank=20 pid=40379 cpus=[14]
+CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 22] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.13s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.60s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.83s/it]
+WORKER_READY rank=21 pid=40572 cpus=[37]
+CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 23] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.23s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.64s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.88s/it]
+WORKER_READY rank=22 pid=40762 cpus=[59]
+CUDA extension not installed.
+CUDA extension not installed.
+
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.23s/it][93m[Edge 24] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.64s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.88s/it]
+WORKER_READY rank=23 pid=40908 cpus=[79]
+CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 25] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.81s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  1.97s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  2.24s/it]
+WORKER_READY rank=24 pid=41115 cpus=[15]
+CUDA extension not installed.
+CUDA extension not installed.
+
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.13s/it][93m[Edge 26] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.60s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.83s/it]
+WORKER_READY rank=25 pid=41315 cpus=[38]
+CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 27] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.22s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.64s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.87s/it]
+WORKER_READY rank=26 pid=41480 cpus=[61]
+CUDA extension not installed.
+CUDA extension not installed.
+
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.21s/it][93m[Edge 28] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.63s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.87s/it]
+WORKER_READY rank=27 pid=41670 cpus=[83]
+CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 29] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.80s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  1.96s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:04<00:00,  2.24s/it]
+WORKER_READY rank=28 pid=41835 cpus=[17]
+CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 30] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.18s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.62s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.85s/it]
+WORKER_READY rank=29 pid=42051 cpus=[39]
+CUDA extension not installed.
+CUDA extension not installed.
+[93m[Edge 31] loading draft model on CPU[0m
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.22s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.63s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.87s/it]
+WORKER_READY rank=30 pid=42295 cpus=[62]
+
+Loading checkpoint shards:  50%|█████     | 1/2 [00:03<00:03,  3.23s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.64s/it]
+Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.88s/it]
+WORKER_READY rank=31 pid=42432 cpus=[84]
+Process SpawnProcess-19:
+Traceback (most recent call last):
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/edge_comm.py", line 74, in run_draft_process_http
+    return super().run_draft_process_http(tokenizer,proc_id,arrival_barrier,arrival_start_time)
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/site-packages/torch/utils/_contextlib.py", line 115, in decorate_context
+    return func(*args, **kwargs)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 1279, in run_draft_process_http
+    return self._run_draft_process_http_impl(
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 1761, in _run_draft_process_http_impl
+    verify_resp, measured_http_total = verify_future.result()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/concurrent/futures/_base.py", line 451, in result
+    return self.__get_result()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/concurrent/futures/_base.py", line 403, in __get_result
+    raise self._exception
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/concurrent/futures/thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 676, in verify
+    resp = self._post("/verify", payload)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/edge_comm.py", line 42, in _post
+    result=super()._post(path,payload)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 432, in _post
+    response.raise_for_status()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/site-packages/requests/models.py", line 1026, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 422 Client Error: Unprocessable Entity for url: http://10.66.0.3:18601/verify
+[92m[Edge 1] task gsm8k-0001 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 1] finished task gsm8k-0001, generated 16 tokens[0m
+[92m[Edge 1] task gsm8k-0001 output:
+We are told:
+
+- A robe takes **2 bolts of blue fiber**.
+[0m
+[92m[Edge 3] task gsm8k-0003 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 3] finished task gsm8k-0003, generated 16 tokens[0m
+[92m[Edge 3] task gsm8k-0003 output:
+James runs 3 sprints each week, and each sprint is 60[0m
+[92m[Edge 30] task gsm8k-0030 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 30] finished task gsm8k-0030, generated 16 tokens[0m
+[92m[Edge 30] task gsm8k-0030 output:
+We are given:
+
+- The **ages of Darrell and Allen** are in[0m
+[92m[Edge 24] task gsm8k-0024 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 24] finished task gsm8k-0024, generated 16 tokens[0m
+[92m[Edge 24] task gsm8k-0024 output:
+We are told that Kyle bought the book for **$19.50[0m
+[92m[Edge 23] task gsm8k-0023 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 23] finished task gsm8k-0023, generated 16 tokens[0m
+[92m[Edge 23] task gsm8k-0023 output:
+We are told that a candle **melts by 2 centimeters every hour[0m
+[92m[Edge 6] task gsm8k-0006 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 6] finished task gsm8k-0006, generated 16 tokens[0m
+[92m[Edge 6] task gsm8k-0006 output:
+We are given the following relationships:
+
+1. **Toulouse has twice as many[0m
+Process SpawnProcess-6:
+Traceback (most recent call last):
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/edge_comm.py", line 74, in run_draft_process_http
+    return super().run_draft_process_http(tokenizer,proc_id,arrival_barrier,arrival_start_time)
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/site-packages/torch/utils/_contextlib.py", line 115, in decorate_context
+    return func(*args, **kwargs)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 1279, in run_draft_process_http
+    return self._run_draft_process_http_impl(
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 1761, in _run_draft_process_http_impl
+    verify_resp, measured_http_total = verify_future.result()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/concurrent/futures/_base.py", line 451, in result
+    return self.__get_result()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/concurrent/futures/_base.py", line 403, in __get_result
+    raise self._exception
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/concurrent/futures/thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 679, in verify
+    self._attach_pull(resp, edge_receive_time_ns)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/edge_comm.py", line 53, in _attach_pull
+    return super()._attach_pull(response,edge_receive_time_ns)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 491, in _attach_pull
+    raise RuntimeError(
+RuntimeError: synchronized clocks produced a negative pull duration; retry clock calibration
+Process SpawnProcess-15:
+Traceback (most recent call last):
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/edge_comm.py", line 74, in run_draft_process_http
+    return super().run_draft_process_http(tokenizer,proc_id,arrival_barrier,arrival_start_time)
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/site-packages/torch/utils/_contextlib.py", line 115, in decorate_context
+    return func(*args, **kwargs)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 1279, in run_draft_process_http
+    return self._run_draft_process_http_impl(
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 1761, in _run_draft_process_http_impl
+    verify_resp, measured_http_total = verify_future.result()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/concurrent/futures/_base.py", line 451, in result
+    return self.__get_result()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/concurrent/futures/_base.py", line 403, in __get_result
+    raise self._exception
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/concurrent/futures/thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 676, in verify
+    resp = self._post("/verify", payload)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/edge_comm.py", line 42, in _post
+    result=super()._post(path,payload)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 432, in _post
+    response.raise_for_status()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/site-packages/requests/models.py", line 1026, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 422 Client Error: Unprocessable Entity for url: http://10.66.0.3:18601/verify
+[92m[Edge 21] task gsm8k-0021 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 21] finished task gsm8k-0021, generated 16 tokens[0m
+[92m[Edge 21] task gsm8k-0021 output:
+We are given the following information:
+
+- **Raymond and Samantha are cousins.[0m
+Process SpawnProcess-3:
+Traceback (most recent call last):
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/edge_comm.py", line 74, in run_draft_process_http
+    return super().run_draft_process_http(tokenizer,proc_id,arrival_barrier,arrival_start_time)
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/site-packages/torch/utils/_contextlib.py", line 115, in decorate_context
+    return func(*args, **kwargs)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 1279, in run_draft_process_http
+    return self._run_draft_process_http_impl(
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 1761, in _run_draft_process_http_impl
+    verify_resp, measured_http_total = verify_future.result()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/concurrent/futures/_base.py", line 451, in result
+    return self.__get_result()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/concurrent/futures/_base.py", line 403, in __get_result
+    raise self._exception
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/concurrent/futures/thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 679, in verify
+    self._attach_pull(resp, edge_receive_time_ns)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/edge_comm.py", line 53, in _attach_pull
+    return super()._attach_pull(response,edge_receive_time_ns)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 491, in _attach_pull
+    raise RuntimeError(
+RuntimeError: synchronized clocks produced a negative pull duration; retry clock calibration
+Process SpawnProcess-18:
+Process SpawnProcess-14:
+Traceback (most recent call last):
+Traceback (most recent call last):
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/edge_comm.py", line 74, in run_draft_process_http
+    return super().run_draft_process_http(tokenizer,proc_id,arrival_barrier,arrival_start_time)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/edge_comm.py", line 74, in run_draft_process_http
+    return super().run_draft_process_http(tokenizer,proc_id,arrival_barrier,arrival_start_time)
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/site-packages/torch/utils/_contextlib.py", line 115, in decorate_context
+    return func(*args, **kwargs)
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/site-packages/torch/utils/_contextlib.py", line 115, in decorate_context
+    return func(*args, **kwargs)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 1279, in run_draft_process_http
+    return self._run_draft_process_http_impl(
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 1279, in run_draft_process_http
+    return self._run_draft_process_http_impl(
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 1761, in _run_draft_process_http_impl
+    verify_resp, measured_http_total = verify_future.result()
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 1761, in _run_draft_process_http_impl
+    verify_resp, measured_http_total = verify_future.result()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/concurrent/futures/_base.py", line 451, in result
+    return self.__get_result()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/concurrent/futures/_base.py", line 451, in result
+    return self.__get_result()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/concurrent/futures/_base.py", line 403, in __get_result
+    raise self._exception
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/concurrent/futures/_base.py", line 403, in __get_result
+    raise self._exception
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/concurrent/futures/thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/concurrent/futures/thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 679, in verify
+    self._attach_pull(resp, edge_receive_time_ns)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 679, in verify
+    self._attach_pull(resp, edge_receive_time_ns)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/edge_comm.py", line 53, in _attach_pull
+    return super()._attach_pull(response,edge_receive_time_ns)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/edge_comm.py", line 53, in _attach_pull
+    return super()._attach_pull(response,edge_receive_time_ns)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 491, in _attach_pull
+    raise RuntimeError(
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 491, in _attach_pull
+    raise RuntimeError(
+RuntimeError: synchronized clocks produced a negative pull duration; retry clock calibration
+RuntimeError: synchronized clocks produced a negative pull duration; retry clock calibration
+Process SpawnProcess-10:
+Traceback (most recent call last):
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/edge_comm.py", line 74, in run_draft_process_http
+    return super().run_draft_process_http(tokenizer,proc_id,arrival_barrier,arrival_start_time)
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/site-packages/torch/utils/_contextlib.py", line 115, in decorate_context
+    return func(*args, **kwargs)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 1279, in run_draft_process_http
+    return self._run_draft_process_http_impl(
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 1761, in _run_draft_process_http_impl
+    verify_resp, measured_http_total = verify_future.result()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/concurrent/futures/_base.py", line 451, in result
+    return self.__get_result()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/concurrent/futures/_base.py", line 403, in __get_result
+    raise self._exception
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/concurrent/futures/thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 679, in verify
+    self._attach_pull(resp, edge_receive_time_ns)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/edge_comm.py", line 53, in _attach_pull
+    return super()._attach_pull(response,edge_receive_time_ns)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 491, in _attach_pull
+    raise RuntimeError(
+RuntimeError: synchronized clocks produced a negative pull duration; retry clock calibration
+[92m[Edge 28] task gsm8k-0028 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 28] finished task gsm8k-0028, generated 16 tokens[0m
+[92m[Edge 28] task gsm8k-0028 output:
+Let's break down the problem step by step.
+
+---
+
+### **Given:**
+[0m
+Process SpawnProcess-21:
+Traceback (most recent call last):
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/edge_comm.py", line 74, in run_draft_process_http
+    return super().run_draft_process_http(tokenizer,proc_id,arrival_barrier,arrival_start_time)
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/site-packages/torch/utils/_contextlib.py", line 115, in decorate_context
+    return func(*args, **kwargs)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 1279, in run_draft_process_http
+    return self._run_draft_process_http_impl(
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 1761, in _run_draft_process_http_impl
+    verify_resp, measured_http_total = verify_future.result()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/concurrent/futures/_base.py", line 451, in result
+    return self.__get_result()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/concurrent/futures/_base.py", line 403, in __get_result
+    raise self._exception
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/concurrent/futures/thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 679, in verify
+    self._attach_pull(resp, edge_receive_time_ns)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/edge_comm.py", line 53, in _attach_pull
+    return super()._attach_pull(response,edge_receive_time_ns)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 491, in _attach_pull
+    raise RuntimeError(
+RuntimeError: synchronized clocks produced a negative pull duration; retry clock calibration
+[92m[Edge 16] task gsm8k-0016 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 16] finished task gsm8k-0016, generated 16 tokens[0m
+[92m[Edge 16] task gsm8k-0016 output:
+We are given the following information:
+
+- **Two trains leave San Rafael at the[0m
+[92m[Edge 22] task gsm8k-0022 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 22] finished task gsm8k-0022, generated 16 tokens[0m
+[92m[Edge 22] task gsm8k-0022 output:
+Let's break down the number of DVDs Billy sold:
+
+- **First 3[0m
+Process SpawnProcess-20:
+Traceback (most recent call last):
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/edge_comm.py", line 74, in run_draft_process_http
+    return super().run_draft_process_http(tokenizer,proc_id,arrival_barrier,arrival_start_time)
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/site-packages/torch/utils/_contextlib.py", line 115, in decorate_context
+    return func(*args, **kwargs)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 1279, in run_draft_process_http
+    return self._run_draft_process_http_impl(
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 1761, in _run_draft_process_http_impl
+    verify_resp, measured_http_total = verify_future.result()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/concurrent/futures/_base.py", line 451, in result
+    return self.__get_result()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/concurrent/futures/_base.py", line 403, in __get_result
+    raise self._exception
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/concurrent/futures/thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 679, in verify
+    self._attach_pull(resp, edge_receive_time_ns)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/edge_comm.py", line 53, in _attach_pull
+    return super()._attach_pull(response,edge_receive_time_ns)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 491, in _attach_pull
+    raise RuntimeError(
+RuntimeError: synchronized clocks produced a negative pull duration; retry clock calibration
+Process SpawnProcess-1:
+Traceback (most recent call last):
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/edge_comm.py", line 74, in run_draft_process_http
+    return super().run_draft_process_http(tokenizer,proc_id,arrival_barrier,arrival_start_time)
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/site-packages/torch/utils/_contextlib.py", line 115, in decorate_context
+    return func(*args, **kwargs)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 1279, in run_draft_process_http
+    return self._run_draft_process_http_impl(
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 1761, in _run_draft_process_http_impl
+    verify_resp, measured_http_total = verify_future.result()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/concurrent/futures/_base.py", line 451, in result
+    return self.__get_result()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/concurrent/futures/_base.py", line 403, in __get_result
+    raise self._exception
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/concurrent/futures/thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 679, in verify
+    self._attach_pull(resp, edge_receive_time_ns)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/edge_comm.py", line 53, in _attach_pull
+    return super()._attach_pull(response,edge_receive_time_ns)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 491, in _attach_pull
+    raise RuntimeError(
+RuntimeError: synchronized clocks produced a negative pull duration; retry clock calibration
+Process SpawnProcess-27:
+Traceback (most recent call last):
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/edge_comm.py", line 74, in run_draft_process_http
+    return super().run_draft_process_http(tokenizer,proc_id,arrival_barrier,arrival_start_time)
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/site-packages/torch/utils/_contextlib.py", line 115, in decorate_context
+    return func(*args, **kwargs)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 1279, in run_draft_process_http
+    return self._run_draft_process_http_impl(
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 1481, in _run_draft_process_http_impl
+    first_round_x, prefill_resp, first_round_timings = _run_first_draft_after_arrival(
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 277, in _run_first_draft_after_arrival
+    prefill_response = prefill_upload_call(draft_output)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 1454, in prefill_upload_call
+    return client.prefill(
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 559, in prefill
+    return self._attach_pull(response, time.time_ns())
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/edge_comm.py", line 53, in _attach_pull
+    return super()._attach_pull(response,edge_receive_time_ns)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 491, in _attach_pull
+    raise RuntimeError(
+RuntimeError: synchronized clocks produced a negative pull duration; retry clock calibration
+[92m[Edge 27] task gsm8k-0027 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 27] finished task gsm8k-0027, generated 16 tokens[0m
+[92m[Edge 27] task gsm8k-0027 output:
+Cynthia eats **1 serving of ice cream every night**.
+
+She buys **[0m
+Process SpawnProcess-30:
+Traceback (most recent call last):
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/edge_comm.py", line 74, in run_draft_process_http
+    return super().run_draft_process_http(tokenizer,proc_id,arrival_barrier,arrival_start_time)
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/site-packages/torch/utils/_contextlib.py", line 115, in decorate_context
+    return func(*args, **kwargs)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 1279, in run_draft_process_http
+    return self._run_draft_process_http_impl(
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 1761, in _run_draft_process_http_impl
+    verify_resp, measured_http_total = verify_future.result()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/concurrent/futures/_base.py", line 451, in result
+    return self.__get_result()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/concurrent/futures/_base.py", line 403, in __get_result
+    raise self._exception
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/concurrent/futures/thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 676, in verify
+    resp = self._post("/verify", payload)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/edge_comm.py", line 42, in _post
+    result=super()._post(path,payload)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 432, in _post
+    response.raise_for_status()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/site-packages/requests/models.py", line 1026, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 422 Client Error: Unprocessable Entity for url: http://10.66.0.3:18601/verify
+[92m[Edge 11] task gsm8k-0011 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 11] finished task gsm8k-0011, generated 16 tokens[0m
+[92m[Edge 11] task gsm8k-0011 output:
+Let's break down the cost of each item:
+
+---
+
+### 1. **[0m
+[92m[Edge 10] task gsm8k-0010 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 10] finished task gsm8k-0010, generated 16 tokens[0m
+[92m[Edge 10] task gsm8k-0010 output:
+Let's break down the problem step by step.
+
+### Step 1: First[0m
+[92m[Edge 31] task gsm8k-0031 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 31] finished task gsm8k-0031, generated 16 tokens[0m
+[92m[Edge 31] task gsm8k-0031 output:
+We are given three guesses about the number of jelly beans in the jar:
+
+1[0m
+[92m[Edge 25] task gsm8k-0025 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 25] finished task gsm8k-0025, generated 16 tokens[0m
+[92m[Edge 25] task gsm8k-0025 output:
+Let's break down the problem step by step.
+
+### Given:
+- **Chicken[0m
+[92m[Edge 12] task gsm8k-0012 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 12] finished task gsm8k-0012, generated 16 tokens[0m
+[92m[Edge 12] task gsm8k-0012 output:
+Let's break down the problem step by step to find out how many **years[0m
+[92m[Edge 7] task gsm8k-0007 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 7] finished task gsm8k-0007, generated 16 tokens[0m
+[92m[Edge 7] task gsm8k-0007 output:
+We are given the following information:
+
+- **Total file size**: 20[0m
+Process SpawnProcess-9:
+Traceback (most recent call last):
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/edge_comm.py", line 74, in run_draft_process_http
+    return super().run_draft_process_http(tokenizer,proc_id,arrival_barrier,arrival_start_time)
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/site-packages/torch/utils/_contextlib.py", line 115, in decorate_context
+    return func(*args, **kwargs)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 1279, in run_draft_process_http
+    return self._run_draft_process_http_impl(
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 1481, in _run_draft_process_http_impl
+    first_round_x, prefill_resp, first_round_timings = _run_first_draft_after_arrival(
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 277, in _run_first_draft_after_arrival
+    prefill_response = prefill_upload_call(draft_output)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 1454, in prefill_upload_call
+    return client.prefill(
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 559, in prefill
+    return self._attach_pull(response, time.time_ns())
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/edge_comm.py", line 53, in _attach_pull
+    return super()._attach_pull(response,edge_receive_time_ns)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 491, in _attach_pull
+    raise RuntimeError(
+RuntimeError: synchronized clocks produced a negative pull duration; retry clock calibration
+[92m[Edge 15] task gsm8k-0015 reuse stats: hit=6 miss=0 skip_not_full_accept=0 hit_rate=1.000[0m
+[92m[Edge 15] finished task gsm8k-0015, generated 16 tokens[0m
+[92m[Edge 15] task gsm8k-0015 output:
+To determine which purchase plan gives the **maximum profit**, we need to calculate the[0m
+Process SpawnProcess-5:
+Traceback (most recent call last):
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/edge_comm.py", line 74, in run_draft_process_http
+    return super().run_draft_process_http(tokenizer,proc_id,arrival_barrier,arrival_start_time)
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/site-packages/torch/utils/_contextlib.py", line 115, in decorate_context
+    return func(*args, **kwargs)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 1279, in run_draft_process_http
+    return self._run_draft_process_http_impl(
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 1761, in _run_draft_process_http_impl
+    verify_resp, measured_http_total = verify_future.result()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/concurrent/futures/_base.py", line 451, in result
+    return self.__get_result()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/concurrent/futures/_base.py", line 403, in __get_result
+    raise self._exception
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/concurrent/futures/thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 676, in verify
+    resp = self._post("/verify", payload)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/edge_comm.py", line 42, in _post
+    result=super()._post(path,payload)
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 432, in _post
+    response.raise_for_status()
+  File "/home/zhangh/envs/fastsd_cpu/lib/python3.10/site-packages/requests/models.py", line 1026, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 422 Client Error: Unprocessable Entity for url: http://10.66.0.3:18601/verify
+[92m[METRICS] wrote summary: /home/zhangh/workspace/fastsd/experiments/1023-fastsd32/run32/edge_metrics_summary.json[0m
+Traceback (most recent call last):
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/edge_comm.py", line 95, in <module>
+    BoundRunner(args).eval()
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/edge_comm.py", line 67, in eval
+    return super().eval()
+  File "/home/zhangh/workspace/fastsd/experiments/1023-fastsd32/source/edge/edge.py", line 1247, in eval
+    raise RuntimeError(f"{len(failed)} draft process(es) failed with exit codes {failed}")
+RuntimeError: 14 draft process(es) failed with exit codes [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]

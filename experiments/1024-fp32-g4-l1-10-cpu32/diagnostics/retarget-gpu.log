@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/home/hdd3/zhangh/workspace/fastsd/experiments/1024-fp32-g4-l1-10-cpu32/diagnostics/retarget_gpu.py", line 16, in <module>
+    assert not (ROOT/'fastsd-g4-l1/target/process.json').exists()
+AssertionError
