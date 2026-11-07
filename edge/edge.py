@@ -1672,6 +1672,7 @@ class EdgeRunner(Decoding):
                 actual_arrival_s = 0.0
             arrival_lag_ms = max(0.0, (actual_arrival_s - scheduled_arrival_s) * 1000.0)
             request_start = time.monotonic()
+            request_start_epoch = time.time()
             DIAG.emit("request_start", task_id=sample.get("sample_id"), index=idx, scheduled_arrival_s=scheduled_arrival_s, actual_arrival_s=actual_arrival_s, arrival_lag_ms=arrival_lag_ms, pending_arrived=diag_backlog(arrival_offsets or [], actual_arrival_s, global_idx), local_t0=arrival_origin)
             transport_before = client.snapshot_transport_stats()
             session_id = client.init_session()
@@ -2231,6 +2232,7 @@ class EdgeRunner(Decoding):
                 if executor_holder is not None:
                     executor_holder["executor"] = None
                 completion_time = time.monotonic()
+                completion_epoch = time.time()
                 DIAG.emit("request_complete", task_id=task_id, index=idx, start_s=request_start, completion_s=completion_time, local_t0=arrival_origin, pending_arrived=diag_backlog(arrival_offsets or [], completion_time-arrival_origin if arrival_origin else 0, global_idx))
                 transport_after = client.snapshot_transport_stats()
                 transport_delta = {
@@ -2307,7 +2309,9 @@ class EdgeRunner(Decoding):
                     "latency_basis": "request_processing_start",
                     "processing_start_s": request_start - processing_origin,
                     "processing_start_monotonic_s": request_start,
+                    "processing_start_epoch_s": request_start_epoch,
                     "completion_monotonic_s": completion_time,
+                    "completion_epoch_s": completion_epoch,
                     "prefill_ms": prefill_ms,
                     "local_prefill_s": float(first_round_timings.get("local_prefill_s", 0.0)),
                     "local_prefill_ms": float(first_round_timings.get("local_prefill_ms", 0.0)),

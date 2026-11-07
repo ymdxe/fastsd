@@ -27,6 +27,8 @@ RESIDENCY=(
   --kv_residency_low_ratio "$KV_LOW"
   --kv_prefetch_online_fraction "$KV_PREFETCH_ONLINE_FRACTION"
   --kv_prefetch_mb "$KV_PREFETCH_MB"
+  --kv_prefetch_rate_mb_s "${KV_PREFETCH_RATE_MB_S:-64}"
+  --kv_prefetch_idle_rate_mb_s "${KV_PREFETCH_IDLE_RATE_MB_S:-512}"
   --no-measure_forward_gpu
 )
 

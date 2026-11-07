@@ -15,6 +15,12 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=params.env
 source "$HERE/params.env"
 
+# Dual-edge / Poisson overrides (safe defaults preserve the old single-edge run).
+DATA_PATH="${DATA_PATH:-data}"
+ARRIVAL_DISTRIBUTION="${ARRIVAL_DISTRIBUTION:-immediate}"
+ARRIVAL_RATE="${ARRIVAL_RATE:-1.0}"
+ARRIVAL_SEED="${ARRIVAL_SEED:-1234}"
+
 RUN="${RUN_NAME:-$CASE}"
 EXP_DIR="$EXP_ROOT/$RUN/edge"
 mkdir -p "$EXP_DIR"
@@ -23,6 +29,15 @@ RUN() { if [ "$DRY_RUN" = "1" ]; then printf '  [dry] %s\n' "$*"; else "$@"; fi;
 
 # edge.py imports diagnostic_trace before it fixes sys.path.
 export PYTHONPATH="$PWD${PYTHONPATH:+:$PYTHONPATH}"
+
+# HuggingFace tokenizers/Rayon creates a Rust global thread pool sized by the
+# host CPU count.  With many draft workers that alone can exhaust the pids
+# limit, so keep it tiny; torch threads are controlled by --edge_threads.
+export RAYON_NUM_THREADS="${RAYON_NUM_THREADS:-1}"
+export TOKENIZERS_PARALLELISM=false
+export OMP_NUM_THREADS="${OMP_NUM_THREADS:-1}"
+export MKL_NUM_THREADS="${MKL_NUM_THREADS:-1}"
+export OPENBLAS_NUM_THREADS="${OPENBLAS_NUM_THREADS:-1}"
 
 TUNNEL_PID=""
 cleanup() { [ -n "$TUNNEL_PID" ] && kill "$TUNNEL_PID" 2>/dev/null || true; }
@@ -69,7 +84,10 @@ else
 fi
 
 ARGS=(
-  --dataset "$DATASET" --data_path data
+  --dataset "$DATASET" --data_path "$DATA_PATH"
+  --arrival_distribution "$ARRIVAL_DISTRIBUTION"
+  --arrival_rate "$ARRIVAL_RATE"
+  --arrival_seed "$ARRIVAL_SEED"
   --draft_model "$DRAFT_MODEL" --target_model "$TARGET_MODEL"
   --draft_dtype bfloat16 --num_drafts "$NUM_DRAFTS" --edge_gpus 1
   --max_tasks_per_draft $(( (REQUESTS + NUM_DRAFTS - 1) / NUM_DRAFTS ))

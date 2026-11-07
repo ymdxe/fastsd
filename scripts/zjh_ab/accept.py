@@ -71,10 +71,19 @@ def summarize(cond_dir):
     transfers = scheduler.get("cache_transfers") or {}
     records = load_records(cond_dir)
 
-    starts = [r["processing_start_monotonic_s"] for r in records
-              if r.get("processing_start_monotonic_s") is not None]
-    ends = [r["completion_monotonic_s"] for r in records
-            if r.get("completion_monotonic_s") is not None]
+    # Monotonic clocks are host-local; dual-edge results must use wall-clock
+    # epochs or the merged span is meaningless (and tok/s collapses to ~0).
+    starts = [r["processing_start_epoch_s"] for r in records
+              if r.get("processing_start_epoch_s") is not None]
+    ends = [r["completion_epoch_s"] for r in records
+            if r.get("completion_epoch_s") is not None]
+    if not starts or not ends:
+        # Backward compatibility for single-host runs written before epoch
+        # timestamps existed.
+        starts = [r["processing_start_monotonic_s"] for r in records
+                  if r.get("processing_start_monotonic_s") is not None]
+        ends = [r["completion_monotonic_s"] for r in records
+                if r.get("completion_monotonic_s") is not None]
     span = (max(ends) - min(starts)) if starts and ends else 0.0
     tokens = sum(int(r.get("generated_tokens") or 0) for r in records)
     e2e = [r.get("request_e2e_ms") or r.get("e2e_ms") or 0.0 for r in records]
