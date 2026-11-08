@@ -40,6 +40,7 @@ class KVTransferTicket:
     reported: bool = False
     budget_released: bool = False
     demand_started_at: float = None
+    copy_started_at: float = None
     last_chunk_bytes: int = 0
 
     @property

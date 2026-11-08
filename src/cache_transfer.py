@@ -752,6 +752,8 @@ class CacheTransferManager:
                 return
             if ticket.next_chunk == len(ticket.chunks):
                 return
+            if ticket.copy_started_at is None:
+                ticket.copy_started_at = time.perf_counter()
             if not all_chunks and byte_limit is not None:
                 first = ticket.chunks[ticket.next_chunk][0]
                 if first.numel() * first.element_size() > byte_limit:
@@ -979,6 +981,25 @@ class CacheTransferManager:
                 if ticket.ready() and not ticket.retired:
                     ticket.copy_state = "ready"
                     if not ticket.reported:
+                        if ticket.copy_started_at is not None:
+                            elapsed = max(0.0, time.perf_counter() - ticket.copy_started_at)
+                            self.metrics["kv_transfer_samples"] += 1
+                            self.metrics["kv_transfer_total_s"] += elapsed
+                            self.metrics["kv_transfer_avg_s"] = (
+                                self.metrics["kv_transfer_total_s"] /
+                                self.metrics["kv_transfer_samples"])
+                            if ticket.purpose == "prefetch":
+                                self.metrics["kv_transfer_prefetch_samples"] += 1
+                                self.metrics["kv_transfer_prefetch_total_s"] += elapsed
+                                self.metrics["kv_transfer_prefetch_avg_s"] = (
+                                    self.metrics["kv_transfer_prefetch_total_s"] /
+                                    self.metrics["kv_transfer_prefetch_samples"])
+                            else:
+                                self.metrics["kv_transfer_demand_samples"] += 1
+                                self.metrics["kv_transfer_demand_total_s"] += elapsed
+                                self.metrics["kv_transfer_demand_avg_s"] = (
+                                    self.metrics["kv_transfer_demand_total_s"] /
+                                    self.metrics["kv_transfer_demand_samples"])
                         completed.append(ticket)
                         ticket.reported = True
                 drained = ticket.last_copy is None or ticket.last_copy.query()

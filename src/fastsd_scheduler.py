@@ -12,6 +12,7 @@ from dataclasses import dataclass, field, replace
 from collections import deque
 import copy
 import math
+import os
 import time
 from diagnostic_trace import trace as DIAG, request_meta as diag_req, item_meta as diag_item, queue_rows as diag_queues, backlog as diag_backlog
 import random
@@ -22,6 +23,15 @@ FASTSD_DEFAULT_R1 = 128
 FASTSD_DEFAULT_R2 = 512
 FASTSD_DYNAMIC_WINDOW = 100
 FASTSD_VERIFY_PREFILL_SWITCH_THRESHOLD = 6  # legacy API compatibility
+WAIT_PRIORITY_BASE = float(os.environ.get("FASTSD_WAIT_PRIORITY_BASE", "2.0"))
+if WAIT_PRIORITY_BASE <= 1.0:
+    raise ValueError("FASTSD_WAIT_PRIORITY_BASE must be > 1")
+
+
+def wait_priority_term(lamda, elapsed_s):
+    return math.pow(WAIT_PRIORITY_BASE, float(lamda) * float(elapsed_s))
+
+
 FASTSD_VERIFY_WRR_ORDER = (
     "short", "short", "short", "short", "short", "short",
     "mid", "mid", "mid", "long",
@@ -196,7 +206,7 @@ def prefill_priority_score(req, now=None, lamda=0.01):
     if now is None:
         now = 0.0
     elapsed = _wait_seconds(req, float(now))
-    wait_term = math.exp(float(lamda) * elapsed)
+    wait_term = wait_priority_term(lamda, elapsed)
     # A timing-required Prefill remains queued, but cannot be selected before
     # the Edge timing update atomically marks it ready.  The planner also
     # filters this state; -inf makes direct score callers obey the same rule.
@@ -227,7 +237,7 @@ def verify_priority_score(req, accept_stats, now=None, lamda=0.01):
     if now is None:
         now = 0.0
     elapsed = _wait_seconds(req, float(now))
-    wait_term = math.exp(float(lamda) * elapsed)
+    wait_term = wait_priority_term(lamda, elapsed)
 
     pid = req["proc_id"]
     accepted_sum, total_sum = accept_stats.get(pid, (0, 0))

@@ -75,6 +75,12 @@ from .fastsd_scheduler import (
     verify_logit_position,
 )
 from .request_validation import canonicalize_request
+
+# Number of future admission plans used for prefetch.  1 is the original
+# one-step lookahead; >1 projects the same scheduler forward repeatedly.
+PREFETCH_LOOKAHEAD_ROUNDS = max(
+    1, int(os.environ.get("KV_PREFETCH_LOOKAHEAD_ROUNDS", "1"))
+)
 from .scheduler_runtime import (
     CacheResidency,
     IngressRelay,
@@ -857,6 +863,20 @@ class Decoding(ABC):
             "prefetch_ready_hit": 0,
             "prefetch_pending_hit": 0,
             "prefetch_demand_miss": 0,
+            "prefetch_ready_by_horizon": {},
+            "prefetch_pending_by_horizon": {},
+            "prefetch_demand_miss_by_horizon": {},
+            "prefetch_prediction_plans": 0,
+            "prefetch_prediction_predicted": 0,
+            "prefetch_prediction_actual": 0,
+            "prefetch_prediction_hits": 0,
+            "prefetch_prediction_misses": 0,
+            "prefetch_prediction_wasted": 0,
+            "batch_compute_samples": 0,
+            "batch_compute_total_s": 0.0,
+            "batch_compute_avg_s": 0.0,
+            "prefetch_lookahead_rounds": PREFETCH_LOOKAHEAD_ROUNDS,
+            "prefetch_prediction_by_horizon": {},
             "prefetch_plans": 0,
             "prefetch_hits": 0,
             "prefetch_misses": 0,
@@ -1168,6 +1188,11 @@ class Decoding(ABC):
                 if restored:
                     scheduler_metrics["prefetch_demand_miss"] = (
                         scheduler_metrics.get("prefetch_demand_miss", 0) + 1)
+                    horizon = prediction_horizon_by_pid.get(pid)
+                    if horizon is not None:
+                        bucket = scheduler_metrics["prefetch_demand_miss_by_horizon"].setdefault(
+                            str(horizon), {"demand_miss": 0})
+                        bucket["demand_miss"] += 1
             elif ticket.purpose == "prefetch":
                 residency_manager.counters["prefetch_claimed"] += 1
             if record is not None and record.state in (CPU_RESIDENT, PREFETCH_PENDING):
@@ -1983,6 +2008,30 @@ class Decoding(ABC):
             return plan
 
         last_prediction = {"signature": None}
+        prediction_compare_state = {"pids": set()}
+        prediction_by_tick = {}
+        # Earliest predicted horizon for each pid; used to label ready/pending
+        # claims with 1/3/5/10-step prefetch lead time.
+        prediction_horizon_by_pid = {}
+        # Learned duration of one admitted plan.  Used only to move the
+        # lookahead's priority clock to the expected start of the next plan;
+        # it does not change the scheduler's scoring formula.
+        forward_time_state = {"seconds": None, "samples": 0}
+
+        def observe_forward_duration(duration_s):
+            duration = max(0.001, min(float(duration_s), 10.0))
+            if forward_time_state["samples"] == 0:
+                forward_time_state["seconds"] = duration
+            else:
+                forward_time_state["seconds"] = (
+                    0.8 * float(forward_time_state["seconds"]) + 0.2 * duration
+                )
+            forward_time_state["samples"] += 1
+            scheduler_metrics["batch_compute_samples"] += 1
+            scheduler_metrics["batch_compute_total_s"] += duration
+            scheduler_metrics["batch_compute_avg_s"] = (
+                scheduler_metrics["batch_compute_total_s"] /
+                scheduler_metrics["batch_compute_samples"])
 
         def refresh_prefetch():
             """Plan the projected next batch, but only while ACTIVE.
@@ -2006,27 +2055,83 @@ class Decoding(ABC):
             )
             if signature == last_prediction["signature"]:
                 return
-            lookahead = build_plan(projected_plan=in_flight["plan"], diagnostic_kind="lookahead")
+            now = time.monotonic()
+            estimate = forward_time_state["seconds"]
+            planning_time = now
+            horizon_ms = 0.0
+            if job is not None and estimate is not None:
+                elapsed = max(0.0, now - float(job.ready_at))
+                remaining = max(0.0, float(estimate) - elapsed)
+                planning_time = now + remaining
+                horizon_ms = remaining * 1000.0
+            scheduler_metrics["forward_estimate_s"] = (
+                float(estimate) if estimate is not None else 0.0
+            )
+            scheduler_metrics["lookahead_horizon_ms"] = horizon_ms
+            predicted_plans = []
+            projected = in_flight["plan"]
+            step_gap = float(estimate) if estimate is not None else 0.0
+            prediction_tick = int(plan_sequence["tick"])
+            for step in range(1, PREFETCH_LOOKAHEAD_ROUNDS + 1):
+                lookahead = build_plan(
+                    projected_plan=projected,
+                    diagnostic_kind="lookahead",
+                    planning_time=planning_time + step_gap * (step - 1),
+                )
+                predicted_plans.append(lookahead)
+                projected = lookahead
+                if not lookahead.verify_proc_ids:
+                    break
+
+            # Preserve planner order across all projected rounds; the worker
+            # treats this sequence as its transfer priority.
+            ordered_pids = []
+            seen_pids = set()
+            for predicted in predicted_plans:
+                for pid in predicted.verify_proc_ids:
+                    if pid not in seen_pids:
+                        seen_pids.add(pid)
+                        ordered_pids.append(pid)
+
+            first_lookahead = predicted_plans[0] if predicted_plans else None
+            prediction_compare_state["pids"] = set(
+                first_lookahead.verify_proc_ids if first_lookahead is not None else ())
+            # A prediction made at tick T for tick T+step is consumed when that
+            # future plan is actually admitted.  Keeping it keyed by tick lets
+            # us report accuracy separately for 1/3/5/10-step horizons.
+            for stale in [tick for tick in prediction_by_tick if tick <= prediction_tick]:
+                prediction_by_tick.pop(stale, None)
+            for step, predicted in enumerate(predicted_plans, 1):
+                prediction_by_tick[prediction_tick + step] = (
+                    set(predicted.verify_proc_ids), prediction_tick)
+                for pid in predicted.verify_proc_ids:
+                    prediction_horizon_by_pid.setdefault(pid, step)
+            scheduler_metrics["prefetch_lookahead_effective_rounds"] = max(
+                scheduler_metrics.get("prefetch_lookahead_effective_rounds", 0),
+                len(predicted_plans))
+
             protected = residency.protected_snapshot()
             # Only a CPU-resident cache can be prefetched; issuing for a cache
             # already on the GPU would mint an empty ticket every plan.
             safe_pids = [
-                pid for pid in lookahead.verify_proc_ids
+                pid for pid in ordered_pids
                 if pid not in protected
                 and residency_manager.state_of(pid) == CPU_RESIDENT
             ]
-            on_gpu = sum(1 for pid in lookahead.verify_proc_ids
+            on_gpu = sum(1 for pid in ordered_pids
                          if residency_manager.state_of(pid) == GPU_RESIDENT)
             if on_gpu:
                 scheduler_metrics["prefetch_skipped_on_gpu"] = (
                     scheduler_metrics.get("prefetch_skipped_on_gpu", 0) + on_gpu)
-            DIAG.emit("prefetch_prediction", plan_id=getattr(lookahead, "_diag_id", None),
-                      protected_proc_ids=sorted(protected), ordered_verify_pids=lookahead.verify_proc_ids,
-                      transfer_proc_ids=safe_pids,
-                      assumptions=getattr(lookahead, "prediction_assumptions", ()),
-                      next_cursor=lookahead.next_wrr_cursor, next_cycle=lookahead.next_cycle,
-                      policy=getattr(self.args, "scheduler_policy", "legacy"))
-            if not lookahead.verify_proc_ids and not task_queues.has_live_task("verify"):
+            if first_lookahead is not None:
+                DIAG.emit("prefetch_prediction", plan_id=getattr(first_lookahead, "_diag_id", None),
+                          protected_proc_ids=sorted(protected), ordered_verify_pids=ordered_pids,
+                          transfer_proc_ids=safe_pids,
+                          assumptions=getattr(first_lookahead, "prediction_assumptions", ()),
+                          next_cursor=first_lookahead.next_wrr_cursor,
+                          next_cycle=first_lookahead.next_cycle,
+                          policy=getattr(self.args, "scheduler_policy", "legacy"))
+            if not ordered_pids and not task_queues.has_live_task("verify"):
                 scheduler_metrics["prefetch_no_verify_candidates"] += 1
             # One intent covers this pid set; the worker decides how many
             # tickets it can actually prepare.
@@ -2049,6 +2154,39 @@ class Decoding(ABC):
             reserved_pids = {sl.proc_id for sl in plan.verify_slices} | {
                 sl.proc_id for sl in plan.prefill_slices
             }
+            # Compare the lookahead prediction with the plan that actually
+            # got admitted.  This is separate from KV readiness: a correct
+            # prediction can still miss if the transfer arrives too late.
+            actual_verify_pids = {sl.proc_id for sl in plan.verify_slices}
+            predicted_pids = set(prediction_compare_state.get("pids") or ())
+            if predicted_pids:
+                prediction_hits = predicted_pids & actual_verify_pids
+                prediction_misses = actual_verify_pids - predicted_pids
+                prediction_wasted = predicted_pids - actual_verify_pids
+                scheduler_metrics["prefetch_prediction_plans"] += 1
+                scheduler_metrics["prefetch_prediction_predicted"] += len(predicted_pids)
+                scheduler_metrics["prefetch_prediction_actual"] += len(actual_verify_pids)
+                scheduler_metrics["prefetch_prediction_hits"] += len(prediction_hits)
+                scheduler_metrics["prefetch_prediction_misses"] += len(prediction_misses)
+                scheduler_metrics["prefetch_prediction_wasted"] += len(prediction_wasted)
+                prediction_compare_state["pids"] = set()
+
+            current_tick = int(plan_sequence["tick"])
+            predicted_record = prediction_by_tick.pop(current_tick, None)
+            if predicted_record is not None:
+                horizon_pids, source_tick = predicted_record
+                horizon = max(1, current_tick - source_tick)
+                bucket = scheduler_metrics["prefetch_prediction_by_horizon"].setdefault(
+                    str(horizon),
+                    {"plans": 0, "predicted": 0, "actual": 0,
+                     "hits": 0, "misses": 0, "wasted": 0},
+                )
+                bucket["plans"] += 1
+                bucket["predicted"] += len(horizon_pids)
+                bucket["actual"] += len(actual_verify_pids)
+                bucket["hits"] += len(horizon_pids & actual_verify_pids)
+                bucket["misses"] += len(actual_verify_pids - horizon_pids)
+                bucket["wasted"] += len(horizon_pids - actual_verify_pids)
             ready_at = getattr(plan, "ready_at", time.monotonic())
             DIAG.emit("plan_submitted", plan_id=getattr(plan,"_diag_id",None), ready_at=ready_at, selected=[diag_req(r) for r in verify_batch+prefill_batch])
             reserve_admission_plan(plan)
@@ -2065,8 +2203,17 @@ class Decoding(ABC):
                         if cache is not None:
                             ticket = residency.claim_locked(pid, cache, id(plan))
                             if ticket is not None:
-                                key = "prefetch_ready_hit" if ticket.ready() else "prefetch_pending_hit"
+                                ready = ticket.ready()
+                                key = "prefetch_ready_hit" if ready else "prefetch_pending_hit"
                                 scheduler_metrics[key] = scheduler_metrics.get(key, 0) + 1
+                                horizon = prediction_horizon_by_pid.get(pid)
+                                if horizon is not None:
+                                    state_name = "ready" if ready else "pending"
+                                    bucket = scheduler_metrics[
+                                        "prefetch_ready_by_horizon" if ready
+                                        else "prefetch_pending_by_horizon"
+                                    ].setdefault(str(horizon), {state_name: 0})
+                                    bucket[state_name] += 1
                                 tickets[pid] = req["_cache_ticket"] = ticket
             else:
                 for req in verify_batch + prefill_batch:
@@ -2275,6 +2422,8 @@ class Decoding(ABC):
                 raise
             finally:
                 if outcome.final or outcome.error is not None:
+                    if outcome.final and outcome.error is None:
+                        observe_forward_duration(time.monotonic() - job.ready_at)
                     in_flight["plan"] = None
                     in_flight["job"] = None
                     residency.release(job.reserved_pids)

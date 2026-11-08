@@ -95,6 +95,11 @@ class EnginePredictionIntegrationTests(unittest.TestCase):
             _sort_queues_if_dirty=lambda *args: sorted_calls.append(args),
             plan_iteration=plan_iteration, predict_next_plan=predict_next_plan,
             prefetch_enabled=True, last_prediction={"signature": None},
+            prediction_compare_state={"pids": set()},
+            prediction_by_tick={},
+            prediction_horizon_by_pid={},
+            PREFETCH_LOOKAHEAD_ROUNDS=1,
+            forward_time_state={"seconds": None, "samples": 0},
             accept_stats_version=[0], plan_sequence={"tick": 1},
             # ACTIVE manager with CPU-resident caches: prefetch may be issued.
             residency_manager=SimpleNamespace(
