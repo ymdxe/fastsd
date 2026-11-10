@@ -97,6 +97,7 @@ class EnginePredictionIntegrationTests(unittest.TestCase):
             prefetch_enabled=True, last_prediction={"signature": None},
             prediction_compare_state={"pids": set()},
             prediction_by_tick={},
+            prediction_snapshots={},
             prediction_horizon_by_pid={},
             PREFETCH_LOOKAHEAD_ROUNDS=1,
             forward_time_state={"seconds": None, "samples": 0},

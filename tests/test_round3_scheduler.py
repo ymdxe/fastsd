@@ -9,6 +9,7 @@ from src.fastsd_scheduler import (
     WorkItem, TaskLengthClassifier, compute_priority_score, prefill_priority_score,
     verify_priority_score, plan_iteration, project_after_plan, predict_next_plan,
     commit_admission_plan, reserve_admission_plan,
+    wait_priority_term,
 )
 
 
@@ -33,7 +34,7 @@ class Round3SchedulerTests(unittest.TestCase):
         return plan_iteration(queues, **options)
 
     def test_split_priority_preserves_timing_legacy_and_cold_start_values(self):
-        wait = math.exp(.01 * 5)
+        wait = wait_priority_term(0.01, 5)
         prefill_cases = [
             ({}, wait),
             ({"timing_required": True}, -math.inf),

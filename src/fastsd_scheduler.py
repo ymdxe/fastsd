@@ -23,13 +23,32 @@ FASTSD_DEFAULT_R1 = 128
 FASTSD_DEFAULT_R2 = 512
 FASTSD_DYNAMIC_WINDOW = 100
 FASTSD_VERIFY_PREFILL_SWITCH_THRESHOLD = 6  # legacy API compatibility
-WAIT_PRIORITY_BASE = float(os.environ.get("FASTSD_WAIT_PRIORITY_BASE", "2.0"))
-if WAIT_PRIORITY_BASE <= 1.0:
-    raise ValueError("FASTSD_WAIT_PRIORITY_BASE must be > 1")
+# Ageing is linear for normal queue waits and exponential only after the
+# request has waited long enough to matter for fairness.  The two pieces are
+# C1-continuous at WAIT_LINEAR_UNTIL_S: alpha and beta are chosen to match both
+# exp(lambda*T0) and its slope.  The common beta offset does not change the
+# relative order of requests that are already waiting.
+WAIT_LINEAR_UNTIL_S = float(os.environ.get("FASTSD_WAIT_LINEAR_UNTIL_S", "5.0"))
+WAIT_LAMBDA_DEFAULT = 0.01
+WAIT_LINEAR_ALPHA = os.environ.get("FASTSD_WAIT_LINEAR_ALPHA", "").strip()
 
 
 def wait_priority_term(lamda, elapsed_s):
-    return math.pow(WAIT_PRIORITY_BASE, float(lamda) * float(elapsed_s))
+    lamda = float(lamda)
+    t = max(0.0, float(elapsed_s))
+    t0 = WAIT_LINEAR_UNTIL_S
+    if lamda <= 0.0:
+        return 1.0
+    if t0 > 0.0 and t <= t0 and lamda * t0 < 1.0:
+        edge = math.exp(lamda * t0)
+        if WAIT_LINEAR_ALPHA:
+            alpha = float(WAIT_LINEAR_ALPHA)
+        else:
+            # C1 default: match both value and slope at T0.
+            alpha = lamda * edge
+        beta = edge - alpha * t0
+        return beta + alpha * t
+    return math.exp(lamda * t)
 
 
 FASTSD_VERIFY_WRR_ORDER = (

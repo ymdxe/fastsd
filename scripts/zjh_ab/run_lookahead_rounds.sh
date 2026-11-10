@@ -17,7 +17,7 @@ N2_PY="${N2_PY:-/home/hdd/zhangh/envs/new_fastsd/bin/python}"
 N1_PY="${N1_PY:-/home/zhangh/venvs/fastsd_cpu/bin/python}"
 PORT="${PORT:-8003}"
 TUNNEL_PORT="${TUNNEL_PORT:-18003}"
-TARGET_GPU="${TARGET_GPU:-2}"
+TARGET_GPU="${TARGET_GPU:-0}"
 READY_TIMEOUT="${READY_TIMEOUT:-900}"
 
 log() { printf '%s %s\n' "$(date -Ins)" "$*"; }
@@ -77,7 +77,7 @@ run_round() {
           TARGET_GPU='$TARGET_GPU' \
           FASTSD_WAIT_PRIORITY_BASE='$wait_base' \
           KV_PREFETCH_LOOKAHEAD_ROUNDS='$lookahead_rounds' \
-          NUM_DRAFTS=32 BATCH_SIZE=8 TOKEN_BUDGET=64 MAX_TOKENS=400 GAMMA=4 \
+          NUM_DRAFTS=32 BATCH_SIZE=8 TOKEN_BUDGET=32 MAX_TOKENS=400 GAMMA=8 \
           KV_RESIDENCY_BUDGET_MB='$budget_mb' \
           KV_PREFETCH_MB=256 KV_PREFETCH_RATE_MB_S=256 KV_PREFETCH_IDLE_RATE_MB_S=1024 \
           RUN_NAME='$run' \
@@ -94,8 +94,8 @@ run_round() {
           TARGET_MODEL=/mnt/nfs0/zhangh/models/Qwen3-8B \
           DRAFT_MODEL=/mnt/nfs0/zhangh/models/Qwen3-0.6B \
           DATA_PATH=data_dual_node2 REQUESTS=82 NUM_DRAFTS=16 EDGE_THREADS=4 \
-          BATCH_SIZE=8 TOKEN_BUDGET=64 MAX_TOKENS=400 GAMMA=4 \
-          ARRIVAL_DISTRIBUTION=poisson ARRIVAL_RATE=0.64 ARRIVAL_SEED=5678 \
+          BATCH_SIZE=8 TOKEN_BUDGET=32 MAX_TOKENS=400 GAMMA=8 \
+          ARRIVAL_DISTRIBUTION=poisson ARRIVAL_RATE=1.6 ARRIVAL_SEED=5678 \
           TARGET_URL=http://127.0.0.1:${PORT} RUN_NAME='$run' \
           ./scripts/zjh_ab/client.sh fastsd >'$n2_edge_log' 2>&1 & echo \$!")
 
@@ -107,8 +107,8 @@ run_round() {
         TARGET_MODEL=/mnt/nfs0/zhangh/models/Qwen3-8B \
         DRAFT_MODEL=/mnt/nfs0/zhangh/models/Qwen3-0.6B \
         DATA_PATH=data_dual_node1 REQUESTS=82 NUM_DRAFTS=16 EDGE_THREADS=4 \
-        BATCH_SIZE=8 TOKEN_BUDGET=64 MAX_TOKENS=400 GAMMA=4 \
-        ARRIVAL_DISTRIBUTION=poisson ARRIVAL_RATE=0.64 ARRIVAL_SEED=1234 \
+        BATCH_SIZE=8 TOKEN_BUDGET=32 MAX_TOKENS=400 GAMMA=8 \
+        ARRIVAL_DISTRIBUTION=poisson ARRIVAL_RATE=1.6 ARRIVAL_SEED=1234 \
         TARGET_URL=http://127.0.0.1:${TUNNEL_PORT} RUN_NAME="$run" \
         ./scripts/zjh_ab/client.sh fastsd >"$n1_edge_log" 2>&1); then
         log "WARN: node1 edge failed; continuing to collect target metrics"
@@ -143,10 +143,9 @@ run_round() {
 
 ensure_tunnel
 
-# 2GB creates real eviction pressure; 2.5GB fits all 32 sessions and is not
-# useful for prefetch experiments.  e base, K=3/5/10.
-run_round dual-la3-2g  2048 2.718281828459045 3  || log "WARN: dual-la3-2g failed"
-run_round dual-la5-2g  2048 2.718281828459045 5  || log "WARN: dual-la5-2g failed"
-run_round dual-la10-2g 2048 2.718281828459045 10 || log "WARN: dual-la10-2g failed"
+# 2GB pressure, e base, one horizon after another on the same target GPU.
+run_round new_function_test_la1 2048 2.718281828459045 1 || log "WARN: new_function_test_la1 failed"
+run_round new_function_test_la3 2048 2.718281828459045 3 || log "WARN: new_function_test_la3 failed"
+run_round new_function_test_la5 2048 2.718281828459045 5 || log "WARN: new_function_test_la5 failed"
 
 log "=== SWEEP DONE ==="

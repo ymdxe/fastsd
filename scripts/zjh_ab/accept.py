@@ -65,6 +65,24 @@ def percentile(values, q):
     return values[index]
 
 
+def union_seconds(intervals):
+    intervals = sorted(
+        (float(a), float(b)) for a, b in intervals
+        if a is not None and b is not None and float(b) >= float(a)
+    )
+    if not intervals:
+        return 0.0
+    total = 0.0
+    cur_a, cur_b = intervals[0]
+    for a, b in intervals[1:]:
+        if a <= cur_b:
+            cur_b = max(cur_b, b)
+        else:
+            total += cur_b - cur_a
+            cur_a, cur_b = a, b
+    return total + cur_b - cur_a
+
+
 def summarize(cond_dir):
     scheduler = load_scheduler(cond_dir)
     residency = scheduler.get("kv_residency") or {}
@@ -86,6 +104,25 @@ def summarize(cond_dir):
                 if r.get("completion_monotonic_s") is not None]
     span = (max(ends) - min(starts)) if starts and ends else 0.0
     tokens = sum(int(r.get("generated_tokens") or 0) for r in records)
+
+    def pick(record, epoch_key, mono_key):
+        value = record.get(epoch_key)
+        return value if value is not None else record.get(mono_key)
+
+    decode_intervals = [
+        (pick(r, "first_token_epoch_s", "first_token_monotonic_s"),
+         pick(r, "completion_epoch_s", "completion_monotonic_s"))
+        for r in records
+        if pick(r, "first_token_epoch_s", "first_token_monotonic_s") is not None
+    ]
+    request_intervals = [
+        (pick(r, "processing_start_epoch_s", "processing_start_monotonic_s"),
+         pick(r, "completion_epoch_s", "completion_monotonic_s"))
+        for r in records
+    ]
+    decode_busy_s = union_seconds(decode_intervals)
+    request_busy_s = union_seconds(request_intervals)
+    throughput_span = decode_busy_s or request_busy_s or span
     e2e = [r.get("request_e2e_ms") or r.get("e2e_ms") or 0.0 for r in records]
     ttft = [r["ttft_ms"] for r in records if r.get("ttft_ms") is not None]
     tpot = [r["tpot_ms"] for r in records if r.get("tpot_ms") is not None]
@@ -95,7 +132,13 @@ def summarize(cond_dir):
         "requests": len(records),
         "tokens": tokens,
         "span_s": span,
+        "decode_busy_s": decode_busy_s,
+        "request_busy_s": request_busy_s,
+        # Paper-facing throughput: whole benchmark window, including
+        # arrival gaps.  Busy-window values are diagnostics below.
         "tok_per_s": (tokens / span) if span > 0 else 0.0,
+        "req_per_s": (len(records) / span) if span > 0 else 0.0,
+        "busy_tok_per_s": (tokens / throughput_span) if throughput_span > 0 else 0.0,
         "e2e_p50": percentile(e2e, 0.50),
         "e2e_p95": percentile(e2e, 0.95),
         "ttft_p50": percentile(ttft, 0.50),
@@ -128,9 +171,9 @@ def fmt_bytes(value):
 
 
 def print_table(rows):
-    headers = ("condition", "n", "tok/s", "E2E p50", "TTFT p50", "TPOT p50",
+    headers = ("condition", "n", "tok/s", "req/s", "E2E p50", "TTFT p50", "TPOT p50",
                "KV mode", "evict", "H2D", "D2H", "copies", "lookahead", "ready")
-    line = "{:<34}{:>4}{:>8}{:>10}{:>10}{:>9}{:>9}{:>7}{:>9}{:>9}{:>8}{:>10}{:>7}"
+    line = "{:<34}{:>4}{:>8}{:>7}{:>10}{:>10}{:>9}{:>9}{:>7}{:>9}{:>9}{:>8}{:>10}{:>7}"
     print(line.format(*headers))
     print("-" * 128)
     for row in rows:
@@ -138,6 +181,7 @@ def print_table(rows):
             os.path.basename(row["dir"].rstrip("/")),
             row["requests"],
             f'{row["tok_per_s"]:.2f}',
+            f'{row["req_per_s"]:.2f}',
             f'{row["e2e_p50"]:.0f}',
             f'{row["ttft_p50"]:.0f}',
             f'{row["tpot_p50"]:.0f}',

@@ -62,6 +62,12 @@ case "$CASE" in
       --enable_pipeline --enable_proactive_draft --enable_latency_priority \
       --overlap_prefill_first_draft --kv_prefetch --kv_prefetch_mode overlap
     ;;
+  fastsd-noprefetch)
+    exec "$NODE2_PY" cloud/cloud_service.py "${COMMON[@]}" \
+      --profile custom --server_sched_mode fastsd --scheduler_policy legacy \
+      --enable_pipeline --enable_proactive_draft --enable_latency_priority \
+      --overlap_prefill_first_draft --no-kv_prefetch --kv_prefetch_mode overlap
+    ;;
   *)
     echo "unknown case: $CASE (expected sd-cpu|fastsd)" >&2
     exit 2

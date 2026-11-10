@@ -1352,6 +1352,40 @@ class EdgeRunner(Decoding):
         prefill_wait_after_first_draft_ms = [
             float(r.get("prefill_wait_after_first_draft_ms", 0.0)) for r in records
         ]
+        def union_seconds(intervals):
+            intervals = sorted(
+                (float(a), float(b)) for a, b in intervals
+                if a is not None and b is not None and float(b) >= float(a)
+            )
+            if not intervals:
+                return 0.0
+            total = 0.0
+            cur_a, cur_b = intervals[0]
+            for a, b in intervals[1:]:
+                if a <= cur_b:
+                    cur_b = max(cur_b, b)
+                else:
+                    total += cur_b - cur_a
+                    cur_a, cur_b = a, b
+            return total + cur_b - cur_a
+
+        def pick(record, epoch_key, mono_key):
+            value = record.get(epoch_key)
+            return value if value is not None else record.get(mono_key)
+
+        decode_intervals = [
+            (pick(r, "first_token_epoch_s", "first_token_monotonic_s"),
+             pick(r, "completion_epoch_s", "completion_monotonic_s"))
+            for r in records
+            if pick(r, "first_token_epoch_s", "first_token_monotonic_s") is not None
+        ]
+        request_intervals = [
+            (pick(r, "processing_start_epoch_s", "processing_start_monotonic_s"),
+             pick(r, "completion_epoch_s", "completion_monotonic_s"))
+            for r in records
+        ]
+        decode_busy_s = union_seconds(decode_intervals)
+        request_busy_s = union_seconds(request_intervals)
         total_tokens = sum(int(r.get("generated_tokens", 0)) for r in records)
         max_generated_tokens_observed = max(
             (int(r.get("generated_tokens", 0)) for r in records),
@@ -1425,6 +1459,34 @@ class EdgeRunner(Decoding):
             "active_window_definition": "first_worker_request_processing_start_to_last_request_completion_including_load_gaps",
             "active_window_tok_per_s": float(total_tokens / active_window_s) if active_window_s > 0 else 0.0,
             "accept_rate": float(total_accepted / total_drafted) if total_drafted > 0 else 0.0,
+            "decode_busy_s": float(decode_busy_s),
+            "decode_busy_tok_per_s": (
+                float(total_tokens / decode_busy_s) if decode_busy_s > 0 else 0.0
+            ),
+            "request_busy_s": float(request_busy_s),
+            "request_busy_tok_per_s": (
+                float(total_tokens / request_busy_s) if request_busy_s > 0 else 0.0
+            ),
+            "request_busy_rps": (
+                float(len(records) / request_busy_s) if request_busy_s > 0 else 0.0
+            ),
+            "total_accepted_tokens": int(total_accepted),
+            "total_drafted_tokens": int(total_drafted),
+            "mean_accepted_tokens_per_task": (
+                float(total_accepted / len(records)) if records else 0.0
+            ),
+            "mean_drafted_tokens_per_task": (
+                float(total_drafted / len(records)) if records else 0.0
+            ),
+            "mean_accepted_tokens_per_verify": (
+                float(statistics.mean([
+                    float(r["mean_accepted_tokens_per_verify"])
+                    for r in records
+                    if r.get("mean_accepted_tokens_per_verify") is not None
+                ]))
+                if any(r.get("mean_accepted_tokens_per_verify") is not None for r in records)
+                else None
+            ),
             "q_tail_avg": float(statistics.mean(q_tail)) if q_tail else None,
             "task_e2e_ms_avg": float(statistics.mean(task_e2e)) if task_e2e else 0.0,
             "task_e2e_ms_p50": self._percentile(task_e2e, 0.50),
@@ -1701,6 +1763,7 @@ class EdgeRunner(Decoding):
                 prefix = input_ids.clone()
                 max_len = input_ids.shape[1] + self.args.max_tokens
                 first_token_time = None
+                first_token_epoch = None
                 pipeline_enabled = bool(getattr(self.args, "enable_pipeline", True))
                 proactive_enabled = bool(getattr(self.args, "enable_proactive_draft", True))
                 overlap_prefill_first_draft = bool(timing_protocol or getattr(self.args, "overlap_prefill_first_draft", False))
@@ -2120,6 +2183,7 @@ class EdgeRunner(Decoding):
                     )
                     if first_token_time is None and prefix.shape[1] > input_ids.shape[1]:
                         first_token_time = time.monotonic()
+                        first_token_epoch = time.time()
                     reused_pending_tokens = []
                     reused_pending_prob_rows = []
 
@@ -2312,6 +2376,8 @@ class EdgeRunner(Decoding):
                     "processing_start_epoch_s": request_start_epoch,
                     "completion_monotonic_s": completion_time,
                     "completion_epoch_s": completion_epoch,
+                    "first_token_monotonic_s": first_token_time,
+                    "first_token_epoch_s": first_token_epoch,
                     "prefill_ms": prefill_ms,
                     "local_prefill_s": float(first_round_timings.get("local_prefill_s", 0.0)),
                     "local_prefill_ms": float(first_round_timings.get("local_prefill_ms", 0.0)),

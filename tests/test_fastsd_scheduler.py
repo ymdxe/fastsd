@@ -14,6 +14,7 @@ from src.fastsd_scheduler import (
     reserve_admission_plan,
     should_switch_to_prefill,
     update_length_thresholds,
+    wait_priority_term,
 )
 
 
@@ -65,7 +66,7 @@ class FastSDSchedulerTests(unittest.TestCase):
         accept_stats = {"draft-1": [8, 10]}
         score = compute_priority_score(req, accept_stats, now=100.0, lamda=0.01)
         expected_acc_prob = (8 + 1) / (10 + 1)
-        expected = -((0.4 + 0.1) / expected_acc_prob) + math.exp(0.01 * 5.0)
+        expected = -((0.4 + 0.1) / expected_acc_prob) + wait_priority_term(0.01, 5.0)
         self.assertAlmostEqual(score, expected, places=6)
 
     def test_verify_priority_uses_smoothed_acceptance_for_cold_start(self):
@@ -77,7 +78,7 @@ class FastSDSchedulerTests(unittest.TestCase):
             "current_time": 99.0,
         }
         score = compute_priority_score(req, {}, now=100.0, lamda=0.01)
-        expected = -0.5 + math.exp(0.01)
+        expected = -0.5 + wait_priority_term(0.01, 1.0)
         self.assertAlmostEqual(score, expected, places=6)
 
     def test_none_latency_fields_do_not_opt_legacy_verify_into_new_formula(self):
@@ -93,7 +94,7 @@ class FastSDSchedulerTests(unittest.TestCase):
         }
         score = compute_priority_score(req, {"draft-legacy": [8, 10]}, now=100.0, lamda=0.01)
         acceptance = (8 + 1) / (10 + 1)
-        expected = -((0.4 + 0.1) / acceptance) + math.exp(0.05)
+        expected = -((0.4 + 0.1) / acceptance) + wait_priority_term(0.01, 5.0)
         self.assertAlmostEqual(score, expected, places=6)
 
     def test_prefill_pn_field_cannot_override_fixed_denominator(self):
@@ -124,7 +125,7 @@ class FastSDSchedulerTests(unittest.TestCase):
             "current_time": 99.0,
         }
         score = compute_priority_score(req, {"draft-1": [0, 1]}, now=100.0, lamda=0.01)
-        self.assertAlmostEqual(score, math.exp(0.01), places=6)
+        self.assertAlmostEqual(score, wait_priority_term(0.01, 1.0), places=6)
 
     def test_prefill_priority_uses_cloud_arrival_time_before_token_upload(self):
         req = {
@@ -134,7 +135,7 @@ class FastSDSchedulerTests(unittest.TestCase):
             "current_time": 0.0,
         }
         score = compute_priority_score(req, {}, now=100.0, lamda=0.01)
-        self.assertAlmostEqual(score, math.exp(0.05), places=6)
+        self.assertAlmostEqual(score, wait_priority_term(0.01, 5.0), places=6)
 
     def test_latency_aware_prefill_priority_uses_tp_td_and_push(self):
         req = {
@@ -149,7 +150,7 @@ class FastSDSchedulerTests(unittest.TestCase):
             "server_enqueue_monotonic": 95.0,
         }
         score = compute_priority_score(req, {}, now=100.0, lamda=0.01)
-        expected = -(0.20 + 0.03 * 3 + 0.01) + math.exp(0.05)
+        expected = -(0.20 + 0.03 * 3 + 0.01) + wait_priority_term(0.01, 5.0)
         self.assertAlmostEqual(score, expected, places=6)
 
     def test_latency_aware_verify_priority_uses_previous_pull(self):
@@ -164,7 +165,7 @@ class FastSDSchedulerTests(unittest.TestCase):
         }
         score = compute_priority_score(req, {"draft-1": [3, 4]}, now=100.0, lamda=0.01)
         acceptance = (3 + 1) / (4 + 1)
-        expected = -((0.03 * 4 + 0.01 + 0.02) / acceptance) + math.exp(0.05)
+        expected = -((0.03 * 4 + 0.01 + 0.02) / acceptance) + wait_priority_term(0.01, 5.0)
         self.assertAlmostEqual(score, expected, places=6)
 
     def test_timing_required_prefill_is_not_admitted_before_update(self):

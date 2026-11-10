@@ -2009,7 +2009,9 @@ class Decoding(ABC):
 
         last_prediction = {"signature": None}
         prediction_compare_state = {"pids": set()}
-        prediction_by_tick = {}
+        # source plan number -> ordered [pid set for +1, +2, ...] snapshots.
+        # A snapshot is consumed by actual plans, not by the wall-clock tick.
+        prediction_snapshots = {}
         # Earliest predicted horizon for each pid; used to label ready/pending
         # claims with 1/3/5/10-step prefetch lead time.
         prediction_horizon_by_pid = {}
@@ -2099,11 +2101,16 @@ class Decoding(ABC):
             # A prediction made at tick T for tick T+step is consumed when that
             # future plan is actually admitted.  Keeping it keyed by tick lets
             # us report accuracy separately for 1/3/5/10-step horizons.
-            for stale in [tick for tick in prediction_by_tick if tick <= prediction_tick]:
-                prediction_by_tick.pop(stale, None)
+            # prediction_tick is the next plan number: the in-flight plan has
+            # already consumed its tick.  Horizon 1 therefore occupies
+            # prediction_tick itself, horizon 2 the following tick, etc.
+            prediction_snapshots[prediction_tick] = [
+                set(predicted.verify_proc_ids) for predicted in predicted_plans
+            ]
+            for stale in [tick for tick in prediction_snapshots
+                          if tick < prediction_tick - PREFETCH_LOOKAHEAD_ROUNDS]:
+                prediction_snapshots.pop(stale, None)
             for step, predicted in enumerate(predicted_plans, 1):
-                prediction_by_tick[prediction_tick + step] = (
-                    set(predicted.verify_proc_ids), prediction_tick)
                 for pid in predicted.verify_proc_ids:
                     prediction_horizon_by_pid.setdefault(pid, step)
             scheduler_metrics["prefetch_lookahead_effective_rounds"] = max(
@@ -2172,12 +2179,16 @@ class Decoding(ABC):
                 prediction_compare_state["pids"] = set()
 
             current_tick = int(plan_sequence["tick"])
-            predicted_record = prediction_by_tick.pop(current_tick, None)
-            if predicted_record is not None:
-                horizon_pids, source_tick = predicted_record
-                horizon = max(1, current_tick - source_tick)
+            for source_tick, horizon_plans in list(prediction_snapshots.items()):
+                delta = current_tick - source_tick + 1
+                if delta < 1:
+                    continue
+                if delta > len(horizon_plans):
+                    prediction_snapshots.pop(source_tick, None)
+                    continue
+                horizon_pids = horizon_plans[delta - 1]
                 bucket = scheduler_metrics["prefetch_prediction_by_horizon"].setdefault(
-                    str(horizon),
+                    str(delta),
                     {"plans": 0, "predicted": 0, "actual": 0,
                      "hits": 0, "misses": 0, "wasted": 0},
                 )
