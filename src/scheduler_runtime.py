@@ -30,6 +30,9 @@ import threading
 import time
 from diagnostic_trace import trace as DIAG, request_meta as diag_req, item_meta as diag_item, queue_rows as diag_queues, backlog as diag_backlog
 from typing import Any, Callable, Iterable, Mapping, Optional
+from .cache_protocol import (
+    PrefetchTarget, ordered_prefetch_targets, prefetch_pid, prefetch_horizon,
+)
 
 CATEGORIES = ("short", "mid", "long")
 TASK_TYPES = ("verify", "prefill")
@@ -488,6 +491,7 @@ class CacheResidency:
         with ticket.lock:
             self.candidates.pop(pid)
             ticket.claimed_by = job_id
+            ticket.claimed_at = time.perf_counter()
         return ticket
 
     def retire_session_locked(self, pid):
@@ -584,13 +588,28 @@ class PrefetchCoordinator:
         self._last_desired: Optional[tuple] = None
         self._last_submit_at = 0.0
 
-    def refresh(self, desired_pids: Iterable[Any]) -> bool:
-        requested = tuple(dict.fromkeys(desired_pids))
+    def refresh(self, desired_pids: Iterable[Any], *, prediction_tick=None) -> bool:
+        requested = ordered_prefetch_targets(desired_pids)
+        if prediction_tick is not None:
+            # Horizon/CPU-state filtering can produce an empty new list while
+            # an h1 copy is still preparing. Retain its labelled intent until
+            # the actual plan advances; an unlabelled explicit clear still
+            # cancels immediately for legacy callers.
+            retained = [target for target in self._last_desired or ()
+                        if isinstance(target, PrefetchTarget) and target.horizon == 1
+                        and target.prediction_tick >= prediction_tick]
+            requested = ordered_prefetch_targets((*requested, *retained))
         protected = self._protected_snapshot()
-        excluded = set(requested) & protected
+        excluded = {prefetch_pid(target) for target in requested} & protected
         if excluded:
             self.metrics["prefetch_reserved_excluded"] += len(excluded)
-        desired = tuple(pid for pid in requested if pid not in protected)
+        desired = tuple(target for target in requested if prefetch_pid(target) not in protected)
+        desired_set = {prefetch_pid(target) for target in desired}
+        counts = {}
+        for target in desired:
+            key = str(prefetch_horizon(target))
+            counts[key] = counts.get(key, 0) + 1
+        self.metrics["prefetch_intent_by_horizon"] = counts
 
         self.metrics["prefetch_plans"] += 1
         if not desired:
@@ -604,7 +623,7 @@ class PrefetchCoordinator:
 
         current = set(self._resident_snapshot())
         stale = set()  # prediction never evicts an official cache
-        to_gpu = set(desired) - current
+        to_gpu = desired_set - current
 
         if self._last_desired == desired:
             self.metrics["prefetch_desired_unchanged"] += 1
@@ -625,7 +644,7 @@ class PrefetchCoordinator:
             return False
 
         self.metrics["prefetch_evictions"] += len(stale)
-        self.metrics["prefetch_hits"] += len(current & set(desired))
+        self.metrics["prefetch_hits"] += len(current & desired_set)
         self.metrics["prefetch_misses"] += len(to_gpu)
 
         previous = self._last_desired
@@ -677,6 +696,9 @@ class KVPrefetchWorker:
         # Production callers supply a plain dict, including older metric
         # schemas. Initialize the counter owned by this worker before it runs.
         self.metrics.setdefault("prefetch_preparation_retries", 0)
+        self.metrics.setdefault("prefetch_candidate_by_horizon", {})
+        self.metrics.setdefault("prefetch_candidates_created_by_horizon", {})
+        self.metrics.setdefault("prefetch_retired_by_horizon", {})
         self._on_error = on_error
         self._thread_setup = thread_setup
         self._tasks: queue.Queue = queue.Queue(maxsize=queue_maxsize)
@@ -725,7 +747,7 @@ class KVPrefetchWorker:
 
         if self._stop.is_set():
             return False
-        intent = tuple(dict.fromkeys(desired))
+        intent = ordered_prefetch_targets(desired)
         with self._state_lock:
             self._latest_intent = intent
             self._pending += 1
@@ -758,6 +780,21 @@ class KVPrefetchWorker:
     def _is_superseded(self, desired) -> bool:
         with self._state_lock:
             return tuple(self._latest_intent or ()) != tuple(desired)
+
+    def _target_is_current(self, target, intent):
+        """A lower-horizon refresh must not discard h1 during preparation."""
+        with self._state_lock:
+            latest = tuple(self._latest_intent or ())
+        if latest == tuple(intent):
+            return True
+        if not isinstance(target, PrefetchTarget) or target.horizon != 1 or not latest:
+            return False
+        labelled = [entry for entry in latest if isinstance(entry, PrefetchTarget)]
+        if not labelled:
+            return False
+        return (any(entry.pid == target.pid for entry in labelled)
+                or not any(entry.horizon == 1 for entry in labelled)
+                or max(entry.prediction_tick for entry in labelled) <= target.prediction_tick)
 
     def _decrement_pending(self) -> None:
         """Release one pending slot; an underflow is a bookkeeping bug."""
@@ -841,6 +878,10 @@ class KVPrefetchWorker:
                 self._decrement_pending()
 
     def _retire(self, ticket):
+        if not ticket.retired:
+            counts = self.metrics["prefetch_retired_by_horizon"]
+            key = str(ticket.horizon)
+            counts[key] = counts.get(key, 0) + 1
         if self.transfers is not None:
             self.transfers.retire(ticket)
         else:
@@ -851,21 +892,50 @@ class KVPrefetchWorker:
         # Background publishes candidates only. Formal cache ownership is
         # transferred atomically by admission and installed by the executor.
         residency = self.residency
+        if self._is_superseded(desired):
+            self.metrics["prefetch_async_superseded"] += 1
+            return 0
+        targets = ordered_prefetch_targets(desired)
+        by_pid = {prefetch_pid(target): target for target in targets}
+        has_h1 = any(prefetch_horizon(target) == 1 for target in targets)
+        tick = max((target.prediction_tick for target in targets
+                    if isinstance(target, PrefetchTarget)), default=0)
+        labelled = any(isinstance(target, PrefetchTarget) for target in targets)
         stale = []
         with residency.lock:
+            missing_h1 = any(prefetch_horizon(target) == 1
+                             and prefetch_pid(target) not in residency.candidates
+                             and prefetch_pid(target) not in
+                             residency.resident | residency.active | residency.reserved
+                             for target in targets)
             for pid, ticket in list(residency.candidates.items()):
                 cache = self._get_cache(pid)
                 matches = cache is not None and ticket.matches(residency.snapshot_locked(pid, cache))
-                if pid not in desired or not matches:
+                if matches and pid in by_pid:
+                    ticket.horizon = min(ticket.horizon, prefetch_horizon(by_pid[pid]))
+                # Keep valid h1 across refreshes of the same admission tick and
+                # across lower-horizon-only intents. A later actual plan or an
+                # explicit empty intent can release a no-longer-predicted h1.
+                keep_h1 = (labelled and targets and ticket.horizon == 1
+                           and (pid in by_pid or not has_h1 or tick <= ticket.prediction_tick))
+                lower_competes = missing_h1 and ticket.horizon > 1
+                if not matches or (pid not in by_pid and not keep_h1) or lower_competes:
                     stale.append(residency.candidates.pop(pid))
             # The planner's order is significant under a bounded GPU budget.
             # Never sort by process ID or turn this sequence into a set.
-            to_gpu = [pid for pid in desired if pid not in
+            to_gpu = [prefetch_pid(target) for target in targets if prefetch_pid(target) not in
                       residency.resident | residency.active | residency.reserved]
         for ticket in stale:
             self._retire(ticket)
+        if stale and self.transfers is not None:
+            # Reclaim drained lower-horizon reservations before allocating h1.
+            self.transfers.poll_completed()
         moved = 0
+        intent_at = self._clock()
+        blocked_h1 = False
         for pid in to_gpu:
+            if blocked_h1 and prefetch_horizon(by_pid[pid]) > 1:
+                break
             if self._is_superseded(desired):
                 self.metrics["prefetch_async_superseded"] += 1
                 break
@@ -883,22 +953,35 @@ class KVPrefetchWorker:
             if self.transfers is not None:
                 ticket = self.transfers.submit_h2d(snapshot, purpose="prefetch")
                 if ticket is None:
+                    if prefetch_horizon(by_pid[pid]) == 1:
+                        # Do not spend the remaining arena on h2/h3 when an h1
+                        # reservation could not fit. Other h1 may still fit.
+                        blocked_h1 = True
                     continue
             else:
                 ticket = KVTransferTicket(snapshot, "prefetch",
                     destination_cache=self._move_cache(cache, self._gpu_device),
                     source_lease=cache, copy_state="ready")
+            ticket.horizon = prefetch_horizon(by_pid[pid])
+            ticket.transfer_horizon = ticket.horizon
+            ticket.prediction_tick = getattr(by_pid[pid], "prediction_tick", 0)
+            ticket.intent_at = intent_at
             with residency.lock:
                 current = self._get_cache(pid)
-                valid = (not self._is_superseded(desired)
+                valid = (self._target_is_current(by_pid[pid], desired)
                          and pid not in residency.active and pid not in residency.reserved
                          and current is cache
                          and ticket.matches(residency.snapshot_locked(pid, current)))
                 if valid:
                     residency.candidates[pid] = ticket
                     moved += 1
+                    counts = self.metrics["prefetch_candidates_created_by_horizon"]
+                    key = str(ticket.horizon)
+                    counts[key] = counts.get(key, 0) + 1
                     DIAG.emit("prefetch_candidate", proc_id=pid, ticket_id=id(ticket),
-                              planned_order=list(desired), bytes=ticket.bytes_reserved)
+                              horizon=ticket.horizon, prediction_tick=ticket.prediction_tick,
+                              planned_order=[prefetch_pid(target) for target in targets],
+                              bytes=ticket.bytes_reserved)
             if not valid:
                 self._retire(ticket)
                 self.metrics["prefetch_async_skipped_stale"] += 1
@@ -911,14 +994,19 @@ class KVPrefetchWorker:
         return moved
 
     def _advance_candidates(self):
+        if self.transfers is not None:
+            self.transfers.poll_completed()
+        with self.residency.lock:
+            # Registry order is stable within a horizon. Retained h1 continues
+            # to advance even when omitted from a later h2/h3-only intent.
+            candidates = sorted(self.residency.candidates.values(), key=lambda t: t.horizon)
+            counts = {}
+            for ticket in candidates:
+                key = str(ticket.horizon)
+                counts[key] = counts.get(key, 0) + 1
+            self.metrics["prefetch_candidate_by_horizon"] = counts
         if self.transfers is None:
             return
-        self.transfers.poll_completed()
-        with self._state_lock:
-            desired = tuple(self._latest_intent or ())
-        with self.residency.lock:
-            candidates = [self.residency.candidates[pid] for pid in desired
-                          if pid in self.residency.candidates]
         for ticket in candidates:
             if ticket.copy_done is not None or ticket.ready() or ticket.retired:
                 continue

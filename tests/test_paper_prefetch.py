@@ -222,7 +222,7 @@ class PaperTransferTests(unittest.TestCase):
              torch.full((1, 1, 8, 128), float(-i), pin_memory=True)) for i in range(layers)])
 
     def test_new_candidate_can_prepare_after_admission_and_execution(self):
-        manager, compute = CacheTransferManager('cuda:0'), torch.cuda.Stream()
+        manager, compute = CacheTransferManager('cuda:0', warmup_pool=True), torch.cuda.Stream()
         source = self.cache()
         try:
             manager.install_probe('new-arrival', group_bytes=256 * 1024,
@@ -249,7 +249,7 @@ class PaperTransferTests(unittest.TestCase):
             manager.close()
 
     def test_chunk_budget_coalesces_small_layers_without_exceeding_bytes(self):
-        manager = CacheTransferManager('cuda:0', chunk_bytes=16 * 1024)
+        manager = CacheTransferManager('cuda:0', chunk_bytes=16 * 1024, warmup_pool=True)
         try:
             ticket = manager.submit_h2d(self.cache(), purpose='prefetch')
             manager.advance_prefetch(ticket)

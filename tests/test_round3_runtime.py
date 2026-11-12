@@ -10,6 +10,7 @@ from src.fastsd_scheduler import (
     TaskLengthClassifier, WorkItem, length_category, plan_iteration, predict_next_plan,
 )
 from src.cache_residency import CPU_RESIDENT, GPU_RESIDENT
+from src.cache_protocol import PrefetchTarget
 from src.scheduler_runtime import (
     SchedulerQueues, ShutdownRequested, TargetSchedulerRuntime,
 )
@@ -100,6 +101,8 @@ class EnginePredictionIntegrationTests(unittest.TestCase):
             prediction_snapshots={},
             prediction_horizon_by_pid={},
             PREFETCH_LOOKAHEAD_ROUNDS=1,
+            PREFETCH_HORIZON_LIMIT=1, PREFETCH_H2_MAX_PIDS=4,
+            PrefetchTarget=PrefetchTarget,
             forward_time_state={"seconds": None, "samples": 0},
             accept_stats_version=[0], plan_sequence={"tick": 1},
             # ACTIVE manager with CPU-resident caches: prefetch may be issued.
@@ -109,8 +112,9 @@ class EnginePredictionIntegrationTests(unittest.TestCase):
             CPU_RESIDENT=CPU_RESIDENT, GPU_RESIDENT=GPU_RESIDENT,
             sample_pressure=lambda: False,
             residency=SimpleNamespace(protected_snapshot=lambda: set()),
-            prefetch_coordinator=SimpleNamespace(refresh=lambda pids: submitted.append(list(pids))),
+            prefetch_coordinator=SimpleNamespace(refresh=lambda targets, **kw: submitted.append([t.pid for t in targets])),
         )
+        metrics["prefetch_skipped_horizon"] = {}
         engine_closure("build_plan", namespace)
         engine_closure("refresh_prefetch", namespace)
         return namespace, sorted_calls, submitted, diagnostics

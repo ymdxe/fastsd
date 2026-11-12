@@ -1,5 +1,6 @@
 """Exercise the production worker, slicing, cache windows and session release."""
 import queue
+import importlib.util
 import threading
 import types
 import unittest
@@ -118,7 +119,9 @@ class ReviewEngineTests(unittest.TestCase):
     def test_cuda_worker_with_async_offload_and_reload(self):
         self.run_worker_case("varlen", device="cuda:0", cycles=2)
 
-    @unittest.skipUnless(DEPS and torch.cuda.is_available(), "requires CUDA")
+    @unittest.skipUnless(DEPS and torch.cuda.is_available()
+                         and importlib.util.find_spec("flash_attn") is not None,
+                         "requires CUDA and flash-attn")
     def test_flash_attention_sd_and_fastsd_preserve_worker_lifecycle(self):
         for mode in ("vanilla", "fastsd"):
             with self.subTest(mode=mode):

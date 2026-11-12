@@ -27,10 +27,16 @@ RESIDENCY=(
   --kv_residency_low_ratio "$KV_LOW"
   --kv_prefetch_online_fraction "$KV_PREFETCH_ONLINE_FRACTION"
   --kv_prefetch_mb "$KV_PREFETCH_MB"
-  --kv_prefetch_rate_mb_s "${KV_PREFETCH_RATE_MB_S:-64}"
-  --kv_prefetch_idle_rate_mb_s "${KV_PREFETCH_IDLE_RATE_MB_S:-512}"
+  --kv_prefetch_chunk_kb "${KV_PREFETCH_CHUNK_KB:-4096}"
+  --kv_prefetch_rate_mb_s "${KV_PREFETCH_RATE_MB_S:-0}"
+  --kv_prefetch_idle_rate_mb_s "${KV_PREFETCH_IDLE_RATE_MB_S:-0}"
   --no-measure_forward_gpu
 )
+
+ENERGY=(--no-measure_energy)
+if [[ "${MEASURE_ENERGY:-0}" == "1" || "${MEASURE_ENERGY:-0}" == "true" || "${MEASURE_ENERGY:-0}" == "yes" ]]; then
+  ENERGY=(--measure_energy)
+fi
 
 COMMON=(
   --target_model "$TARGET_MODEL_NODE2"
@@ -40,8 +46,8 @@ COMMON=(
   --batch_size "$BATCH_SIZE" --token_budget "$TOKEN_BUDGET"
   --max_tokens "$MAX_TOKENS" --num_drafts "$NUM_DRAFTS" --gamma "$GAMMA"
   --seed "$SEED"
-  --verify_method greedy --temp 0 --top_k 0 --top_p 1 --stop_policy eos
-  --no-measure_energy --no-pipeline_gamma_adapt
+  --verify_method "${VERIFY_METHOD:-greedy}" --temp 0 --top_k 0 --top_p 1 --stop_policy eos
+  "${ENERGY[@]}" --no-pipeline_gamma_adapt
   --target_attention_backend sdpa_per_sequence --kv_batch_mode varlen
   --session_idle_timeout 1800
   --exp_name "$EXP_DIR"
@@ -56,20 +62,33 @@ case "$CASE" in
       --no-enable_latency_priority --no-overlap_prefill_first_draft \
       --no-kv_prefetch --kv_prefetch_mode overlap
     ;;
-  fastsd)
+  fastsd*)
+    FASTSD_FLAGS=(--profile custom --server_sched_mode fastsd --scheduler_policy legacy)
+    if [[ "$CASE" == *nopipeline* ]]; then
+      FASTSD_FLAGS+=(--no-enable_pipeline --no-overlap_prefill_first_draft)
+    else
+      FASTSD_FLAGS+=(--enable_pipeline --overlap_prefill_first_draft)
+    fi
+    if [[ "$CASE" == *noproactive* ]]; then
+      FASTSD_FLAGS+=(--no-enable_proactive_draft)
+    else
+      FASTSD_FLAGS+=(--enable_proactive_draft)
+    fi
+    if [[ "$CASE" == *nolatency* ]]; then
+      FASTSD_FLAGS+=(--no-enable_latency_priority)
+    else
+      FASTSD_FLAGS+=(--enable_latency_priority)
+    fi
+    if [[ "$CASE" == *noprefetch* ]]; then
+      FASTSD_FLAGS+=(--no-kv_prefetch)
+    else
+      FASTSD_FLAGS+=(--kv_prefetch)
+    fi
     exec "$NODE2_PY" cloud/cloud_service.py "${COMMON[@]}" \
-      --profile custom --server_sched_mode fastsd --scheduler_policy legacy \
-      --enable_pipeline --enable_proactive_draft --enable_latency_priority \
-      --overlap_prefill_first_draft --kv_prefetch --kv_prefetch_mode overlap
-    ;;
-  fastsd-noprefetch)
-    exec "$NODE2_PY" cloud/cloud_service.py "${COMMON[@]}" \
-      --profile custom --server_sched_mode fastsd --scheduler_policy legacy \
-      --enable_pipeline --enable_proactive_draft --enable_latency_priority \
-      --overlap_prefill_first_draft --no-kv_prefetch --kv_prefetch_mode overlap
+      "${FASTSD_FLAGS[@]}" --kv_prefetch_mode overlap
     ;;
   *)
-    echo "unknown case: $CASE (expected sd-cpu|fastsd)" >&2
+    echo "unknown case: $CASE (expected sd-cpu or a fastsd* variant)" >&2
     exit 2
     ;;
 esac

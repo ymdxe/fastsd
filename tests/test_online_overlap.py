@@ -74,7 +74,7 @@ class ManagerWiringTests(unittest.TestCase):
         manager = CacheTransferManager("cpu", online_fraction=0.25,
                                        idle_rate_bytes_per_second=512 << 20)
         try:
-            self.assertAlmostEqual(manager.controller.online_rate, (512 << 20) * 0.25)
+            self.assertAlmostEqual(manager.controller.online_rate, 64 << 20)
         finally:
             manager.close()
 

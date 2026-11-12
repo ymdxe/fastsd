@@ -375,17 +375,20 @@ def parse_arguments():
                         help="record forward GPU events; requires a stream synchronize per batch")
     parser.add_argument("--kv_overlap_auto_fallback", action=argparse.BooleanOptionalAction, default=True,
                         help="let measured forward disturbance throttle or disable overlap (default on)")
-    parser.add_argument("--kv_prefetch_online_fraction", type=float, default=0.25,
+    parser.add_argument("--kv_prefetch_online_fraction", type=float, default=1.0,
                         help="without a calibration file, speculative compute-window DMA runs at this "
-                             "fraction of the idle rate; 0 restores the strict uncalibrated gate")
+                             "fraction of the idle rate; 1.0 uses the configured rate")
     parser.add_argument("--kv_overlap_max_slowdown", type=float, default=0.1,
                         help="fall back after three overlap forwards exceed a measured same-shape baseline")
     parser.add_argument("--kv_prefetch_mb", type=int, default=64)
-    parser.add_argument("--kv_prefetch_chunk_kb", type=int, default=4096)
-    parser.add_argument("--kv_prefetch_rate_mb_s", type=float, default=64.0,
-                        help="maximum speculative compute-window submission rate in MiB/s")
-    parser.add_argument("--kv_prefetch_idle_rate_mb_s", type=float, default=512.0,
-                        help="maximum speculative submission rate while compute is idle in MiB/s")
+    parser.add_argument("--kv_prefetch_chunk_kb", type=int, default=int(os.environ.get("KV_PREFETCH_CHUNK_KB", "4096")))
+    parser.add_argument("--kv_prefetch_speculative_chunk_kb", type=int,
+                        default=int(os.environ.get("KV_PREFETCH_SPECULATIVE_CHUNK_KB", "4096")),
+                        help="maximum per-ticket speculative KV chunk; lower values preserve finer overlap granularity")
+    parser.add_argument("--kv_prefetch_rate_mb_s", type=float, default=float(os.environ.get("KV_PREFETCH_RATE_MB_S", "0")),
+                        help="maximum speculative compute-window submission rate in MiB/s; 0 means unlimited")
+    parser.add_argument("--kv_prefetch_idle_rate_mb_s", type=float, default=float(os.environ.get("KV_PREFETCH_IDLE_RATE_MB_S", "0")),
+                        help="maximum speculative submission rate while compute is idle in MiB/s; 0 means unlimited")
     parser.add_argument("--kv_prefetch_event_pool_size", type=int, default=256,
                         help="CUDA transfer events prepared before execution")
     parser.add_argument("--kv_prefetch_calibration", default=None,
@@ -416,12 +419,13 @@ def parse_arguments():
         value = getattr(args, name)
         if not math.isfinite(value) or value < 0:
             parser.error(f"--{name} must be finite and non-negative")
-    if args.kv_prefetch_mb < 0 or args.kv_prefetch_chunk_kb <= 0:
+    if (args.kv_prefetch_mb < 0 or args.kv_prefetch_chunk_kb <= 0
+            or args.kv_prefetch_speculative_chunk_kb <= 0):
         parser.error("prefetch budget must be non-negative; chunk size must be positive")
-    if (not all(math.isfinite(value) and value > 0 for value in (
+    if (not all(math.isfinite(value) and value >= 0 for value in (
             args.kv_prefetch_rate_mb_s, args.kv_prefetch_idle_rate_mb_s))
             or args.kv_prefetch_event_pool_size < 2):
-        parser.error("prefetch rates must be finite and positive; event pool must contain at least two events")
+        parser.error("prefetch rates must be finite and non-negative; event pool must contain at least two events")
     if args.pinned_pool_mb < 0 or args.kv_transfer_gbps == 0 or args.scheduler_max_wait_s == 0:
         parser.error("pinned pool must be non-negative; transfer bandwidth and maximum wait must be positive")
     if args.kv_residency_budget_mb < 0:

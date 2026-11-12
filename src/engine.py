@@ -29,6 +29,7 @@ from .cache_residency import (
 )
 from .session_lifecycle import SessionLifecycle
 from .cache_transfer import CacheTransferManager
+from .cache_protocol import PrefetchTarget
 from .progress_control import AcceptanceProfile, BatchCostModel, GammaController, choose_gamma, draft_seconds_per_token
 from .util import seed_everything, norm_logits, sample, max_fn
 from .runtime import resolve_dtype, synchronize
@@ -58,6 +59,9 @@ from .fastsd_scheduler import (
     FASTSD_DEFAULT_R1,
     FASTSD_DEFAULT_R2,
     FASTSD_DYNAMIC_WINDOW,
+    WAIT_LAMBDA_DEFAULT,
+    WAIT_LINEAR_UNTIL_S,
+    WAIT_LINEAR_ALPHA,
     build_fixed_wrr_order as _build_fixed_wrr_order,
     compute_priority_score as _compute_priority_score,
     full_prefix_bridge_tokens,
@@ -76,11 +80,16 @@ from .fastsd_scheduler import (
 )
 from .request_validation import canonicalize_request
 
-# Number of future admission plans used for prefetch.  1 is the original
-# one-step lookahead; >1 projects the same scheduler forward repeatedly.
+# Prediction depth is independent of transfer depth. Deeper predictions are
+# still measured, but consume no arena/DMA budget unless explicitly enabled.
 PREFETCH_LOOKAHEAD_ROUNDS = max(
     1, int(os.environ.get("KV_PREFETCH_LOOKAHEAD_ROUNDS", "1"))
 )
+PREFETCH_HORIZON_LIMIT = max(0, int(os.environ.get("KV_PREFETCH_HORIZON_LIMIT", "1")))
+PREFETCH_H2_MAX_PIDS = max(0, int(os.environ.get("KV_PREFETCH_H2_MAX_PIDS", "4")))
+PREFETCH_BEFORE_SUBMIT = os.environ.get("KV_PREFETCH_BEFORE_SUBMIT", "0").lower() in {
+    "1", "true", "yes", "on",
+}
 from .scheduler_runtime import (
     CacheResidency,
     IngressRelay,
@@ -863,9 +872,23 @@ class Decoding(ABC):
             "prefetch_ready_hit": 0,
             "prefetch_pending_hit": 0,
             "prefetch_demand_miss": 0,
+            # Verify-only readiness counters.  Prefetch intents are built from
+            # verify plans, so these counters share one denominator.  Prefill
+            # restore claims are reported separately below.
+            "prefetch_verify_ready_hit": 0,
+            "prefetch_verify_pending_hit": 0,
+            "prefetch_verify_demand_miss": 0,
+            "prefetch_prefill_ready_hit": 0,
+            "prefetch_prefill_pending_hit": 0,
+            "prefetch_prefill_demand_miss": 0,
+            "prefetch_claim_lead_ms_sum": 0.0,
+            "prefetch_claim_lead_ms_max": 0.0,
+            "prefetch_claims": 0,
             "prefetch_ready_by_horizon": {},
             "prefetch_pending_by_horizon": {},
             "prefetch_demand_miss_by_horizon": {},
+            "prefetch_prefill_ready_by_horizon": {},
+            "prefetch_prefill_pending_by_horizon": {},
             "prefetch_prediction_plans": 0,
             "prefetch_prediction_predicted": 0,
             "prefetch_prediction_actual": 0,
@@ -877,6 +900,20 @@ class Decoding(ABC):
             "batch_compute_avg_s": 0.0,
             "prefetch_lookahead_rounds": PREFETCH_LOOKAHEAD_ROUNDS,
             "prefetch_prediction_by_horizon": {},
+            "prefetch_refresh_count": 0,
+            "lookahead_build_count": 0,
+            "prediction_snapshots_consumed": 0,
+            "actual_plans": 0,
+            "prefetch_skipped_horizon": {},
+            "prefetch_horizon_limit": PREFETCH_HORIZON_LIMIT,
+            "prefetch_h2_max_pids": PREFETCH_H2_MAX_PIDS,
+            "prefetch_before_submit": PREFETCH_BEFORE_SUBMIT,
+            "wait_priority_config": {
+                "formula": "piecewise" if WAIT_LINEAR_UNTIL_S > 0 else "exp",
+                "lambda": WAIT_LAMBDA_DEFAULT,
+                "linear_until_s": WAIT_LINEAR_UNTIL_S,
+                "linear_alpha": WAIT_LINEAR_ALPHA,
+            },
             "prefetch_plans": 0,
             "prefetch_hits": 0,
             "prefetch_misses": 0,
@@ -899,6 +936,16 @@ class Decoding(ABC):
             "prefetch_async_missing_cache": 0,
             "prefetch_pending_underflow": 0,
             "prefetch_async_last_error": None,
+            "max_batch_kv_bytes": 0,
+            "max_gpu_resident_kv_bytes": 0,
+            "max_total_kv_plus_prefetch_bytes": 0,
+            "max_prefetch_reserved_bytes": 0,
+            "residency_pressure_samples": 0,
+            "residency_high_samples": 0,
+            "residency_pressure_guard_trips": 0,
+            "residency_used_bytes_sum": 0,
+            "residency_used_bytes_max": 0,
+            "max_active_batch_sequences": 0,
             "finished_work_items_removed": 0,
             "empty_plans": 0,
             "empty_plans_with_live_work": 0,
@@ -1132,12 +1179,19 @@ class Decoding(ABC):
             mode=getattr(self.args, "kv_prefetch_mode", "overlap"),
             prefetch_bytes=int(getattr(self.args, "kv_prefetch_mb", 64)) * 1024 ** 2,
             chunk_bytes=int(getattr(self.args, "kv_prefetch_chunk_kb", 4096)) * 1024,
+            speculative_chunk_bytes=int(getattr(self.args, "kv_prefetch_speculative_chunk_kb", 4096)) * 1024,
             headroom_bytes=int(getattr(self.args, "kv_headroom_mb", 512)) * 1024 ** 2,
             disturbance_budget=float(getattr(self.args, "kv_overlap_max_slowdown", 0.1)),
             adaptive_fallback=bool(getattr(self.args, "kv_overlap_auto_fallback", False)),
-            rate_bytes_per_second=float(getattr(self.args, "kv_prefetch_rate_mb_s", 64)) * 1024 ** 2,
-            idle_rate_bytes_per_second=float(getattr(self.args, "kv_prefetch_idle_rate_mb_s", 512)) * 1024 ** 2,
-            online_fraction=float(getattr(self.args, "kv_prefetch_online_fraction", 0.25)),
+            rate_bytes_per_second=(
+                float("inf") if float(getattr(self.args, "kv_prefetch_rate_mb_s", 0)) <= 0
+                else float(getattr(self.args, "kv_prefetch_rate_mb_s")) * 1024 ** 2
+            ),
+            idle_rate_bytes_per_second=(
+                float("inf") if float(getattr(self.args, "kv_prefetch_idle_rate_mb_s", 0)) <= 0
+                else float(getattr(self.args, "kv_prefetch_idle_rate_mb_s")) * 1024 ** 2
+            ),
+            online_fraction=float(getattr(self.args, "kv_prefetch_online_fraction", 1.0)),
             event_pool_size=int(getattr(self.args, "kv_prefetch_event_pool_size", 256)),
             warmup_pool=False,
         )
@@ -1186,9 +1240,14 @@ class Decoding(ABC):
                     raise RuntimeError(f"session {pid!r} is being evicted")
                 ticket = transfers.submit_h2d(snapshot, purpose="demand")
                 if restored:
+                    miss_key = ("prefetch_verify_demand_miss"
+                                if req.get("task_type") == "verify"
+                                else "prefetch_prefill_demand_miss")
+                    scheduler_metrics[miss_key] = scheduler_metrics.get(miss_key, 0) + 1
+                    # Keep the historical aggregate for report consumers.
                     scheduler_metrics["prefetch_demand_miss"] = (
                         scheduler_metrics.get("prefetch_demand_miss", 0) + 1)
-                    horizon = prediction_horizon_by_pid.get(pid)
+                    horizon = req.get("_prediction_horizon")
                     if horizon is not None:
                         bucket = scheduler_metrics["prefetch_demand_miss_by_horizon"].setdefault(
                             str(horizon), {"demand_miss": 0})
@@ -1300,8 +1359,19 @@ class Decoding(ABC):
             guard_free = None
             if target_model.device.type == "cuda":
                 guard_free, _ = torch.cuda.mem_get_info(target_model.device)
-            return residency_manager.update_pressure(
-                residency_manager.used_bytes(), guard_free_bytes=guard_free)
+            used = residency_manager.used_bytes()
+            high = residency_manager.update_pressure(
+                used, guard_free_bytes=guard_free)
+            scheduler_metrics["residency_pressure_samples"] += 1
+            scheduler_metrics["residency_high_samples"] += int(high)
+            scheduler_metrics["residency_used_bytes_sum"] += int(used)
+            scheduler_metrics["residency_used_bytes_max"] = max(
+                scheduler_metrics.get("residency_used_bytes_max", 0), int(used)
+            )
+            scheduler_metrics["residency_pressure_guard_trips"] = int(
+                residency_manager.counters.get("pressure_guard_trips", 0)
+            )
+            return high
 
         def finish_cache_phase(batch):
             if not residency_manager.active:
@@ -1332,6 +1402,18 @@ class Decoding(ABC):
                         residency_manager.transition(pid, GPU_RESIDENT)
                 if target_model.device.type == "cuda":
                     preloaded_gpu_pids.add(pid)
+            scheduler_metrics["max_gpu_resident_kv_bytes"] = max(
+                scheduler_metrics.get("max_gpu_resident_kv_bytes", 0),
+                residency_manager.used_bytes(),
+            )
+            prefetch_reserved = int(transfers.metrics.get("prefetch_reserved_bytes", 0) or 0)
+            scheduler_metrics["max_prefetch_reserved_bytes"] = max(
+                scheduler_metrics.get("max_prefetch_reserved_bytes", 0), prefetch_reserved
+            )
+            scheduler_metrics["max_total_kv_plus_prefetch_bytes"] = max(
+                scheduler_metrics.get("max_total_kv_plus_prefetch_bytes", 0),
+                residency_manager.used_bytes() + prefetch_reserved,
+            )
 
         def rebalance_cache_memory(batch_pids):
             """Make room for this batch: pressure plus its own restores.
@@ -1418,6 +1500,18 @@ class Decoding(ABC):
         def handle_request_batch(batch: list[dict], return_responses: bool = False):
             proc_ids = [req["proc_id"] for req in batch]
             DIAG.emit("batch_start", batch_id=time.monotonic_ns(), requests=[diag_req(r) for r in batch])
+            if residency_manager.enabled:
+                batch_kv_bytes = sum(
+                    int(record.nbytes)
+                    for record in (residency_manager.get(pid) for pid in proc_ids)
+                    if record is not None
+                )
+                scheduler_metrics["max_batch_kv_bytes"] = max(
+                    scheduler_metrics.get("max_batch_kv_bytes", 0), batch_kv_bytes
+                )
+                scheduler_metrics["max_active_batch_sequences"] = max(
+                    scheduler_metrics.get("max_active_batch_sequences", 0), len(proc_ids)
+                )
             residency.activate(proc_ids)
             phase_leases.clear()
             forward_measurements.clear()
@@ -1961,7 +2055,8 @@ class Decoding(ABC):
             planning_time = time.monotonic() if planning_time is None else planning_time
             if projected_plan is None and diagnostic_kind != "lookahead":
                 _sort_queues_if_dirty(now=planning_time)
-            queues = task_queues.snapshot()
+            projected_queues = getattr(projected_plan, "_prediction_queues", None)
+            queues = projected_queues if projected_queues is not None else task_queues.snapshot()
             thresholds = dict(length_classifier.thresholds)
             frozen_category = lambda item: _length_category(
                 item.remaining_tokens, *thresholds[item.task_type])
@@ -1982,7 +2077,7 @@ class Decoding(ABC):
                 candidate_value=lambda item, sl, selected: candidate_value(item, sl, selected, items),
                 max_wait_s=float(getattr(self.args, "scheduler_max_wait_s", 1.0)))
             if diagnostic_kind == "lookahead" or projected_plan is not None:
-                job = in_flight["job"]
+                job = in_flight["job"] if projected_queues is None else None
                 applied_ids = (() if job is None or not job.verify_applied else
                                tuple(sl.work_id for sl in job.plan.verify_slices))
                 plan = predict_next_plan(
@@ -2057,6 +2152,7 @@ class Decoding(ABC):
             )
             if signature == last_prediction["signature"]:
                 return
+            scheduler_metrics["prefetch_refresh_count"] += 1
             now = time.monotonic()
             estimate = forward_time_state["seconds"]
             planning_time = now
@@ -2080,6 +2176,7 @@ class Decoding(ABC):
                     diagnostic_kind="lookahead",
                     planning_time=planning_time + step_gap * (step - 1),
                 )
+                scheduler_metrics["lookahead_build_count"] += 1
                 predicted_plans.append(lookahead)
                 projected = lookahead
                 if not lookahead.verify_proc_ids:
@@ -2088,12 +2185,14 @@ class Decoding(ABC):
             # Preserve planner order across all projected rounds; the worker
             # treats this sequence as its transfer priority.
             ordered_pids = []
+            horizons = {}
             seen_pids = set()
-            for predicted in predicted_plans:
+            for horizon, predicted in enumerate(predicted_plans, 1):
                 for pid in predicted.verify_proc_ids:
                     if pid not in seen_pids:
                         seen_pids.add(pid)
                         ordered_pids.append(pid)
+                        horizons[pid] = horizon
 
             first_lookahead = predicted_plans[0] if predicted_plans else None
             prediction_compare_state["pids"] = set(
@@ -2110,9 +2209,8 @@ class Decoding(ABC):
             for stale in [tick for tick in prediction_snapshots
                           if tick < prediction_tick - PREFETCH_LOOKAHEAD_ROUNDS]:
                 prediction_snapshots.pop(stale, None)
-            for step, predicted in enumerate(predicted_plans, 1):
-                for pid in predicted.verify_proc_ids:
-                    prediction_horizon_by_pid.setdefault(pid, step)
+            prediction_horizon_by_pid.clear()
+            prediction_horizon_by_pid.update(horizons)
             scheduler_metrics["prefetch_lookahead_effective_rounds"] = max(
                 scheduler_metrics.get("prefetch_lookahead_effective_rounds", 0),
                 len(predicted_plans))
@@ -2120,11 +2218,19 @@ class Decoding(ABC):
             protected = residency.protected_snapshot()
             # Only a CPU-resident cache can be prefetched; issuing for a cache
             # already on the GPU would mint an empty ticket every plan.
-            safe_pids = [
-                pid for pid in ordered_pids
-                if pid not in protected
-                and residency_manager.state_of(pid) == CPU_RESIDENT
-            ]
+            safe_pids = []
+            h2_count = 0
+            for pid in ordered_pids:
+                horizon = horizons[pid]
+                if (horizon > PREFETCH_HORIZON_LIMIT or
+                        (horizon == 2 and h2_count >= PREFETCH_H2_MAX_PIDS)):
+                    skipped = scheduler_metrics["prefetch_skipped_horizon"]
+                    key = str(horizon)
+                    skipped[key] = skipped.get(key, 0) + 1
+                    continue
+                if pid not in protected and residency_manager.state_of(pid) == CPU_RESIDENT:
+                    safe_pids.append(PrefetchTarget(pid, horizon, prediction_tick))
+                    h2_count += int(horizon == 2)
             on_gpu = sum(1 for pid in ordered_pids
                          if residency_manager.state_of(pid) == GPU_RESIDENT)
             if on_gpu:
@@ -2133,7 +2239,8 @@ class Decoding(ABC):
             if first_lookahead is not None:
                 DIAG.emit("prefetch_prediction", plan_id=getattr(first_lookahead, "_diag_id", None),
                           protected_proc_ids=sorted(protected), ordered_verify_pids=ordered_pids,
-                          transfer_proc_ids=safe_pids,
+                          transfer_proc_ids=[target.pid for target in safe_pids],
+                          transfer_horizons={str(target.pid): target.horizon for target in safe_pids},
                           assumptions=getattr(first_lookahead, "prediction_assumptions", ()),
                           next_cursor=first_lookahead.next_wrr_cursor,
                           next_cycle=first_lookahead.next_cycle,
@@ -2142,9 +2249,17 @@ class Decoding(ABC):
                 scheduler_metrics["prefetch_no_verify_candidates"] += 1
             # One intent covers this pid set; the worker decides how many
             # tickets it can actually prepare.
-            if prefetch_coordinator.refresh(safe_pids):
+            if prefetch_coordinator.refresh(safe_pids, prediction_tick=prediction_tick):
                 scheduler_metrics["prefetch_intents_issued"] = (
                     scheduler_metrics.get("prefetch_intents_issued", 0) + 1)
+            reserved_prefetch = int(transfers.metrics.get("prefetch_reserved_bytes", 0) or 0)
+            scheduler_metrics["max_prefetch_reserved_bytes"] = max(
+                scheduler_metrics.get("max_prefetch_reserved_bytes", 0), reserved_prefetch
+            )
+            scheduler_metrics["max_total_kv_plus_prefetch_bytes"] = max(
+                scheduler_metrics.get("max_total_kv_plus_prefetch_bytes", 0),
+                residency_manager.used_bytes() + reserved_prefetch,
+            )
             last_prediction["signature"] = signature
             scheduler_metrics["prefetch_prediction_versions"] = scheduler_metrics.get("prefetch_prediction_versions", 0) + 1
 
@@ -2193,6 +2308,7 @@ class Decoding(ABC):
                      "hits": 0, "misses": 0, "wasted": 0},
                 )
                 bucket["plans"] += 1
+                scheduler_metrics["prediction_snapshots_consumed"] += 1
                 bucket["predicted"] += len(horizon_pids)
                 bucket["actual"] += len(actual_verify_pids)
                 bucket["hits"] += len(horizon_pids & actual_verify_pids)
@@ -2210,20 +2326,49 @@ class Decoding(ABC):
                     for req in verify_batch + prefill_batch:
                         pid = req["proc_id"]
                         req["_plan_ready_at"] = ready_at
+                        req["_prediction_horizon"] = prediction_horizon_by_pid.get(pid)
                         cache = kv_cache_manager._past_key_values.get(pid)
                         if cache is not None:
                             ticket = residency.claim_locked(pid, cache, id(plan))
                             if ticket is not None:
                                 ready = ticket.ready()
-                                key = "prefetch_ready_hit" if ready else "prefetch_pending_hit"
-                                scheduler_metrics[key] = scheduler_metrics.get(key, 0) + 1
-                                horizon = prediction_horizon_by_pid.get(pid)
+                                is_verify = req.get("task_type") == "verify"
+                                detail_key = (
+                                    "prefetch_verify_ready_hit" if ready else "prefetch_verify_pending_hit"
+                                ) if is_verify else (
+                                    "prefetch_prefill_ready_hit" if ready else "prefetch_prefill_pending_hit"
+                                )
+                                scheduler_metrics[detail_key] = scheduler_metrics.get(detail_key, 0) + 1
+                                if is_verify:
+                                    key = "prefetch_ready_hit" if ready else "prefetch_pending_hit"
+                                    scheduler_metrics[key] = scheduler_metrics.get(key, 0) + 1
+                                    scheduler_metrics["prefetch_claims"] = scheduler_metrics.get("prefetch_claims", 0) + 1
+                                    intent_at = getattr(ticket, "intent_at", None)
+                                    claimed_at = getattr(ticket, "claimed_at", None)
+                                    if intent_at is not None and claimed_at is not None:
+                                        lead_ms = max(0.0, (claimed_at - intent_at) * 1000.0)
+                                        scheduler_metrics["prefetch_claim_lead_ms_sum"] = (
+                                            scheduler_metrics.get("prefetch_claim_lead_ms_sum", 0.0) + lead_ms
+                                        )
+                                        scheduler_metrics["prefetch_claim_lead_ms_max"] = max(
+                                            scheduler_metrics.get("prefetch_claim_lead_ms_max", 0.0), lead_ms
+                                        )
+                                horizon = ticket.horizon
                                 if horizon is not None:
                                     state_name = "ready" if ready else "pending"
-                                    bucket = scheduler_metrics[
-                                        "prefetch_ready_by_horizon" if ready
-                                        else "prefetch_pending_by_horizon"
-                                    ].setdefault(str(horizon), {state_name: 0})
+                                    if is_verify:
+                                        horizon_key = (
+                                            "prefetch_ready_by_horizon" if ready
+                                            else "prefetch_pending_by_horizon"
+                                        )
+                                    else:
+                                        horizon_key = (
+                                            "prefetch_prefill_ready_by_horizon" if ready
+                                            else "prefetch_prefill_pending_by_horizon"
+                                        )
+                                    bucket = scheduler_metrics[horizon_key].setdefault(
+                                        str(horizon), {state_name: 0}
+                                    )
                                     bucket[state_name] += 1
                                 tickets[pid] = req["_cache_ticket"] = ticket
             else:
@@ -2237,7 +2382,10 @@ class Decoding(ABC):
             in_flight["job"] = job
             scheduler_metrics["iterations"] += 1
             try:
+                if PREFETCH_BEFORE_SUBMIT:
+                    refresh_prefetch()
                 executor.submit(job)
+                scheduler_metrics["actual_plans"] += 1
             except BaseException:
                 in_flight["plan"] = None
                 in_flight["job"] = None
@@ -2714,9 +2862,47 @@ class Decoding(ABC):
             flush_session_releases()
             transfers.close()
             scheduler_metrics["cache_transfers"] = dict(transfers.metrics)
+            scheduler_metrics["prefetch_bytes_by_horizon"] = dict(transfers.metrics["prefetch_bytes_by_horizon"])
             scheduler_metrics["kv_residency"] = residency_manager.stats()
             scheduler_metrics["kv_overlap_controller"] = transfers.controller_status()
             scheduler_metrics["kv_prefetch_effective_mode"] = transfers.mode
+            actual_plans = scheduler_metrics["actual_plans"]
+            ready = scheduler_metrics["prefetch_ready_hit"]
+            scheduler_metrics["ready_per_actual_plan"] = ready / actual_plans if actual_plans else None
+            scheduler_metrics["prefetch_verify_ready_per_claim"] = (
+                scheduler_metrics.get("prefetch_verify_ready_hit", 0) / claims
+                if (claims := scheduler_metrics.get("prefetch_claims", 0)) else None
+            )
+            scheduler_metrics["prefetch_verify_pending_per_claim"] = (
+                scheduler_metrics.get("prefetch_verify_pending_hit", 0) / claims
+                if claims else None
+            )
+            scheduler_metrics["prefetch_verify_miss_per_claim"] = (
+                scheduler_metrics.get("prefetch_verify_demand_miss", 0) / claims
+                if claims else None
+            )
+            scheduler_metrics["prefetch_claim_lead_ms_avg"] = (
+                scheduler_metrics.get("prefetch_claim_lead_ms_sum", 0.0) / claims
+                if claims else None
+            )
+            scheduler_metrics["prefetch_arena_bytes"] = int(
+                transfers.metrics.get("prefetch_pool_gpu_bytes", 0) or 0
+            )
+            pressure_samples = scheduler_metrics.get("residency_pressure_samples", 0)
+            scheduler_metrics["residency_used_bytes_avg"] = (
+                scheduler_metrics.get("residency_used_bytes_sum", 0) / pressure_samples
+                if pressure_samples else None
+            )
+            scheduler_metrics["prefetch_reserved_bytes_peak"] = int(
+                transfers.metrics.get("prefetch_reserved_bytes_peak", 0) or 0
+            )
+            scheduler_metrics["h2d_bytes_per_ready"] = transfers.metrics["h2d_bytes"] / ready if ready else None
+            scheduler_metrics["copies_per_ready"] = transfers.metrics["copies"] / ready if ready else None
+            for bucket in scheduler_metrics["prefetch_prediction_by_horizon"].values():
+                bucket["precision"] = bucket["hits"] / bucket["predicted"] if bucket["predicted"] else None
+                bucket["recall"] = bucket["hits"] / bucket["actual"] if bucket["actual"] else None
+                bucket["coverage_per_actual_plan"] = bucket["plans"] / actual_plans if actual_plans else None
+                bucket["hits_per_actual_plan"] = bucket["hits"] / actual_plans if actual_plans else None
             scheduler_metrics["batch_cost_profiles"] = {str(k): v for k, v in batch_cost.table.items()}
             if energy_service is not None:
                 energy_service.shutdown()

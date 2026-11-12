@@ -43,7 +43,12 @@ class OverlapController:
         # conservative fraction of the idle rate and disables itself when the
         # measured forward time degrades.  0.0 keeps the old strict gate.
         self.online_fraction = max(0.0, float(online_fraction))
-        self.online_rate = self.idle_rate * self.online_fraction
+        online_idle_rate = (
+            0.0 if self.online_fraction <= 0.0 else
+            float("inf") if math.isinf(self.idle_rate)
+            else self.idle_rate * self.online_fraction
+        )
+        self.online_rate = max(0.0, min(self.rate, online_idle_rate))
         self.online_baselines = {}
         self.online_violations = {}
         self.online_paused = set()
@@ -61,7 +66,8 @@ class OverlapController:
         if (state, reason) != (self.state, self.reason):
             self.transitions.append(dict(state=state, reason=reason,
                 previous_state=self.state, duration_s=now - self.changed_at,
-                group_bytes=int(group_bytes), rate_bytes_per_second=float(rate),
+                group_bytes=int(group_bytes),
+                rate_bytes_per_second=(None if math.isinf(float(rate)) else float(rate)),
                 context=self.context, at=now))
             self.state, self.reason, self.changed_at = state, reason, now
 
@@ -121,7 +127,10 @@ class OverlapController:
                     group, rate = 0, 0
             self._transition(state, reason, group, rate)
             now = self.clock()
-            self.tokens = min(float(group), self.tokens + max(0, now - self.refilled_at) * rate)
+            if math.isinf(rate):
+                self.tokens = float(group)
+            else:
+                self.tokens = min(float(group), self.tokens + max(0, now - self.refilled_at) * rate)
             self.refilled_at = now
             return min(int(self.tokens), int(group))
 
@@ -171,7 +180,9 @@ class OverlapController:
                         duration_s=self.clock() - self.changed_at,
                         transitions=list(self.transitions), profiles=dict(self.profiles),
                         online_fraction=self.online_fraction,
-                        online_rate_bytes_per_second=self.online_rate,
+                        online_rate_bytes_per_second=(
+                            None if math.isinf(self.online_rate) else self.online_rate
+                        ),
                         online_paused_shapes=sorted(self.online_paused))
 
 
@@ -302,6 +313,7 @@ class CacheTransferManager:
     def __init__(self, device, *, enabled=True, pinned_pool_bytes=128 * 1024 ** 2,
                  mode="overlap", prefetch_bytes=64 * 1024 ** 2,
                  chunk_bytes=4 * 1024 ** 2, headroom_bytes=512 * 1024 ** 2,
+                 speculative_chunk_bytes=256 * 1024,
                  disturbance_budget=0.1, adaptive_fallback=False, record_timeline=False,
                  rate_bytes_per_second=64 * 1024 ** 2,
                  idle_rate_bytes_per_second=512 * 1024 ** 2,
@@ -309,9 +321,17 @@ class CacheTransferManager:
                  event_pool_size=256, warmup_pool=False):
         if mode not in {"overlap", "cpu_prepare"}:
             raise ValueError("unknown KV prefetch mode: " + str(mode))
+        # ``0`` and ``inf`` are accepted as an explicit unlimited rate.  The
+        # command-line layer uses 0 because JSON/config files cannot reliably
+        # round-trip infinity.
+        if float(rate_bytes_per_second) == 0:
+            rate_bytes_per_second = float("inf")
+        if float(idle_rate_bytes_per_second) == 0:
+            idle_rate_bytes_per_second = float("inf")
         if (min(prefetch_bytes, headroom_bytes) < 0 or chunk_bytes <= 0
+                or speculative_chunk_bytes <= 0
                 or min(rate_bytes_per_second, idle_rate_bytes_per_second) <= 0
-                or not all(math.isfinite(float(rate)) for rate in (
+                or not all((math.isfinite(float(rate)) or math.isinf(float(rate))) for rate in (
                     rate_bytes_per_second, idle_rate_bytes_per_second))
                 or event_pool_size < 2):
             raise ValueError("invalid KV transfer budget")
@@ -319,6 +339,7 @@ class CacheTransferManager:
         self.enabled = bool(enabled and self.device.type == "cuda")
         self.mode = self.requested_mode = mode
         self.prefetch_limit, self.chunk_bytes = int(prefetch_bytes), int(chunk_bytes)
+        self.speculative_chunk_bytes = int(speculative_chunk_bytes)
         self.headroom_bytes = int(headroom_bytes)
         self.pool = PinnedBufferPool(pinned_pool_bytes)
         self.lock = threading.RLock()  # metadata only, never allocation/copy/wait
@@ -331,6 +352,21 @@ class CacheTransferManager:
         self.pending = []
         self.speculative_bytes = 0
         self.metrics = defaultdict(float)
+        for key in ("h2d_bytes", "d2h_bytes", "copies"):
+            self.metrics[key] = 0
+        self.metrics["prefetch_bytes_by_horizon"] = {}
+        self.metrics["speculative_bytes_by_horizon"] = {}
+        self.metrics["kv_transfer_by_horizon"] = {}
+        self.metrics["kv_transfer_recent_tickets"] = []
+        self.metrics["kv_transfer_timing_basis"] = "host_first_submission_to_completion_observed"
+        self.metrics["configured_chunk_bytes"] = int(chunk_bytes)
+        self.metrics["configured_speculative_chunk_bytes"] = int(speculative_chunk_bytes)
+        self.metrics["configured_rate_bytes_per_s"] = (
+            None if math.isinf(rate_bytes_per_second) else float(rate_bytes_per_second)
+        )
+        self.metrics["configured_idle_rate_bytes_per_s"] = (
+            None if math.isinf(idle_rate_bytes_per_second) else float(idle_rate_bytes_per_second)
+        )
         self.forward_baselines = {}
         self.controller = OverlapController(chunk_bytes, rate_bytes_per_second,
                                             idle_rate_bytes_per_second,
@@ -582,6 +618,11 @@ class CacheTransferManager:
             if self.gpu_arena is not None:
                 # Slabs were allocated after checking headroom during warmup.
                 self.speculative_bytes += size
+                self.metrics["prefetch_reserved_bytes"] = self.speculative_bytes
+                self.metrics["prefetch_reserved_bytes_peak"] = max(
+                    self.metrics.get("prefetch_reserved_bytes_peak", 0),
+                    self.speculative_bytes,
+                )
                 return True
             self.metrics["prefetch_pool_unavailable"] += 1
             return False
@@ -622,6 +663,7 @@ class CacheTransferManager:
         size = sum(t.numel() * t.element_size() for layer in legacy for t in layer)
         ticket = KVTransferTicket(snapshot, purpose, source_lease=cache,
                                   bytes_reserved=size,
+                                  prepared_at=time.perf_counter(),
                                   producer_ready=getattr(cache, "_fastsd_ready_event", None),
                                   direction="h2d" if device.type == "cuda" else "d2h")
         ticket._source_ranges = self._storage_ranges(cache)
@@ -702,7 +744,8 @@ class CacheTransferManager:
                         views = [(source, target)]
                         while views:
                             src, dst = views.pop()
-                            split_bytes = min(self.chunk_bytes, 256 * 1024) if speculative else self.chunk_bytes
+                            split_bytes = (min(self.chunk_bytes, self.speculative_chunk_bytes)
+                                           if speculative else self.chunk_bytes)
                             if src.numel() * src.element_size() <= split_bytes:
                                 ticket.chunks.append((src, dst))
                                 continue
@@ -752,8 +795,6 @@ class CacheTransferManager:
                 return
             if ticket.next_chunk == len(ticket.chunks):
                 return
-            if ticket.copy_started_at is None:
-                ticket.copy_started_at = time.perf_counter()
             if not all_chunks and byte_limit is not None:
                 first = ticket.chunks[ticket.next_chunk][0]
                 if first.numel() * first.element_size() > byte_limit:
@@ -786,6 +827,8 @@ class CacheTransferManager:
                     if needed == 2:
                         trace_start = self._events.pop()
                     ticket._pooled_events.extend(e for e in (event, trace_start) if e is not None)
+            if ticket.copy_started_at is None:
+                ticket.copy_started_at = time.perf_counter()
             with torch.cuda.stream(stream):
                 dependency = ticket.last_copy or ticket.producer_ready
                 if dependency is not None:
@@ -818,8 +861,14 @@ class CacheTransferManager:
                     ticket.submitted_bytes += size
                     ticket.last_chunk_bytes += size
                     self.metrics[ticket.direction + "_bytes"] += size
+                    if ticket.purpose == "prefetch":
+                        key = str(ticket.transfer_horizon)
+                        counts = self.metrics["prefetch_bytes_by_horizon"]
+                        counts[key] = counts.get(key, 0) + size
                     if ticket.purpose == "prefetch" and ticket.claimed_by is None:
                         self.metrics["speculative_submitted_bytes"] += size
+                        counts = self.metrics["speculative_bytes_by_horizon"]
+                        counts[key] = counts.get(key, 0) + size
                 ticket.next_chunk = limit
                 if event is None:
                     event = torch.cuda.Event(enable_timing=self.timeline is not None)
@@ -971,6 +1020,67 @@ class CacheTransferManager:
         with self.collect_lock:
             return self._poll_completed()
 
+    def _record_transfer(self, ticket):
+        """Report each finished/drained ticket once, including cancelled DMA.
+
+        Host completion observation includes throttling, contention and polling
+        latency. It measures prefetch readiness time, not PCIe wire bandwidth.
+        Recent ticket details are bounded; aggregate counters cover the run.
+        """
+        ticket.reported = True
+        if ticket.copy_started_at is None or ticket.submitted_bytes == 0:
+            return
+        ticket.completed_at = time.perf_counter()
+        elapsed = max(0.0, ticket.completed_at - ticket.copy_started_at)
+        ticket.transfer_elapsed_s = elapsed
+        ticket.transfer_rate_bytes_per_s = ticket.submitted_bytes / elapsed if elapsed else None
+        completed = (ticket.copy_done is not None and ticket.copy_done.query()) or ticket.copy_state == "ready"
+        if completed and ticket.ready_observed_at is None:
+            ticket.ready_observed_at = ticket.completed_at
+        if completed:
+            self.metrics["kv_transfer_samples"] += 1
+            self.metrics["kv_transfer_total_s"] += elapsed
+            self.metrics["kv_transfer_avg_s"] = self.metrics["kv_transfer_total_s"] / self.metrics["kv_transfer_samples"]
+            category = "prefetch" if ticket.purpose == "prefetch" else "demand"
+            prefix = "kv_transfer_" + category
+            self.metrics[prefix + "_samples"] += 1
+            self.metrics[prefix + "_total_s"] += elapsed
+            self.metrics[prefix + "_avg_s"] = self.metrics[prefix + "_total_s"] / self.metrics[prefix + "_samples"]
+            prefix = "kv_transfer_" + ticket.direction
+            self.metrics[prefix + "_samples"] += 1
+            self.metrics[prefix + "_total_s"] += elapsed
+            self.metrics[prefix + "_avg_s"] = self.metrics[prefix + "_total_s"] / self.metrics[prefix + "_samples"]
+        if ticket.purpose == "prefetch":
+            bucket = self.metrics["kv_transfer_by_horizon"].setdefault(str(ticket.transfer_horizon),
+                dict(tickets=0, completed=0, retired=0, bytes=0, total_s=0.0))
+            bucket["tickets"] += 1
+            bucket["completed"] += int(completed)
+            bucket["retired"] += int(ticket.retired and ticket.claimed_by is None)
+            bucket["bytes"] += ticket.submitted_bytes
+            bucket["total_s"] += elapsed
+            bucket["avg_s"] = bucket["total_s"] / bucket["tickets"]
+            bucket["rate_bytes_per_s"] = bucket["bytes"] / bucket["total_s"] if bucket["total_s"] else None
+        recent = self.metrics["kv_transfer_recent_tickets"]
+        recent.append(dict(ticket_id=id(ticket), purpose=ticket.purpose, direction=ticket.direction,
+            horizon=ticket.transfer_horizon if ticket.purpose == "prefetch" else None,
+            reserved_bytes=ticket.bytes_reserved, submitted_bytes=ticket.submitted_bytes,
+            elapsed_s=elapsed, rate_bytes_per_s=ticket.transfer_rate_bytes_per_s,
+            preparation_to_observed_s=(ticket.completed_at - ticket.prepared_at
+                                       if ticket.prepared_at is not None else None),
+            intent_to_submit_s=(ticket.copy_started_at - ticket.intent_at
+                                if ticket.copy_started_at is not None and ticket.intent_at is not None
+                                else None),
+            intent_to_claim_s=(ticket.claimed_at - ticket.intent_at
+                               if ticket.claimed_at is not None and ticket.intent_at is not None
+                               else None),
+            ready_to_claim_s=(ticket.claimed_at - ticket.ready_observed_at
+                              if ticket.claimed_at is not None and ticket.ready_observed_at is not None
+                              else None),
+            claimed=ticket.claimed_by is not None, retired=ticket.retired))
+        if len(recent) > 256:
+            del recent[0]
+            self.metrics["kv_transfer_ticket_details_dropped"] += 1
+
     def _poll_completed(self):
         DIAG.gpu_collect()
         with self.lock:
@@ -981,28 +1091,11 @@ class CacheTransferManager:
                 if ticket.ready() and not ticket.retired:
                     ticket.copy_state = "ready"
                     if not ticket.reported:
-                        if ticket.copy_started_at is not None:
-                            elapsed = max(0.0, time.perf_counter() - ticket.copy_started_at)
-                            self.metrics["kv_transfer_samples"] += 1
-                            self.metrics["kv_transfer_total_s"] += elapsed
-                            self.metrics["kv_transfer_avg_s"] = (
-                                self.metrics["kv_transfer_total_s"] /
-                                self.metrics["kv_transfer_samples"])
-                            if ticket.purpose == "prefetch":
-                                self.metrics["kv_transfer_prefetch_samples"] += 1
-                                self.metrics["kv_transfer_prefetch_total_s"] += elapsed
-                                self.metrics["kv_transfer_prefetch_avg_s"] = (
-                                    self.metrics["kv_transfer_prefetch_total_s"] /
-                                    self.metrics["kv_transfer_prefetch_samples"])
-                            else:
-                                self.metrics["kv_transfer_demand_samples"] += 1
-                                self.metrics["kv_transfer_demand_total_s"] += elapsed
-                                self.metrics["kv_transfer_demand_avg_s"] = (
-                                    self.metrics["kv_transfer_demand_total_s"] /
-                                    self.metrics["kv_transfer_demand_samples"])
+                        self._record_transfer(ticket)
                         completed.append(ticket)
-                        ticket.reported = True
                 drained = ticket.last_copy is None or ticket.last_copy.query()
+                if ticket.retired and drained and not ticket.reported:
+                    self._record_transfer(ticket)
                 used = ticket.consumer_done is None or ticket.consumer_done.query()
                 if drained and used and (ticket.retired or
                         (ticket.purpose != "prefetch" and ticket.ready())):

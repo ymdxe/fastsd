@@ -5,6 +5,38 @@ import threading
 
 
 @dataclass(frozen=True)
+class PrefetchTarget:
+    pid: object
+    horizon: int = 1
+    prediction_tick: int = 0
+
+    def __post_init__(self):
+        if self.horizon < 1:
+            raise ValueError("prefetch horizon must be positive")
+
+
+def prefetch_pid(target):
+    return target.pid if isinstance(target, PrefetchTarget) else target
+
+
+def prefetch_horizon(target):
+    return target.horizon if isinstance(target, PrefetchTarget) else 1
+
+
+def ordered_prefetch_targets(targets):
+    """Deduplicate by pid, choosing its earliest horizon with stable ties.
+
+    Bare pids remain accepted for integrations predating horizon labels.
+    """
+    earliest = {}
+    for target in targets:
+        pid = prefetch_pid(target)
+        if pid not in earliest or prefetch_horizon(target) < prefetch_horizon(earliest[pid]):
+            earliest[pid] = target
+    return tuple(sorted(earliest.values(), key=prefetch_horizon))
+
+
+@dataclass(frozen=True)
 class CacheSnapshot:
     cache: object
     session_epoch: int = 0
@@ -42,6 +74,18 @@ class KVTransferTicket:
     demand_started_at: float = None
     copy_started_at: float = None
     last_chunk_bytes: int = 0
+    horizon: int = 1
+    prediction_tick: int = 0
+    transfer_horizon: int = 1
+    prepared_at: float = None
+    completed_at: float = None
+    transfer_elapsed_s: float = None
+    transfer_rate_bytes_per_s: float = None
+    # Host-side timing for prefetch lead/claim diagnostics.  These fields are
+    # metadata only; CUDA readiness continues to be represented by copy_done.
+    intent_at: float = None
+    claimed_at: float = None
+    ready_observed_at: float = None
 
     @property
     def session_epoch(self):

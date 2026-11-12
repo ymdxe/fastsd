@@ -74,9 +74,23 @@ fi
 
 DEVICE=cpu
 EXTRA=()
-if [ "$CASE" = "fastsd" ]; then
-  EXTRA=(--server_sched_mode fastsd --enable_pipeline --enable_proactive_draft
-         --enable_latency_priority --overlap_prefill_first_draft)
+if [[ "$CASE" == fastsd* ]]; then
+  EXTRA=(--server_sched_mode fastsd)
+  if [[ "$CASE" == *nopipeline* ]]; then
+    EXTRA+=(--no-enable_pipeline --no-overlap_prefill_first_draft)
+  else
+    EXTRA+=(--enable_pipeline --overlap_prefill_first_draft)
+  fi
+  if [[ "$CASE" == *noproactive* ]]; then
+    EXTRA+=(--no-enable_proactive_draft)
+  else
+    EXTRA+=(--enable_proactive_draft)
+  fi
+  if [[ "$CASE" == *nolatency* ]]; then
+    EXTRA+=(--no-enable_latency_priority)
+  else
+    EXTRA+=(--enable_latency_priority)
+  fi
 else
   EXTRA=(--server_sched_mode vanilla --no-enable_pipeline
          --no-enable_proactive_draft --no-enable_latency_priority
@@ -92,6 +106,7 @@ ARGS=(
   --draft_dtype bfloat16 --num_drafts "$NUM_DRAFTS" --edge_gpus 1
   --max_tasks_per_draft $(( (REQUESTS + NUM_DRAFTS - 1) / NUM_DRAFTS ))
   --max_tokens "$MAX_TOKENS" --gamma "$GAMMA" --seed "$SEED"
+  --verify_method "${VERIFY_METHOD:-greedy}" --temp 0 --top_k 0 --top_p 1 --stop_policy eos
   --edge_threads "$EDGE_THREADS"
   --batch_size "$BATCH_SIZE" --token_budget "$TOKEN_BUDGET" --kv_batch_mode varlen
   --edge_use_cpu

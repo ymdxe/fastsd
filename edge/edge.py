@@ -22,6 +22,7 @@ from src.arrival import poisson_arrival_offsets, shard_samples
 from src.engine import Decoding
 from src.kvcache import KVCacheModel
 from src.metrics import elapsed_ms, tpot_ms
+from src.common_metrics import evaluate_slo
 try:
     from src.speculative_sampling import (
         encode_sparse_block,
@@ -1449,6 +1450,8 @@ class EdgeRunner(Decoding):
             ),
             "num_tasks": len(records),
             "wallclock_s": float(wallclock_s),
+            "benchmark_start_epoch_s": getattr(self, "_benchmark_start_epoch_s", None),
+            "benchmark_end_epoch_s": getattr(self, "_benchmark_end_epoch_s", None),
             "wallclock_definition": "parent_eval_start_to_all_workers_joined_including_process_startup_warmup_and_load_gaps",
             "total_generated_tokens": int(total_tokens),
             "max_generated_tokens_observed": int(max_generated_tokens_observed),
@@ -1492,10 +1495,12 @@ class EdgeRunner(Decoding):
             "task_e2e_ms_p50": self._percentile(task_e2e, 0.50),
             "task_e2e_ms_p90": self._percentile(task_e2e, 0.90),
             "task_e2e_ms_p95": self._percentile(task_e2e, 0.95),
+            "task_e2e_ms_p99": self._percentile(task_e2e, 0.99),
             "decode_e2e_ms_avg": float(statistics.mean(decode_e2e)) if decode_e2e else 0.0,
             "decode_e2e_ms_p50": self._percentile(decode_e2e, 0.50),
             "decode_e2e_ms_p90": self._percentile(decode_e2e, 0.90),
             "decode_e2e_ms_p95": self._percentile(decode_e2e, 0.95),
+            "decode_e2e_ms_p99": self._percentile(decode_e2e, 0.99),
             "request_e2e_ms_avg": float(statistics.mean(request_e2e)) if request_e2e else 0.0,
             "request_e2e_ms_p50": self._percentile(request_e2e, 0.50),
             "request_e2e_ms_p90": self._percentile(request_e2e, 0.90),
@@ -1547,6 +1552,7 @@ class EdgeRunner(Decoding):
                 if prefill_wait_after_first_draft_ms
                 else 0.0
             ),
+            "slo": evaluate_slo(records, wallclock_s=wallclock_s),
         }
         summary_path = os.path.join(self.args.exp_name, "edge_metrics_summary.json")
         with open(summary_path, "w") as f:
@@ -1569,6 +1575,7 @@ class EdgeRunner(Decoding):
 
         # 启动多个边缘 draft 进程，每个进程独立 session_id
         wallclock_start = time.monotonic()
+        self._benchmark_start_epoch_s = time.time()
         processes = []
         arrival_barrier = None
         arrival_start_time = None
@@ -1587,6 +1594,7 @@ class EdgeRunner(Decoding):
         for proc in processes:
             proc.join()
 
+        self._benchmark_end_epoch_s = time.time()
         self._write_summary(max(0.0, time.monotonic() - wallclock_start))
         failed = [proc.exitcode for proc in processes if proc.exitcode != 0]
         if failed:

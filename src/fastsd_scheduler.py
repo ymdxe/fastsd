@@ -23,26 +23,38 @@ FASTSD_DEFAULT_R1 = 128
 FASTSD_DEFAULT_R2 = 512
 FASTSD_DYNAMIC_WINDOW = 100
 FASTSD_VERIFY_PREFILL_SWITCH_THRESHOLD = 6  # legacy API compatibility
-# Ageing is linear for normal queue waits and exponential only after the
-# request has waited long enough to matter for fairness.  The two pieces are
-# C1-continuous at WAIT_LINEAR_UNTIL_S: alpha and beta are chosen to match both
-# exp(lambda*T0) and its slope.  The common beta offset does not change the
-# relative order of requests that are already waiting.
-WAIT_LINEAR_UNTIL_S = float(os.environ.get("FASTSD_WAIT_LINEAR_UNTIL_S", "5.0"))
-WAIT_LAMBDA_DEFAULT = 0.01
-WAIT_LINEAR_ALPHA = os.environ.get("FASTSD_WAIT_LINEAR_ALPHA", "").strip()
+
+
+def _wait_setting(name, default):
+    value = float(os.environ.get(name, "").strip() or default)
+    if not math.isfinite(value) or value < 0:
+        raise ValueError(f"{name} must be finite and non-negative")
+    return value
+
+
+# T0=0 preserves the original exp(lambda*t) policy. A positive T0 explicitly
+# enables the experimental continuous linear segment; no scheduler rewrite.
+WAIT_LINEAR_UNTIL_S = _wait_setting("FASTSD_WAIT_LINEAR_UNTIL_S", 0.0)
+WAIT_LAMBDA_DEFAULT = _wait_setting("FASTSD_WAIT_LAMBDA", 0.01)
+WAIT_LINEAR_ALPHA = (None if not os.environ.get("FASTSD_WAIT_LINEAR_ALPHA", "").strip()
+                     else _wait_setting("FASTSD_WAIT_LINEAR_ALPHA", 0.0))
 
 
 def wait_priority_term(lamda, elapsed_s):
-    lamda = float(lamda)
-    t = max(0.0, float(elapsed_s))
+    lamda = WAIT_LAMBDA_DEFAULT if lamda is None else float(lamda)
+    if not math.isfinite(lamda) or lamda < 0:
+        raise ValueError("lambda must be finite and non-negative")
+    elapsed = float(elapsed_s)
+    if not math.isfinite(elapsed):
+        raise ValueError("wait duration must be finite")
+    t = max(0.0, elapsed)
     t0 = WAIT_LINEAR_UNTIL_S
     if lamda <= 0.0:
         return 1.0
-    if t0 > 0.0 and t <= t0 and lamda * t0 < 1.0:
+    if t0 > 0.0 and t <= t0:
         edge = math.exp(lamda * t0)
-        if WAIT_LINEAR_ALPHA:
-            alpha = float(WAIT_LINEAR_ALPHA)
+        if WAIT_LINEAR_ALPHA is not None:
+            alpha = WAIT_LINEAR_ALPHA
         else:
             # C1 default: match both value and slope at T0.
             alpha = lamda * edge
@@ -221,7 +233,7 @@ class TaskLengthClassifier:
         return length_category(item.remaining_tokens, *self.thresholds[item.task_type])
 
 
-def prefill_priority_score(req, now=None, lamda=0.01):
+def prefill_priority_score(req, now=None, lamda=None):
     if now is None:
         now = 0.0
     elapsed = _wait_seconds(req, float(now))
@@ -252,7 +264,7 @@ def prefill_priority_score(req, now=None, lamda=0.01):
     return wait_term
 
 
-def verify_priority_score(req, accept_stats, now=None, lamda=0.01):
+def verify_priority_score(req, accept_stats, now=None, lamda=None):
     if now is None:
         now = 0.0
     elapsed = _wait_seconds(req, float(now))
@@ -288,7 +300,7 @@ def verify_priority_score(req, accept_stats, now=None, lamda=0.01):
     return -((draft_total_time + transport_rtt) / acc_prob) + wait_term
 
 
-def compute_priority_score(req, accept_stats, now=None, lamda=0.01):
+def compute_priority_score(req, accept_stats, now=None, lamda=None):
     """Compatibility dispatcher; scores are compared within one queue."""
     if req["task_type"] == "prefill":
         return prefill_priority_score(req, now=now, lamda=lamda)
@@ -413,6 +425,7 @@ class AdmissionPlan:
     plan_ms: float = 0.0
     seal_reason: str = ""
     prediction_assumptions: dict[str, str] = field(default_factory=dict)
+    _prediction_queues: dict | None = field(default=None, repr=False)
     _committed: bool = field(default=False, repr=False)
 
     @property
@@ -808,6 +821,9 @@ def predict_next_plan(queues, inflight_plan=None, *, known_phase_results=None,
     planner_kwargs["now"] = planning_time
     prediction = plan_iteration(queues, **planner_kwargs)
     prediction.prediction_assumptions = assumptions
+    # The next horizon must project this metadata snapshot, rather than
+    # resurrecting work already completed in an earlier predicted plan.
+    prediction._prediction_queues = queues
     return prediction
 
 

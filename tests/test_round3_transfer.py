@@ -372,7 +372,7 @@ class CudaSlabTests(unittest.TestCase):
 
     def test_active_prepare_and_copy_use_preallocated_resources_and_same_ticket(self):
         manager = CacheTransferManager('cuda:0', prefetch_bytes=4 * 1024 ** 2,
-                                       chunk_bytes=256 * 1024, headroom_bytes=0)
+                                       chunk_bytes=256 * 1024, headroom_bytes=0, warmup_pool=True)
         source, compute = self.source(), torch.cuda.Stream()
         manager.install_probe('verify-probe', group_bytes=256 * 1024,
             rate_bytes_per_second=64 * 1024 ** 2, evidence={'test': 'allocation-free speculative window'})
@@ -410,7 +410,7 @@ class CudaSlabTests(unittest.TestCase):
             manager.close()
 
     def test_unknown_shape_permits_preparation_but_pauses_new_compute_dma(self):
-        manager = CacheTransferManager('cuda:0', prefetch_bytes=4 * 1024 ** 2, headroom_bytes=0)
+        manager = CacheTransferManager('cuda:0', prefetch_bytes=4 * 1024 ** 2, headroom_bytes=0, warmup_pool=True)
         compute = torch.cuda.Stream()
         try:
             manager.begin_execution(shape=('verify', 'uncalibrated'))
@@ -425,7 +425,7 @@ class CudaSlabTests(unittest.TestCase):
             manager.close()
 
     def test_d2h_source_holds_gpu_slab_after_registry_replacement(self):
-        manager = CacheTransferManager('cuda:0', prefetch_bytes=4 * 1024 ** 2, headroom_bytes=0)
+        manager = CacheTransferManager('cuda:0', prefetch_bytes=4 * 1024 ** 2, headroom_bytes=0, warmup_pool=True)
         compute = torch.cuda.Stream()
         try:
             ticket = manager.submit_h2d(self.source(), purpose='prefetch')

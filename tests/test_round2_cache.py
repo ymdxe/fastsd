@@ -74,10 +74,10 @@ except ImportError:
 class TransferIsolationTests(unittest.TestCase):
     def host(self, n=8192):
         data = torch.arange(n, dtype=torch.float32).reshape(1, 1, n, 1).pin_memory()
-        return dynamic_cache_from_views([(data, data + 1)])
+        return dynamic_cache_from_views([(data, (data + 1).pin_memory())])
 
     def test_partial_ticket_is_claimed_once_and_cancelled_storage_drains(self):
-        transfers = CacheTransferManager('cuda:0', mode='overlap', chunk_bytes=1024)
+        transfers = CacheTransferManager('cuda:0', mode='overlap', chunk_bytes=1024, warmup_pool=True)
         compute = torch.cuda.Stream()
         try:
             host = self.host()
@@ -139,7 +139,7 @@ class TransferIsolationTests(unittest.TestCase):
             transfers.close()
 
     def test_prefetch_b_does_not_add_dependency_to_compute_a(self):
-        transfers = CacheTransferManager('cuda:0', mode='overlap', chunk_bytes=1024)
+        transfers = CacheTransferManager('cuda:0', mode='overlap', chunk_bytes=1024, warmup_pool=True)
         compute = torch.cuda.Stream()
         try:
             with torch.cuda.stream(compute):
@@ -168,7 +168,7 @@ class TransferIsolationTests(unittest.TestCase):
     def test_uncalibrated_overlap_submits_no_dma_during_execution(self):
         # The calibration gate is deliberate: without paired-replay evidence no
         # speculative DMA may run while a forward is admitted/executing.
-        transfers = CacheTransferManager('cuda:0', mode='overlap', chunk_bytes=1024)
+        transfers = CacheTransferManager('cuda:0', mode='overlap', chunk_bytes=1024, warmup_pool=True)
         try:
             transfers.admit()
             transfers.begin_execution()

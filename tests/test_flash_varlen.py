@@ -1,5 +1,6 @@
 """GPU gates for native GQA, causal alignment, isolation and cache lifecycle."""
 import gc
+import importlib.util
 import unittest
 import weakref
 import torch
@@ -11,7 +12,8 @@ from src.kvcache_batching import KVCacheModel_batching
 from src.kvcache_varlen import varlen_generate
 
 
-@unittest.skipUnless(torch.cuda.is_available(), 'requires CUDA')
+@unittest.skipUnless(torch.cuda.is_available() and importlib.util.find_spec('flash_attn') is not None,
+                     'requires CUDA and flash-attn')
 class FlashAttentionTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -80,7 +82,8 @@ class FlashAttentionTests(unittest.TestCase):
         self.assertEqual(pointers, [t.data_ptr() for t in (workspace.q, workspace.k, workspace.v, workspace.cu_q, workspace.cu_k)])
 
 
-@unittest.skipUnless(torch.cuda.is_available(), 'requires CUDA')
+@unittest.skipUnless(torch.cuda.is_available() and importlib.util.find_spec('flash_attn') is not None,
+                     'requires CUDA and flash-attn')
 class FlashModelCacheTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

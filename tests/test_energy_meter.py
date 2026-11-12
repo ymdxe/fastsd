@@ -14,6 +14,8 @@ class EnergyAccumulatorTests(unittest.TestCase):
         self.assertAlmostEqual(summary["energy_j"], 120.0 * 0.2 + 80.0 * 0.1, places=6)
         self.assertAlmostEqual(summary["duration_s"], 0.3, places=6)
         self.assertAlmostEqual(summary["avg_power_w"], summary["energy_j"] / summary["duration_s"], places=6)
+        self.assertEqual(summary["peak_power_w"], 120.0)
+        self.assertEqual(summary["power_sample_count"], 2)
 
     def test_stop_without_start_raises(self):
         meter = EnergyAccumulator()

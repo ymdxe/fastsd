@@ -13,6 +13,30 @@ from typing import Any, Iterable
 
 SCHEMA_VERSION = 1
 
+# Default SLO tiers are deliberately explicit and overrideable.  Each metric
+# uses milliseconds, and a request passes a tier only when its observed value
+# is at or below that tier's threshold.
+DEFAULT_SLO_THRESHOLDS: dict[str, dict[str, float]] = {
+    "ttft_ms": {
+        "strict": 250.0,
+        "standard": 500.0,
+        "relaxed": 1000.0,
+        "tail": 2000.0,
+    },
+    "tpot_ms": {
+        "strict": 50.0,
+        "standard": 100.0,
+        "relaxed": 200.0,
+        "tail": 500.0,
+    },
+    "e2e_ms": {
+        "strict": 1000.0,
+        "standard": 2000.0,
+        "relaxed": 5000.0,
+        "tail": 10000.0,
+    },
+}
+
 
 def percentile(values: list[float], quantile: float) -> float | None:
     if not values:
@@ -41,6 +65,139 @@ def _metric_stats(records: list[dict[str, Any]], key: str) -> dict[str, float | 
         "p90": percentile(values, 0.90),
         "p95": percentile(values, 0.95),
         "p99": percentile(values, 0.99),
+    }
+
+
+def evaluate_slo(
+    records: Iterable[dict[str, Any]],
+    *,
+    wallclock_s: float | None,
+    thresholds: dict[str, dict[str, float]] | None = None,
+) -> dict[str, Any]:
+    """Evaluate multi-tier latency SLOs and retain request-level evidence.
+
+    Violation rate is computed over all completed records. Failed requests and
+    missing metrics are retained as violations so incomplete telemetry cannot
+    silently improve an SLO result. Goodput counts successful requests/tokens that satisfy the
+    selected metric threshold and is normalized by the measured run wallclock.
+    ``combined`` additionally requires TTFT, TPOT, and E2E to pass together.
+    """
+
+    rows = [dict(record) for record in records]
+    configured = thresholds or DEFAULT_SLO_THRESHOLDS
+    normalized: dict[str, dict[str, float]] = {}
+    for metric, tiers in configured.items():
+        normalized[metric] = {
+            str(tier): float(limit) for tier, limit in tiers.items()
+        }
+    duration = float(wallclock_s or 0.0)
+
+    def successful(record: dict[str, Any]) -> bool:
+        return bool(record.get("success", record.get("status", "ok") not in {"error", "failed"}))
+
+    def value_for(record: dict[str, Any], metric: str) -> float | None:
+        value = record.get(metric)
+        if value is None and metric == "e2e_ms":
+            value = record.get("task_e2e_ms", record.get("request_e2e_ms"))
+        try:
+            value = float(value)
+        except (TypeError, ValueError, OverflowError):
+            return None
+        return value if math.isfinite(value) and value >= 0 else None
+
+    def tier_result(metric: str, tier: str, limit: float) -> dict[str, Any]:
+        details = []
+        passing_records = []
+        violations = 0
+        for index, record in enumerate(rows):
+            observed = value_for(record, metric)
+            passed = observed is not None and observed <= limit and successful(record)
+            violation = not passed
+            violations += int(violation)
+            detail = {
+                "index": index,
+                "sample_id": record.get("sample_id", record.get("task_id", index)),
+                "observed_ms": observed,
+                "threshold_ms": limit,
+                "violation": violation,
+                "success": successful(record),
+                "generated_tokens": int(record.get("generated_tokens", 0) or 0),
+            }
+            details.append(detail)
+            if passed:
+                passing_records.append(record)
+        count = len(rows)
+        passing_tokens = sum(int(record.get("generated_tokens", 0) or 0) for record in passing_records)
+        return {
+            "metric": metric,
+            "tier": tier,
+            "threshold_ms": limit,
+            "sample_count": count,
+            "violation_count": violations,
+            "violation_rate": violations / count if count else None,
+            "passing_request_count": len(passing_records),
+            "goodput_req_s": len(passing_records) / duration if duration > 0 else None,
+            "goodput_tok_s": passing_tokens / duration if duration > 0 else None,
+            "details": details,
+        }
+
+    by_metric: dict[str, dict[str, dict[str, Any]]] = {}
+    for metric, tiers in normalized.items():
+        by_metric[metric] = {
+            tier: tier_result(metric, tier, limit) for tier, limit in tiers.items()
+        }
+
+    combined: dict[str, dict[str, Any]] = {}
+    tier_names = sorted({tier for tiers in normalized.values() for tier in tiers})
+    for tier in tier_names:
+        limits = {metric: normalized[metric].get(tier) for metric in normalized}
+        details = []
+        passing_records = []
+        violations = 0
+        for index, record in enumerate(rows):
+            observed = {metric: value_for(record, metric) for metric in normalized}
+            passed = successful(record) and all(
+                observed[metric] is not None and limits[metric] is not None
+                and observed[metric] <= limits[metric]
+                for metric in normalized
+            )
+            violation = not passed
+            violations += int(violation)
+            details.append({
+                "index": index,
+                "sample_id": record.get("sample_id", record.get("task_id", index)),
+                "observed_ms": observed,
+                "threshold_ms": limits,
+                "violation": violation,
+                "success": successful(record),
+                "generated_tokens": int(record.get("generated_tokens", 0) or 0),
+            })
+            if passed and successful(record):
+                passing_records.append(record)
+        passing_tokens = sum(int(record.get("generated_tokens", 0) or 0) for record in passing_records)
+        count = len(rows)
+        combined[tier] = {
+            "tier": tier,
+            "threshold_ms": limits,
+            "sample_count": count,
+            "violation_count": violations,
+            "violation_rate": violations / count if count else None,
+            "passing_request_count": len(passing_records),
+            "goodput_req_s": len(passing_records) / duration if duration > 0 else None,
+            "goodput_tok_s": passing_tokens / duration if duration > 0 else None,
+            "details": details,
+        }
+    return {
+        "thresholds_ms": normalized,
+        "wallclock_s": duration,
+        "by_metric": by_metric,
+        "combined": combined,
+        "definitions": {
+            "violation_rate": "failed requests or requests exceeding the threshold/missing the metric divided by all completed requests",
+            "goodput_req_s": "successful requests satisfying the selected SLO divided by measured run wallclock",
+            "goodput_tok_s": "generated tokens from successful requests satisfying the selected SLO divided by measured run wallclock",
+            "combined": "a request passes only when TTFT, TPOT, and E2E all pass the same tier",
+        },
     }
 
 
@@ -241,6 +398,7 @@ def summarize_requests(
     wallclock_s: float | None = None,
     evaluation_scope: str = "quality",
     paired_records: Iterable[dict[str, Any]] | None = None,
+    slo_thresholds: dict[str, dict[str, float]] | None = None,
     extra: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     request_records = list(records)
@@ -337,6 +495,11 @@ def summarize_requests(
             ),
         },
         "resource_metrics": _resource_stats(request_records),
+        "slo": evaluate_slo(
+            request_records,
+            wallclock_s=wallclock_s,
+            thresholds=slo_thresholds,
+        ),
     }
     if paired_records is not None:
         baseline = list(paired_records)

@@ -13,6 +13,19 @@ def parse(*extra):
 
 
 class ResidencyCliTests(unittest.TestCase):
+    def test_transfer_environment_defaults_and_cli_override(self):
+        with mock.patch.dict("os.environ", {"KV_PREFETCH_CHUNK_KB": "512",
+                "KV_PREFETCH_RATE_MB_S": "256", "KV_PREFETCH_IDLE_RATE_MB_S": "1024"}):
+            args = parse()
+            self.assertEqual((args.kv_prefetch_chunk_kb, args.kv_prefetch_rate_mb_s,
+                              args.kv_prefetch_idle_rate_mb_s), (512, 256, 1024))
+            self.assertEqual(args.kv_prefetch_speculative_chunk_kb, 4096)
+            self.assertEqual(parse("--kv_prefetch_rate_mb_s", "128").kv_prefetch_rate_mb_s, 128)
+
+    def test_speculative_chunk_environment_override(self):
+        with mock.patch.dict("os.environ", {"KV_PREFETCH_SPECULATIVE_CHUNK_KB": "4096"}):
+            self.assertEqual(parse().kv_prefetch_speculative_chunk_kb, 4096)
+
     def test_residency_is_the_default(self):
         args = parse()
         self.assertEqual(args.kv_residency_budget_mb, 0)
@@ -20,13 +33,15 @@ class ResidencyCliTests(unittest.TestCase):
         self.assertEqual(args.kv_residency_low_ratio, 0.75)
         self.assertFalse(args.measure_forward_gpu)
         self.assertEqual(args.kv_prefetch_mode, "overlap")
+        self.assertEqual(args.kv_prefetch_rate_mb_s, 0.0)
+        self.assertEqual(args.kv_prefetch_idle_rate_mb_s, 0.0)
 
     def test_explicit_budget_is_accepted(self):
         args = parse("--kv_residency_budget_mb", "4096")
         self.assertEqual(args.kv_residency_budget_mb, 4096)
 
     def test_online_fraction_is_bounded(self):
-        self.assertEqual(parse().kv_prefetch_online_fraction, 0.25)
+        self.assertEqual(parse().kv_prefetch_online_fraction, 1.0)
         with self.assertRaises(SystemExit):
             parse("--kv_prefetch_online_fraction", "1.5")
 

@@ -23,7 +23,7 @@ from scripts.eval_suite import (
     resources,
     render_specedge_config,
 )
-from src.common_metrics import percentile, summarize_requests
+from src.common_metrics import evaluate_slo, percentile, summarize_requests
 from src.evaluation import (
     load_canonical_jsonl,
     load_evaluation_records,
@@ -97,6 +97,25 @@ class CommonMetricTests(unittest.TestCase):
         self.assertEqual(summary["ttft_ms"]["avg"], 10)
         self.assertEqual(summary["scheduled_ttft_ms"]["avg"], 15)
         self.assertEqual(summary["quality_exact_match"], 1.0)
+
+    def test_multi_tier_slo_keeps_violation_and_goodput_details(self):
+        records = [
+            {"sample_id": "a", "ttft_ms": 100, "tpot_ms": 20, "e2e_ms": 500,
+             "generated_tokens": 4},
+            {"sample_id": "b", "ttft_ms": 700, "tpot_ms": 120, "e2e_ms": 3000,
+             "generated_tokens": 6},
+        ]
+        result = evaluate_slo(records, wallclock_s=2.0, thresholds={
+            "ttft_ms": {"strict": 250, "relaxed": 1000},
+            "tpot_ms": {"strict": 50, "relaxed": 200},
+            "e2e_ms": {"strict": 1000, "relaxed": 5000},
+        })
+        strict = result["by_metric"]["ttft_ms"]["strict"]
+        self.assertEqual(strict["violation_count"], 1)
+        self.assertAlmostEqual(strict["violation_rate"], 0.5)
+        self.assertAlmostEqual(strict["goodput_req_s"], 0.5)
+        self.assertEqual(len(strict["details"]), 2)
+        self.assertEqual(result["combined"]["strict"]["violation_count"], 1)
 
 
 class DraftOnlyPromptTests(unittest.TestCase):

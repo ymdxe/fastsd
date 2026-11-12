@@ -1,4 +1,5 @@
 import json
+import math
 import threading
 import time
 from dataclasses import dataclass
@@ -28,6 +29,7 @@ class EnergyAccumulator:
         self._total_energy_j = 0.0
         self._total_duration_s = 0.0
         self._running = False
+        self._power_samples: list[float] = []
 
     def start(self, timestamp_s: float) -> None:
         del timestamp_s
@@ -42,6 +44,8 @@ class EnergyAccumulator:
             return
         self._total_energy_j += power_w * dt_s
         self._total_duration_s += dt_s
+        if math.isfinite(float(power_w)) and power_w >= 0:
+            self._power_samples.append(float(power_w))
 
     def pause(self, timestamp_s: float) -> None:
         del timestamp_s
@@ -60,10 +64,22 @@ class EnergyAccumulator:
             if self._total_duration_s > 0
             else 0.0
         )
+        ordered = sorted(self._power_samples)
+        def quantile(q: float) -> float:
+            if not ordered:
+                return 0.0
+            position = (len(ordered) - 1) * q
+            low = int(position)
+            high = min(low + 1, len(ordered) - 1)
+            return ordered[low] + (ordered[high] - ordered[low]) * (position - low)
         return {
             "energy_j": self._total_energy_j,
             "duration_s": self._total_duration_s,
             "avg_power_w": avg_power,
+            "peak_power_w": max(ordered) if ordered else 0.0,
+            "power_p95_w": quantile(0.95),
+            "power_p99_w": quantile(0.99),
+            "power_sample_count": len(ordered),
         }
 
     @property
@@ -202,6 +218,15 @@ class _CloudEnergyManager:
                 "energy_j": overhead_j,
                 "ratio": overhead_ratio,
             },
+            # Explicit system-prefixed aliases make the report consumable by
+            # evaluators that distinguish system energy from request energy.
+            "system_energy_j": campaign_summary["energy_j"],
+            "system_duration_s": campaign_summary["duration_s"],
+            "system_avg_power_w": campaign_summary["avg_power_w"],
+            "system_peak_power_w": campaign_summary["peak_power_w"],
+            "system_power_p95_w": campaign_summary["power_p95_w"],
+            "system_power_p99_w": campaign_summary["power_p99_w"],
+            "system_power_sample_count": campaign_summary["power_sample_count"],
             "total_tasks": total_tasks,
             "metadata": metadata,
         }

@@ -929,6 +929,7 @@ def normalize_fastsd(input_dir: Path, manifest: dict[str, Any]) -> tuple[list[di
             "ttft_ms": item.get("ttft_ms"),
             "tpot_ms": item.get("tpot_ms"),
             "e2e_ms": item.get("request_e2e_ms"),
+            "task_e2e_ms": item.get("task_e2e_ms", item.get("request_e2e_ms")),
             "scheduled_arrival_s": item.get("scheduled_arrival_s"),
             "actual_arrival_s": item.get("actual_arrival_s"),
             "arrival_lag_ms": item.get("arrival_lag_ms"),
@@ -988,6 +989,7 @@ def normalize_specedge(input_dir: Path, manifest: dict[str, Any]) -> tuple[list[
                 "ttft_ms": completion.get("ttft_ms"),
                 "tpot_ms": completion.get("tpot_ms"),
                 "e2e_ms": completion.get("request_e2e_ms"),
+            "task_e2e_ms": completion.get("task_e2e_ms", completion.get("request_e2e_ms")),
                 "scheduled_arrival_s": completion.get("scheduled_arrival_s"),
                 "actual_arrival_s": completion.get("actual_arrival_s"),
                 "arrival_lag_ms": completion.get("arrival_lag_ms"),
@@ -1022,6 +1024,11 @@ def normalize(config_path: str, method: str, input_path: str) -> int:
         wallclock = None
     else:
         raise ValueError(f"Unsupported method: {method}")
+    energy_payload = None
+    for energy_path in (source / "energy_metrics.json", source / "target" / "energy_metrics.json"):
+        if energy_path.is_file():
+            energy_payload = json.loads(energy_path.read_text(encoding="utf-8"))
+            break
     output_dir = layout["local_root"] / "normalized" / normalized_method
     output_dir.mkdir(parents=True, exist_ok=True)
     requests_path = output_dir / "requests.jsonl"
@@ -1058,10 +1065,12 @@ def normalize(config_path: str, method: str, input_path: str) -> int:
         wallclock_s=wallclock,
         evaluation_scope=manifest.get("evaluation_scope", "quality"),
         paired_records=target_records or None,
+        slo_thresholds=config.get("slo_thresholds_ms"),
         extra={
             "draft_model": config["models"]["draft"],
             "target_model": config["models"]["target"],
             "source_method": method,
+            "energy": energy_payload,
         },
     )
     write_json_once(output_dir / "summary.json", summary)
@@ -1087,6 +1096,9 @@ def compare(summary_paths: list[str], output: str | None) -> int:
         "tpot_avg_ms", "tpot_p95_ms", "e2e_avg_ms", "accept_rate",
         "mean_accepted_tokens_per_verify", "quality_exact_match",
         "request_bytes_total", "response_bytes_total", "rpc_count_total",
+        "slo_standard_violation_rate", "slo_standard_goodput_tok_s",
+        "ttft_standard_violation_rate", "tpot_standard_violation_rate",
+        "e2e_standard_violation_rate",
     ]
     rows = []
     for item in summaries:
@@ -1109,6 +1121,11 @@ def compare(summary_paths: list[str], output: str | None) -> int:
             "request_bytes_total": resources.get("request_bytes", {}).get("total"),
             "response_bytes_total": resources.get("response_bytes", {}).get("total"),
             "rpc_count_total": resources.get("rpc_count", {}).get("total"),
+            "slo_standard_violation_rate": item.get("slo", {}).get("combined", {}).get("standard", {}).get("violation_rate"),
+            "slo_standard_goodput_tok_s": item.get("slo", {}).get("combined", {}).get("standard", {}).get("goodput_tok_s"),
+            "ttft_standard_violation_rate": item.get("slo", {}).get("by_metric", {}).get("ttft_ms", {}).get("standard", {}).get("violation_rate"),
+            "tpot_standard_violation_rate": item.get("slo", {}).get("by_metric", {}).get("tpot_ms", {}).get("standard", {}).get("violation_rate"),
+            "e2e_standard_violation_rate": item.get("slo", {}).get("by_metric", {}).get("e2e_ms", {}).get("standard", {}).get("violation_rate"),
         })
     print("\t".join(columns))
     for row in rows:
