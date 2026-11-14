@@ -56,9 +56,13 @@ class BudgetTests(unittest.TestCase):
     def test_deficit_accounts_for_bytes_that_must_be_restored(self):
         m = manager(budget=1000)
         m.note_created("a", nbytes=800)
-        self.assertEqual(m.deficit_bytes(), 50)
-        # Admitting a 100-byte restore must also make room for it.
-        self.assertEqual(m.deficit_bytes(100), 150)
+        self.assertEqual(m.deficit_bytes(), 0)
+        # Even a large estimated restore cannot trigger eviction below high.
+        self.assertEqual(m.deficit_bytes(300), 0)
+        m.note_created("b", nbytes=100)
+        self.assertTrue(m.needs_eviction())
+        self.assertEqual(m.deficit_bytes(), 150)
+        self.assertEqual(m.deficit_bytes(100), 250)
 
     def test_pending_restore_reports_non_gpu_sessions(self):
         m = manager(budget=1000)
@@ -69,10 +73,45 @@ class BudgetTests(unittest.TestCase):
         self.assertEqual(m.pending_restore(["a", "b", "missing"]), ["b"])
         self.assertEqual(m.cpu_resident_count(), 1)
 
-    def test_guard_free_bytes_flags_high(self):
-        m = manager(budget=1000, headroom_bytes=512)
-        self.assertTrue(m.update_pressure(10, guard_free_bytes=100))
+    def test_guard_free_bytes_does_not_override_high_watermark(self):
+        m = manager(budget=1000, headroom_bytes=512 * 1024 ** 2)
+        self.assertFalse(m.update_pressure(10, guard_free_bytes=300 * 1024 ** 2))
         self.assertEqual(m.counters["pressure_guard_trips"], 1)
+
+    def test_emergency_below_low_watermark_still_has_a_positive_deficit(self):
+        mib = 1024 ** 2
+        m = manager(budget=1000 * mib)
+        m.note_created("a", nbytes=32 * mib)
+        self.assertTrue(m.update_pressure(m.used_bytes(), guard_free_bytes=255 * mib))
+        self.assertFalse(m.high)
+        self.assertTrue(m.emergency)
+        self.assertTrue(m.needs_eviction())
+        self.assertEqual(m.deficit_bytes(), mib)
+        self.assertEqual(m.deficit_bytes(2 * mib), 3 * mib)
+        self.assertEqual(m.counters["emergency_pressure_samples"], 1)
+
+    def test_exact_emergency_threshold_and_recovery_do_not_trigger(self):
+        mib = 1024 ** 2
+        m = manager(budget=1000 * mib)
+        m.note_created("a", nbytes=32 * mib)
+        m.update_pressure(m.used_bytes(), guard_free_bytes=255 * mib)
+        self.assertEqual(m.deficit_bytes(guard_free_bytes=256 * mib), 0)
+        self.assertFalse(m.emergency)
+        self.assertFalse(m.needs_eviction())
+        self.assertEqual(m.deficit_bytes(guard_free_bytes=256 * mib - 1), 1)
+
+    def test_emergency_and_high_watermark_use_the_larger_reclaim_target(self):
+        mib = 1024 ** 2
+        m = manager(budget=1000 * mib)
+        m.note_created("a", nbytes=950 * mib)
+        self.assertEqual(m.deficit_bytes(4 * mib, guard_free_bytes=255 * mib), 204 * mib)
+        self.assertEqual(m.deficit_bytes(4 * mib, guard_free_bytes=0), 260 * mib)
+
+    def test_disabled_management_keeps_its_bypass_contract(self):
+        m = manager(budget=0)
+        self.assertFalse(m.update_pressure(0, guard_free_bytes=0))
+        self.assertFalse(m.emergency)
+        self.assertEqual(m.deficit_bytes(guard_free_bytes=0), 0)
 
     def test_mark_started_is_one_shot(self):
         m = manager(budget=1000)
@@ -136,29 +175,53 @@ class StateMachineTests(unittest.TestCase):
 
 class VictimTests(unittest.TestCase):
     def make(self, pid, nbytes, used):
+        self.now[0] = float(used)
         self.m.note_created(pid, nbytes=nbytes)
         self.m.note_used(pid, used)
 
     def setUp(self):
-        self.m = manager(budget=1000)
+        self.now = [0.]
+        self.m = manager(budget=1000, clock=lambda: self.now[0])
         self.make("a", 100, 1)
         self.make("b", 100, 2)
         self.make("c", 100, 3)
 
-    def test_least_recently_used_first(self):
+    def test_equal_cost_evicts_highest_cost_minus_idle_first(self):
+        self.now[0] = 10.
+        self.assertEqual(self.m.select_victims(150, 10), ["c", "b"])
+
+    def test_cost_accounts_for_draft_transport_and_acceptance(self):
+        self.now[0] = 10.
+        # a: (4 + 1) / .5 - 9 = 1; b: 8 - 8 = 0; c: 0 - 7 = -7.
+        self.m.note_request_cost("a", draft_total_time=4, transport_rtt=1, accept_prob=.5)
+        self.m.note_request_cost("b", draft_total_time=8)
         self.assertEqual(self.m.select_victims(150, 10), ["a", "b"])
+
+    def test_idle_uses_seconds_independent_of_plan_ticks(self):
+        self.m.note_request_cost("a", draft_total_time=1.5)
+        # Scores at now=3 are a=-.5, b=-1, c=0; tick has no effect on idle.
+        self.assertEqual(self.m.select_victims(150, 4), ["c", "a"])
+        self.assertEqual(self.m.select_victims(150, 40000), ["c", "a"])
+
+    def test_zero_acceptance_is_finite_and_zero_byte_records_are_skipped(self):
+        self.m.note_request_cost("a", draft_total_time=1, accept_prob=0)
+        self.m.note_created("empty", nbytes=0)
+        self.assertEqual(self.m.rank_victims(10), ["a", "c", "b"])
+
+    def test_no_victims_without_a_positive_deficit(self):
+        self.assertEqual(self.m.select_victims(0, 10), [])
 
     def test_protected_sessions_are_skipped(self):
         self.m.protect("a", 10)
-        self.assertEqual(self.m.select_victims(150, 10), ["b", "c"])
+        self.assertEqual(self.m.select_victims(150, 10), ["c", "b"])
 
     def test_excluded_pids_are_skipped(self):
-        self.assertEqual(self.m.select_victims(150, 10, exclude={"a"}), ["b", "c"])
+        self.assertEqual(self.m.select_victims(150, 10, exclude={"a"}), ["c", "b"])
 
     def test_only_gpu_resident_sessions_are_candidates(self):
         self.m.transition("a", EVICTION_PENDING)
         self.m.transition("a", CPU_RESIDENT)
-        self.assertEqual(self.m.select_victims(100, 10), ["b"])
+        self.assertEqual(self.m.select_victims(100, 10), ["c"])
 
     def test_single_victim_is_returned_even_below_the_target(self):
         # One very small cache must not loop forever looking for the target.

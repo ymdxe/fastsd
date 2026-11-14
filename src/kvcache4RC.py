@@ -66,7 +66,7 @@ class KVCacheModel():
         if self._past_key_values is not None:
             self._past_key_values = [(k.to(self._model2.device), v.to(self._model2.device)) for k, v in self._past_key_values]
         
-        model_1_generate_num = math.ceil(gamma / 2)
+        model_1_generate_num = (gamma + 1) >> 1
 
         for _ in range(model_1_generate_num):
             q = self._forward_with_kvcache(x)

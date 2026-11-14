@@ -9,6 +9,7 @@ import statistics
 import sys
 import threading
 import time
+import uuid
 from diagnostic_trace import trace as DIAG, request_meta as diag_req, item_meta as diag_item, queue_rows as diag_queues, backlog as diag_backlog
 from typing import Any, Callable, Dict, List
 
@@ -22,7 +23,12 @@ from src.arrival import poisson_arrival_offsets, shard_samples
 from src.engine import Decoding
 from src.kvcache import KVCacheModel
 from src.metrics import elapsed_ms, tpot_ms
-from src.common_metrics import evaluate_slo
+try:
+    from src.common_metrics import evaluate_slo
+except ImportError:  # lightweight entrypoint tests stub the src package
+    def evaluate_slo(records, *, wallclock_s, thresholds=None):
+        del records, wallclock_s, thresholds
+        return {}
 try:
     from src.speculative_sampling import (
         encode_sparse_block,
@@ -419,6 +425,12 @@ class EdgeClient:
         self._clock_calibrated_at = None
         self._clock_recovery_sequence = 0
         self._stats_lock = threading.Lock()
+        self._identity_lock = threading.Lock()
+        self._client_id = uuid.uuid4().hex
+        self._request_sequences = {}
+        self._retry_count = 0
+        self._replayed_count = 0
+        self._last_error = None
         self._request_bytes = 0
         self._response_bytes = 0
         self._rpc_count = 0
@@ -438,6 +450,10 @@ class EdgeClient:
                 "request_bytes": int(self._request_bytes),
                 "response_bytes": int(self._response_bytes),
                 "rpc_count": int(self._rpc_count),
+                "retry_count": self._retry_count,
+                "replayed_count": self._replayed_count,
+                "replayed": self._replayed_count > 0,
+                "last_error": self._last_error,
                 "clock_sync_rpc_count": int(self._clock_sync_rpc_count),
                 "clock_sync_time_s": float(self._clock_sync_time_s),
                 "clock_recovery_count": int(self._clock_recovery_count),
@@ -454,6 +470,9 @@ class EdgeClient:
             self._request_bytes = 0
             self._response_bytes = 0
             self._rpc_count = 0
+            self._retry_count = 0
+            self._replayed_count = 0
+            self._last_error = None
             self._clock_sync_rpc_count = 0
             self._clock_sync_time_s = 0.0
             self._clock_recovery_count = 0
@@ -462,20 +481,89 @@ class EdgeClient:
             self._clock_recovery_time_s = 0.0
             self._clock_rejected_upload_http_s = 0.0
 
-    def _post(self, path: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    def _identify_request(self, path, payload):
+        """Allocate once per logical RPC; all wire attempts reuse this body."""
+        with self._identity_lock:
+            if "request_id" in payload:
+                return
+            session_id = payload.setdefault("session_id", self._client_id)
+            task_id = payload.setdefault("task_id", "")
+            scope = (session_id, task_id)
+            sequence = self._request_sequences.get(scope, 0) + 1
+            self._request_sequences[scope] = sequence
+            payload["request_seq"] = sequence
+            payload["request_id"] = json.dumps(
+                ("POST", path, session_id, task_id, sequence),
+                ensure_ascii=False, separators=(",", ":"))
+
+    @staticmethod
+    def _is_connection_failure(error):
+        from http.client import RemoteDisconnected
+        from urllib3.exceptions import ProtocolError, TimeoutError as UrllibTimeout
+
+        response = getattr(error, "response", None)
+        if response is not None and response.status_code >= 400:
+            return False
+
+        # requests can wrap a read timeout in ConnectionError. Inspect the
+        # exception chain before accepting any connection/protocol exception.
+        errors, pending, seen = [], [error], set()
+        while pending:
+            current = pending.pop()
+            if not isinstance(current, BaseException) or id(current) in seen:
+                continue
+            seen.add(id(current))
+            errors.append(current)
+            pending.extend(current.args)
+            pending.extend((current.__cause__, current.__context__,
+                            getattr(current, "reason", None)))
+        if any(isinstance(exc, (requests.exceptions.Timeout, TimeoutError, UrllibTimeout))
+               for exc in errors):
+            return False
+        return any(isinstance(exc, (requests.exceptions.ConnectionError,
+            requests.exceptions.ChunkedEncodingError, RemoteDisconnected, ProtocolError))
+            for exc in errors)
+
+    def _post(self, path: str, payload: Dict[str, Any], *,
+              session_attr: str = "session") -> Dict[str, Any]:
+        self._identify_request(path, payload)
         url = f"{self.server_url}{path}"
         body = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
-        DIAG.emit("wire_send", route=path, task_id=payload.get("task_id"), session_id=payload.get("session_id"), fields=list(payload), bytes=len(body), token_count=len(payload.get("draft_output") or []), probability_block_bytes=len(payload.get("draft_prob_block") or ""), kv_field_present=any("cache" in k.lower() or "past_key" in k.lower() for k in payload), prefix_len=payload.get("prefix_len"))
-        response = self.session.post(
-            url,
-            data=body,
-            headers={"Content-Type": "application/json"},
-            timeout=self.timeout,
-        )
+        last_error = None
+        for retry_count in range(4):
+            DIAG.emit("wire_send", route=path, request_id=payload["request_id"], retry_count=retry_count, task_id=payload.get("task_id"), session_id=payload.get("session_id"), fields=list(payload), bytes=len(body), token_count=len(payload.get("draft_output") or []), probability_block_bytes=len(payload.get("draft_prob_block") or ""), kv_field_present=any("cache" in k.lower() or "past_key" in k.lower() for k in payload), prefix_len=payload.get("prefix_len"))
+            with self._stats_lock:
+                self._request_bytes += len(body)
+                self._rpc_count += 1
+            try:
+                response = getattr(self, session_attr).post(
+                    url, data=body, headers={"Content-Type": "application/json"},
+                    timeout=self.timeout)
+                # Force body consumption inside the retry boundary as well.
+                response_bytes = len(response.content)
+                break
+            except Exception as exc:
+                last_error = f"{type(exc).__name__}: {exc}"
+                with self._stats_lock:
+                    self._last_error = last_error
+                retryable = self._is_connection_failure(exc)
+                DIAG.emit("transport_error", route=path, request_id=payload["request_id"],
+                    retry_count=retry_count, last_error=last_error, replayed=False,
+                    retryable=retryable)
+                print("[HTTP-TRANSPORT] " + json.dumps(dict(route=path,
+                    request_id=payload["request_id"], retry_count=retry_count,
+                    last_error=last_error, replayed=False, retryable=retryable)), flush=True)
+                if retry_count == 3 or not retryable:
+                    raise
+                getattr(self, session_attr).close()
+                replacement = requests.Session()
+                replacement.trust_env = False
+                setattr(self, session_attr, replacement)
+                time.sleep((0.5, 1.0, 2.0)[retry_count])
+                with self._stats_lock:
+                    self._retry_count += 1
         with self._stats_lock:
-            self._request_bytes += len(body)
-            self._response_bytes += len(response.content)
-            self._rpc_count += 1
+            self._response_bytes += response_bytes
         DIAG.emit("http_body_received", route=path, task_id=payload.get("task_id"), session_id=payload.get("session_id"), prefix_len=payload.get("prefix_len"), status=response.status_code, response_bytes=len(response.content))
         try:
             response.raise_for_status()
@@ -493,7 +581,16 @@ class EdgeClient:
                 f"request_context={json.dumps(context, sort_keys=True)}",
                 request=exc.request, response=response,
             ) from exc
-        return response.json()
+        result = response.json()
+        if isinstance(result, dict):
+            result["retry_count"] = retry_count
+            result["last_error"] = last_error
+            result.setdefault("replayed", False)
+            with self._stats_lock:
+                self._replayed_count += int(bool(result["replayed"]))
+            DIAG.emit("http_request_complete", route=path, request_id=payload["request_id"],
+                retry_count=retry_count, last_error=last_error, replayed=bool(result["replayed"]))
+        return result
 
     def health(self) -> Dict[str, Any]:
         url = f"{self.server_url}/health"
@@ -506,12 +603,8 @@ class EdgeClient:
 
     def release_session(self, session_id: str) -> Dict[str, Any]:
         # A separate connection can cancel a still-running verify long poll.
-        response = self.timing_session.post(
-            self.server_url + "/session/release",
-            json={"session_id": session_id}, timeout=self.timeout,
-        )
-        response.raise_for_status()
-        payload = response.json()
+        payload = self._post("/session/release", {"session_id": session_id},
+                             session_attr="timing_session")
         if payload.get("status") != "released":
             raise RuntimeError(f"session release failed: {payload}")
         return payload
@@ -777,20 +870,8 @@ class EdgeClient:
             "clock_uncertainty_ns": int(self.clock_uncertainty_ns),
         }
         # This call intentionally uses a different Session from /prefill.
-        body = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
         upload_started = time.monotonic()
-        response = self.timing_session.post(
-            f"{self.server_url}/prefill/timing",
-            data=body,
-            headers={"Content-Type": "application/json"},
-            timeout=self.timeout,
-        )
-        with self._stats_lock:
-            self._request_bytes += len(body)
-            self._response_bytes += len(response.content)
-            self._rpc_count += 1
-        response.raise_for_status()
-        result = response.json()
+        result = self._post("/prefill/timing", payload, session_attr="timing_session")
         if result.get("status") != "timing_ready":
             raise RuntimeError(f"prefill timing update failed: {result}")
         result["timing_upload_s"] = max(0.0, time.monotonic() - upload_started)
@@ -808,19 +889,7 @@ class EdgeClient:
             "session_id": session_id,
             "task_id": task_id,
         }
-        body = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
-        response = self.timing_session.post(
-            f"{self.server_url}/prefill/cancel",
-            data=body,
-            headers={"Content-Type": "application/json"},
-            timeout=self.timeout,
-        )
-        with self._stats_lock:
-            self._request_bytes += len(body)
-            self._response_bytes += len(response.content)
-            self._rpc_count += 1
-        response.raise_for_status()
-        result = response.json()
+        result = self._post("/prefill/cancel", payload, session_attr="timing_session")
         if result.get("status") != "cancelled":
             raise RuntimeError(f"prefill cancel failed: {result}")
         return result
@@ -875,58 +944,10 @@ class EdgeClient:
             "sampling_seed": int(sampling_seed or 0),
             "draft_prob_block": draft_prob_block,
         }
-        started = time.monotonic()
-        event = None
-        try:
-            for attempt in range(4):
-                transport_start = time.monotonic()
-                try:
-                    resp = self._post("/verify", payload)
-                except requests.HTTPError as exc:
-                    rejected_elapsed = time.monotonic() - transport_start
-                    response = exc.response
-                    detail = None
-                    if response is not None and response.status_code == 422:
-                        try:
-                            detail = response.json().get("detail")
-                        except (ValueError, AttributeError):
-                            pass
-                    # This machine-readable rejection is emitted exclusively
-                    # before target admission. Any other error is not retried.
-                    if not (isinstance(detail, dict)
-                            and detail.get("code") == "negative_upload_pre_enqueue"
-                            and detail.get("route") == "/verify"
-                            and detail.get("enqueued") is False):
-                        raise
-                    if event is None:
-                        event = {"kind": "negative_upload", "route": "/verify", "task_id": task_id,
-                            "max_calibration_attempts": 3, "calibrations": [], "rejected_uploads": []}
-                    event["rejected_uploads"].append({"server_detail": detail,
-                        "http_elapsed_s": rejected_elapsed, **self._clock_snapshot(),
-                        "request_clock_offset_ns": payload["clock_offset_ns"],
-                        "edge_send_time_ns": payload["edge_send_time_ns"]})
-                    if attempt == 3:
-                        raise RuntimeError("negative upload persists after 3 clock calibrations") from exc
-                    self._recalibrate_recovery(event)
-                    # All model inputs, task IDs and sampling state stay frozen.
-                    payload["edge_send_time_ns"] = time.time_ns()
-                    payload.update(self._clock_snapshot())
-                    continue
-                edge_receive_time_ns = time.time_ns()
-                measured_http_total = time.monotonic() - transport_start
-                break
-            if event is not None:
-                event.update(status="recovered", successful_http_s=measured_http_total)
-                overhead = time.monotonic() - started - measured_http_total
-                self._record_clock_recovery(event, started, elapsed_s=overhead)
-                resp["clock_recovery_upload_s"] = overhead
-        except Exception as exc:
-            if event is not None:
-                event.update(status="failed", error=repr(exc))
-                self._record_clock_recovery(event, started)
-            raise
-        # Only this successful attempt feeds the scheduler's transport RTT.
-        # All retries/calibration are still included in the caller's real E2E.
+        transport_start = time.monotonic()
+        resp = self._post("/verify", payload)
+        edge_receive_time_ns = time.time_ns()
+        measured_http_total = time.monotonic() - transport_start
         self._attach_pull(resp, edge_receive_time_ns, route="/verify", task_id=task_id)
         return resp, measured_http_total
 
@@ -1353,6 +1374,15 @@ class EdgeRunner(Decoding):
         prefill_wait_after_first_draft_ms = [
             float(r.get("prefill_wait_after_first_draft_ms", 0.0)) for r in records
         ]
+        ahead_generated = [int(r.get("ahead_generated_tokens", 0)) for r in records]
+        ahead_reused = [int(r.get("ahead_reused_tokens", 0)) for r in records]
+        ahead_discarded = [int(r.get("ahead_discarded_tokens", 0)) for r in records]
+        ahead_forward_ms = [float(r.get("ahead_forward_ms", 0.0)) for r in records]
+        reuse_hit_rounds = [int(r.get("reuse_hit_rounds", 0)) for r in records]
+        reuse_miss_rounds = [int(r.get("reuse_miss_rounds", 0)) for r in records]
+        reuse_skip_not_full_accept_rounds = [
+            int(r.get("reuse_skip_not_full_accept_rounds", 0)) for r in records
+        ]
         def union_seconds(intervals):
             intervals = sorted(
                 (float(a), float(b)) for a, b in intervals
@@ -1475,6 +1505,18 @@ class EdgeRunner(Decoding):
             ),
             "total_accepted_tokens": int(total_accepted),
             "total_drafted_tokens": int(total_drafted),
+            "ahead_generated_tokens": int(sum(ahead_generated)),
+            "ahead_reused_tokens": int(sum(ahead_reused)),
+            "ahead_discarded_tokens": int(sum(ahead_discarded)),
+            "ahead_reuse_rate": (
+                float(sum(ahead_reused) / sum(ahead_generated))
+                if sum(ahead_generated) > 0
+                else 0.0
+            ),
+            "ahead_forward_ms": float(sum(ahead_forward_ms)),
+            "reuse_hit_rounds": int(sum(reuse_hit_rounds)),
+            "reuse_miss_rounds": int(sum(reuse_miss_rounds)),
+            "reuse_skip_not_full_accept_rounds": int(sum(reuse_skip_not_full_accept_rounds)),
             "mean_accepted_tokens_per_task": (
                 float(total_accepted / len(records)) if records else 0.0
             ),
@@ -1730,6 +1772,11 @@ class EdgeRunner(Decoding):
         processing_origin = arrival_origin if arrival_origin is not None else time.monotonic()
 
         prefill_timing_estimate = {}
+        # Keep the proactive controller alive across requests handled by this
+        # draft process.  Reinitializing it for every task prevented the
+        # cooldown/probe policy from learning that a workload's overlap was
+        # consistently wasted, so every task paid the cold-start probe again.
+        ahead_controller = AheadController()
         for idx, (global_idx, sample) in enumerate(indexed_samples):
             scheduled_arrival_s = 0.0
             if arrival_offsets is not None:
@@ -1864,7 +1911,7 @@ class EdgeRunner(Decoding):
                     if isinstance(first_round_timings, dict)
                     else prefill_resp.get("push_s", 0.0)
                 )
-                ahead_control = AheadController()
+                ahead_control = ahead_controller
                 ahead_generated_tokens = ahead_reused_tokens = 0
                 ahead_forward_s = response_consumption_delay_s = 0.0
                 ahead_forward_per_token_s = 0.0
@@ -2077,6 +2124,13 @@ class EdgeRunner(Decoding):
                             3,
                         )
                     if proactive_enabled:
+                        # The first round has no previous verify wait estimate.
+                        # Seed the controller with the measured cost of the
+                        # current draft when its rolling ahead estimate is
+                        # still empty; this lets the bounded probe make a
+                        # meaningful wait-window decision on the next round.
+                        if ahead_forward_per_token_s <= 0 and local_decode_per_token_s:
+                            ahead_forward_per_token_s = float(local_decode_per_token_s)
                         ahead_control.begin_round(cap=max_overlap_tokens,
                             expected_wait_s=previous_verify_wait_s, draft_s=ahead_forward_per_token_s)
                         while not verify_future.done() and ahead_control.allow(
@@ -2309,7 +2363,8 @@ class EdgeRunner(Decoding):
                 transport_after = client.snapshot_transport_stats()
                 transport_delta = {
                     key: int(transport_after[key] - transport_before[key])
-                    for key in ("request_bytes", "response_bytes", "rpc_count")
+                    for key in ("request_bytes", "response_bytes", "rpc_count",
+                                "retry_count", "replayed_count")
                 }
 
                 generated_text = tokenizer.decode(
@@ -2453,6 +2508,11 @@ class EdgeRunner(Decoding):
                     "request_bytes": transport_delta["request_bytes"],
                     "response_bytes": transport_delta["response_bytes"],
                     "rpc_count": transport_delta["rpc_count"],
+                    "retry_count": transport_delta["retry_count"],
+                    "last_error": (transport_after["last_error"]
+                                   if transport_delta["retry_count"] else None),
+                    "replayed": transport_delta["replayed_count"] > 0,
+                    "replayed_count": transport_delta["replayed_count"],
                     "transport_bytes_definition": (
                         "application-layer HTTP JSON body/response bytes; excludes HTTP framing, "
                         "TCP/IP, and SSH encapsulation"

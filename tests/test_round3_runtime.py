@@ -69,6 +69,10 @@ def engine_closure(name, namespace):
     tree = ast.parse(source.read_text(encoding="utf-8"))
     function = next(node for node in ast.walk(tree)
                     if isinstance(node, ast.FunctionDef) and node.name == name)
+    # Existing integration fixtures exercise the retained legacy path.
+    # Minimal-path tests explicitly override these bindings.
+    namespace.setdefault("use_h1_prefetch", False)
+    namespace.setdefault("h1_prefetch", None)
     exec(compile(ast.Module(body=[function], type_ignores=[]), str(source), "exec"), namespace)
     return namespace[name]
 
@@ -108,7 +112,8 @@ class EnginePredictionIntegrationTests(unittest.TestCase):
             # ACTIVE manager with CPU-resident caches: prefetch may be issued.
             residency_manager=SimpleNamespace(
                 enabled=True, active=True, state_of=lambda pid: CPU_RESIDENT,
-                cpu_resident_count=lambda: 1),
+                cpu_resident_count=lambda: 1, used_bytes=lambda: 0),
+            transfers=SimpleNamespace(metrics={}),
             CPU_RESIDENT=CPU_RESIDENT, GPU_RESIDENT=GPU_RESIDENT,
             sample_pressure=lambda: False,
             residency=SimpleNamespace(protected_snapshot=lambda: set()),

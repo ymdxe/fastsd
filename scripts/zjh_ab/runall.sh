@@ -9,8 +9,8 @@
 # A persistent supervisor owns each target, edge and tunnel process tree.
 # A dropped control connection therefore does not kill the remote jobs.  The
 # tunnel guard uses ordinary ssh keepalives and reconnects without autossh.
-# Existing result directories are never removed; every invocation gets a new
-# timestamped prefix unless RUN_TAG is supplied.
+# Existing result directories are never removed; use a fresh RUN_TAG for
+# each campaign.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -47,12 +47,11 @@ ROUND_TIMEOUT="${ROUND_TIMEOUT:-14400}"
 STOP_TIMEOUT="${STOP_TIMEOUT:-180}"
 TUNNEL_TIMEOUT="${TUNNEL_TIMEOUT:-45}"
 MANUAL_TUNNEL="${MANUAL_TUNNEL:-0}"
-RUN_TAG="${RUN_TAG:-$(date +%Y%m%d_%H%M%S)}"
+# Default name for this diagnostic campaign; callers may override RUN_TAG.
+RUN_TAG="${RUN_TAG:-h1_pair_$(date +%Y%m%d_%H%M%S)}"
 SYNC_ONLY="${SYNC_ONLY:-0}"
 SKIP_SYNC="${SKIP_SYNC:-0}"
-# Optional stress knob: set TOKEN_BUDGET_OVERRIDE=512 to run every round with
-# a 512-token target batch budget.  Defaults preserve the staged 32/128/256
-# budgets used by the gamma=8/16/32 matrix below.
+# Optional token budget override; both conditions use the same value.
 TOKEN_BUDGET_OVERRIDE="${TOKEN_BUDGET_OVERRIDE:-}"
 VERIFY_METHOD="${VERIFY_METHOD:-greedy}"
 TOTAL_REQUESTS="${TOTAL_REQUESTS:-64}"
@@ -61,10 +60,12 @@ if (( TOTAL_REQUESTS < 2 || TOTAL_REQUESTS % 2 != 0 )); then
 ' "TOTAL_REQUESTS must be a positive even number" >&2
   exit 2
 fi
-REQUESTS_PER_EDGE=$((TOTAL_REQUESTS / 2))
+REQUESTS_PER_EDGE=$((TOTAL_REQUESTS >> 1))
 WAIT_LAMBDA="${WAIT_LAMBDA:-0.01}"
 WAIT_LINEAR_UNTIL_S="${WAIT_LINEAR_UNTIL_S:-0}"
 WAIT_LINEAR_ALPHA="${WAIT_LINEAR_ALPHA:-}"
+FASTSD_IDEMPOTENCY_MAX_ENTRIES="${FASTSD_IDEMPOTENCY_MAX_ENTRIES:-4096}"
+FASTSD_IDEMPOTENCY_TTL_S="${FASTSD_IDEMPOTENCY_TTL_S:-1800}"
 
 
 SSH_OPTS=(
@@ -221,43 +222,34 @@ ensure_target_port_free() {
 }
 
 start_target() {
-  local run="$1" gamma="$2" budget="$3" case_name="$4" rate="$5" idle="$6" online="$7"
+  local run="$1" gamma="$2" budget="$3" case_name="$4" rate="$5" idle="$6" online="$7" residency_budget="${8:-2048}"
   TARGET_STATE="$GPU_EXP_ROOT/$run/target.job.json"
   TARGET_LOG="$GPU_EXP_ROOT/logs/${run}.target.log"
   launch_job "$GPU_HOST" "$GPU_PY" "$GPU_REPO" "$TARGET_STATE" "$TARGET_LOG" env \
     NODE2_PY="$GPU_PY" TARGET_GPU="$TARGET_GPU" \
-    TARGET_MODEL_NODE2=/mnt/nfs0/zhangh/models/Qwen3-8B \
+    TARGET_MODEL_NODE2="${TARGET_MODEL_NODE2:-/mnt/nfs0/zhangh/models/Qwen3-8B}" \
     EXP_ROOT="$GPU_EXP_ROOT" RUN_NAME="$run" \
+    FASTSD_IDEMPOTENCY_MAX_ENTRIES="$FASTSD_IDEMPOTENCY_MAX_ENTRIES" \
+    FASTSD_IDEMPOTENCY_TTL_S="$FASTSD_IDEMPOTENCY_TTL_S" \
     NUM_DRAFTS=32 BATCH_SIZE=8 GAMMA="$gamma" TOKEN_BUDGET="$budget" MAX_TOKENS=400 SEED=1234 \
     VERIFY_METHOD="$VERIFY_METHOD" FASTSD_WAIT_LAMBDA="$WAIT_LAMBDA" \
     FASTSD_WAIT_LINEAR_UNTIL_S="$WAIT_LINEAR_UNTIL_S" FASTSD_WAIT_LINEAR_ALPHA="$WAIT_LINEAR_ALPHA" \
-    KV_PREFETCH_LOOKAHEAD_ROUNDS=3 KV_PREFETCH_HORIZON_LIMIT=1 KV_PREFETCH_H2_MAX_PIDS=0 \
-    KV_RESIDENCY_BUDGET_MB=2048 KV_PREFETCH_MB=256 \
+    KV_PREFETCH_IMPLEMENTATION="${KV_PREFETCH_IMPLEMENTATION:-h1}" \
+    KV_PREFETCH_LOOKAHEAD_ROUNDS=1 KV_PREFETCH_HORIZON_LIMIT=1 KV_PREFETCH_H2_MAX_PIDS=0 \
+    KV_RESIDENCY_BUDGET_MB="$residency_budget" KV_PREFETCH_MB="${KV_PREFETCH_MB:-256}" \
     KV_PREFETCH_BEFORE_SUBMIT="${KV_PREFETCH_BEFORE_SUBMIT:-0}" \
     KV_PREFETCH_RATE_MB_S="$rate" KV_PREFETCH_IDLE_RATE_MB_S="$idle" \
     KV_PREFETCH_ONLINE_FRACTION="$online" KV_PREFETCH_CHUNK_KB=4096 \
     KV_PREFETCH_SPECULATIVE_CHUNK_KB="${SPEC_CHUNK_KB:-256}" \
+    KV_OVERLAP_AUTO_FALLBACK="${KV_OVERLAP_AUTO_FALLBACK:-1}" \
     MEASURE_ENERGY="${MEASURE_ENERGY:-0}" \
     CLOUD_SERVICE_HOST=127.0.0.1 CLOUD_SERVICE_PORT="$PORT" \
     PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 \
-    bash scripts/zjh_ab/serve.sh "$case_name"
-  local deadline=$((SECONDS + READY_TIMEOUT)) status
-  while (( SECONDS < deadline )); do
-    status=$(job_status "$GPU_HOST" "$GPU_PY" "$GPU_REPO" "$TARGET_STATE") || return 1
-    if [[ "$status" != running ]]; then
-      log "target stopped before ready: $status"
-      remote_command "$GPU_HOST" tail -n 80 "$TARGET_LOG" || true
-      return 1
-    fi
-    if remote_command "$GPU_HOST" "$GPU_PY" "$GPU_REPO/scripts/zjh_ab/managed_job.py" owns-port "$TARGET_STATE" "$PORT" &&
-       ssh_gpu "curl --noproxy '*' -sf -m 3 http://127.0.0.1:${PORT}/health" >/dev/null; then
-      return 0
-    fi
-    sleep 3
-  done
-  log "target readiness timeout"
-  remote_command "$GPU_HOST" tail -n 80 "$TARGET_LOG" || true
-  return 1
+    bash scripts/zjh_ab/serve.sh "$case_name" || return 1
+  # Readiness is checked once after both tunnels exist.  Doing it here as
+  # well made the runner depend on SSH/job-status latency before it had even
+  # created the tunnel, which could block forever when the target was healthy.
+  return 0
 }
 
 start_guard() {
@@ -336,6 +328,7 @@ collect_round() {
   local run="$1" report="$2"
   mkdir -p "$report/$run/target" "$report/$run/edge" "$report/$run/raw/node2" "$report/$run/raw/node1"
   retry scp "${SSH_OPTS[@]}" "$GPU_HOST:$GPU_EXP_ROOT/$run/target/scheduler_metrics.json" "$report/$run/target/" || return 1
+  retry scp "${SSH_OPTS[@]}" "$GPU_HOST:$GPU_EXP_ROOT/$run/target/idempotency_metrics.json" "$report/$run/target/" || return 1
   # Energy is optional; preserve it whenever MEASURE_ENERGY was enabled.
   retry scp "${SSH_OPTS[@]}" "$GPU_HOST:$GPU_EXP_ROOT/$run/target/energy_metrics.json" "$report/$run/target/" || true
   retry rsync -az "$N2_HOST:$N2_EXP_ROOT/$run/edge/" "$report/$run/raw/node2/" || return 1
@@ -356,32 +349,32 @@ collect_round() {
 }
 
 run_round() {
-  local run="$1" gamma="$2" budget="$3" case_name="$4" rate="$5" idle="$6" online="$7" slot="${8:-0}"
+  local run="$1" gamma="$2" budget="$3" case_name="$4" rate="$5" idle="$6" online="$7" slot="${8:-0}" residency_budget="${9:-2048}"
   PORT=$((PORT_BASE + slot * 2))
   TUNNEL_PORT=$((TUNNEL_BASE + slot * 2))
   N2_TUNNEL_PORT="$TUNNEL_PORT"
   CURRENT_RUN="$run"
-  log "=== $run gamma=$gamma budget=$budget case=$case_name rate=$rate idle=$idle online=$online port=$PORT tunnel=$TUNNEL_PORT ==="
+  log "=== $run gamma=$gamma budget=$budget residency=$residency_budget case=$case_name rate=$rate idle=$idle online=$online port=$PORT tunnel=$TUNNEL_PORT ==="
   check_target_gpu || return 1
   ensure_target_port_free || return 1
   # Check BEFORE model allocation. A conflict belongs to someone else (or an
   # older runner); report it, never kill an arbitrary port owner.
   if [[ "$MANUAL_TUNNEL" != 1 ]]; then
-    "$LOCAL_PY" "$ROOT/scripts/zjh_ab/managed_job.py" check-port "$TUNNEL_PORT"
-    remote_command "$GPU_HOST" "$GPU_PY" "$GPU_REPO/scripts/zjh_ab/managed_job.py" check-port "$PORT"
+    "$LOCAL_PY" "$ROOT/scripts/zjh_ab/managed_job.py" check-port "$TUNNEL_PORT" || return 1
+    remote_command "$GPU_HOST" "$GPU_PY" "$GPU_REPO/scripts/zjh_ab/managed_job.py" check-port "$PORT" || return 1
     if [[ "$TARGET_ON_N2" != 1 ]]; then
-      remote_command "$N2_HOST" "$N2_PY" "$N2_REPO/scripts/zjh_ab/managed_job.py" check-port "$N2_TUNNEL_PORT"
+      remote_command "$N2_HOST" "$N2_PY" "$N2_REPO/scripts/zjh_ab/managed_job.py" check-port "$N2_TUNNEL_PORT" || return 1
     fi
-    start_guard local "$N1_PY" "$ROOT" "$N1_EXP_ROOT/$run/tunnel.job.json" "$N1_EXP_ROOT/logs/${run}.tunnel.log" "$TUNNEL_PORT"
+    start_guard local "$N1_PY" "$ROOT" "$N1_EXP_ROOT/$run/tunnel.job.json" "$N1_EXP_ROOT/logs/${run}.tunnel.log" "$TUNNEL_PORT" || return 1
   fi
   local n2_url="http://127.0.0.1:$PORT"
   if [[ "$TARGET_ON_N2" != 1 ]]; then
     if [[ "$MANUAL_TUNNEL" != 1 ]]; then
-      start_guard "$N2_HOST" "$N2_PY" "$N2_REPO" "$N2_EXP_ROOT/$run/tunnel.job.json" "$N2_EXP_ROOT/logs/${run}.tunnel.log" "$N2_TUNNEL_PORT"
+      start_guard "$N2_HOST" "$N2_PY" "$N2_REPO" "$N2_EXP_ROOT/$run/tunnel.job.json" "$N2_EXP_ROOT/logs/${run}.tunnel.log" "$N2_TUNNEL_PORT" || return 1
     fi
     n2_url="http://127.0.0.1:$N2_TUNNEL_PORT"
   fi
-  start_target "$run" "$gamma" "$budget" "$case_name" "$rate" "$idle" "$online"
+  start_target "$run" "$gamma" "$budget" "$case_name" "$rate" "$idle" "$online" "$residency_budget" || return 1
   local deadline=$((SECONDS + TUNNEL_TIMEOUT))
   until curl --noproxy '*' -sf -m 3 "http://127.0.0.1:$TUNNEL_PORT/health" >/dev/null &&
         remote_command "$N2_HOST" curl --noproxy '*' -sf -m 3 "$n2_url/health" >/dev/null; do
@@ -393,8 +386,8 @@ run_round() {
     sleep 2
   done
   local edge_case="$case_name"
-  start_edge "$N2_HOST" "$N2_PY" "$N2_REPO" "$N2_EXP_ROOT" "$N2_DRAFT_MODEL" "$N2_DATA_PATH" "$n2_url" 5678 "$run" "$gamma" "$budget" "$edge_case"
-  start_edge local "$N1_PY" "$ROOT" "$N1_EXP_ROOT" "$N1_DRAFT_MODEL" "$N1_DATA_PATH" "http://127.0.0.1:$TUNNEL_PORT" 1234 "$run" "$gamma" "$budget" "$edge_case"
+  start_edge "$N2_HOST" "$N2_PY" "$N2_REPO" "$N2_EXP_ROOT" "$N2_DRAFT_MODEL" "$N2_DATA_PATH" "$n2_url" 5678 "$run" "$gamma" "$budget" "$edge_case" || return 1
+  start_edge local "$N1_PY" "$ROOT" "$N1_EXP_ROOT" "$N1_DRAFT_MODEL" "$N1_DATA_PATH" "http://127.0.0.1:$TUNNEL_PORT" 1234 "$run" "$gamma" "$budget" "$edge_case" || return 1
 
   local edge_ok=1
   if ! wait_edges "$run"; then
@@ -402,8 +395,13 @@ run_round() {
     edge_ok=0
   fi
 
-  stop_round
-  collect_round "$run" "$REPORT_ROOT/$RUN_TAG" || log "WARN: collect failed for $run"
+  if ! stop_round; then
+    edge_ok=0
+  fi
+  if ! collect_round "$run" "$REPORT_ROOT/$RUN_TAG"; then
+    log "WARN: collect failed for $run"
+    edge_ok=0
+  fi
   if [[ "$edge_ok" == 0 ]]; then
     log "=== $run DONE WITH EDGE FAILURE ==="
     return 1
@@ -437,50 +435,27 @@ check_output_dirs || exit 1
 REPORT="$REPORT_ROOT/$RUN_TAG"
 mkdir -p "$REPORT"
 
-# The first six runs isolate prefetch's net effect at increasing target work.
-# The seventh compares software-rate throttling at gamma=16.  The final run
-# is standard server/edge speculative decoding with the same KV pressure.
-if [[ "${DIAGNOSTIC_ONLY:-0}" == "1" ]]; then
-  # Focused attribution matrix: gamma=8, token budget=32, 2 GiB residency,
-  # unlimited prefetch rate and one fixed arrival schedule. Each ablation
-  # changes one FastSD mechanism so scheduler and edge metrics are comparable.
-  DIAG_BUDGET="${DIAG_BUDGET:-$(budget_for 32)}"
-  DIAG_GAMMA="${DIAG_GAMMA:-8}"
-  SPEC_CHUNK_KB=4096
-  run_round "${RUN_TAG}_sd_offload" "$DIAG_GAMMA" "$DIAG_BUDGET" sd-cpu 0 0 0.0 0 || log "WARN: diagnostic sd failed"
-  run_round "${RUN_TAG}_fastsd_noprefetch" "$DIAG_GAMMA" "$DIAG_BUDGET" fastsd-noprefetch 0 0 1.0 1 || log "WARN: diagnostic no-prefetch failed"
-  run_round "${RUN_TAG}_fastsd" "$DIAG_GAMMA" "$DIAG_BUDGET" fastsd 0 0 1.0 2 || log "WARN: diagnostic fastsd failed"
-  run_round "${RUN_TAG}_fastsd_nopipeline" "$DIAG_GAMMA" "$DIAG_BUDGET" fastsd-nopipeline 0 0 1.0 3 || log "WARN: diagnostic no-pipeline failed"
-  run_round "${RUN_TAG}_fastsd_noproactive" "$DIAG_GAMMA" "$DIAG_BUDGET" fastsd-noproactive 0 0 1.0 4 || log "WARN: diagnostic no-proactive failed"
-  run_round "${RUN_TAG}_fastsd_nolatency" "$DIAG_GAMMA" "$DIAG_BUDGET" fastsd-nolatency 0 0 1.0 5 || log "WARN: diagnostic no-latency failed"
-  conditions=("$REPORT"/*)
-  "$LOCAL_PY" "$ROOT/scripts/zjh_ab/accept.py" "${conditions[@]}" \
-    --expected-requests "$TOTAL_REQUESTS" --json-output "$REPORT/report.json" \
-    2>&1 | tee "$REPORT/report.txt" || true
-  log "DIAGNOSTIC MATRIX DONE: $REPORT"
-  exit 0
+# One paired experiment: identical workload, seed and placement budget.
+PAIR_GAMMA="${DIAG_GAMMA:-8}"
+PAIR_BUDGET="${DIAG_BUDGET:-$(budget_for 32)}"
+PAIR_KV_BUDGET_MB="${DIAG_KV_BUDGET_MB:-1800}"
+round_failures=0
+run_round "${RUN_TAG}_noprefetch" "$PAIR_GAMMA" "$PAIR_BUDGET" fastsd-noprefetch 0 0 1.0 0 "$PAIR_KV_BUDGET_MB" || { cleanup_jobs; round_failures=$((round_failures + 1)); }
+run_round "${RUN_TAG}_prefetch" "$PAIR_GAMMA" "$PAIR_BUDGET" fastsd 0 0 1.0 1 "$PAIR_KV_BUDGET_MB" || { cleanup_jobs; round_failures=$((round_failures + 1)); }
+
+conditions=("$REPORT/${RUN_TAG}_noprefetch" "$REPORT/${RUN_TAG}_prefetch")
+accept_args=(--prefetch-pair --expected-requests "$TOTAL_REQUESTS"
+  --tolerance "${PREFETCH_LATENCY_TOLERANCE:-0}"
+  --h2d-tolerance "${PREFETCH_H2D_TOLERANCE:-0.10}"
+  --json-output "$REPORT/report.json")
+if [[ -n "${PREFETCH_LEGACY_REFERENCE:-}" ]]; then
+  accept_args+=(--legacy-reference "$PREFETCH_LEGACY_REFERENCE")
 fi
-B32="$(budget_for 32)"
-B128="$(budget_for 128)"
-B256="$(budget_for 256)"
-run_round "${RUN_TAG}_g8_b${B32}_off" 8 "$B32" fastsd-noprefetch 256 1024 0.25 0 || log "WARN: round failed"
-run_round "${RUN_TAG}_g8_b${B32}_on" 8 "$B32" fastsd 256 1024 1.0 1 || log "WARN: round failed"
-run_round "${RUN_TAG}_g16_b${B128}_off" 16 "$B128" fastsd-noprefetch 256 1024 0.25 2 || log "WARN: round failed"
-run_round "${RUN_TAG}_g16_b${B128}_on" 16 "$B128" fastsd 256 1024 1.0 3 || log "WARN: round failed"
-run_round "${RUN_TAG}_g32_b${B256}_off" 32 "$B256" fastsd-noprefetch 256 1024 0.25 4 || log "WARN: round failed"
-run_round "${RUN_TAG}_g32_b${B256}_on" 32 "$B256" fastsd 256 1024 1.0 5 || log "WARN: round failed"
-SPEC_CHUNK_KB=4096 run_round "${RUN_TAG}_g16_b${B128}_on_uncapped" 16 "$B128" fastsd 0 0 1.0 6 || log "WARN: round failed"
-run_round "${RUN_TAG}_sd_offload_g8_b${B32}" 8 "$B32" sd-cpu 256 1024 0.0 7 || log "WARN: round failed"
-
-conditions=("$REPORT"/*)
-"$LOCAL_PY" "$ROOT/scripts/zjh_ab/accept.py" "${conditions[@]}" \
-  --expected-requests "$TOTAL_REQUESTS" --json-output "$REPORT/report.json" \
-  2>&1 | tee "$REPORT/report.txt" || true
-
-if [[ -d "$ROOT/baselines/specedge/official" ]] && [[ -n "$(find "$ROOT/baselines/specedge/official" -type f -print -quit)" ]] && [[ -n "${SPECEDGE_CONFIG:-}" ]]; then
-  log "SpecEdge prerequisites detected; run its prepared suite separately with SPECEDGE_CONFIG=$SPECEDGE_CONFIG"
-else
-  log "SpecEdge skipped: official submodule/runtime/config is not ready for Qwen3-8B on this topology"
+report_status=0
+"$LOCAL_PY" "$ROOT/scripts/zjh_ab/accept.py" "${conditions[@]}" "${accept_args[@]}" \
+  2>&1 | tee "$REPORT/report.txt" || report_status=$?
+if (( round_failures > 0 || report_status != 0 )); then
+  log "PAIR FAILED: rounds=$round_failures report_status=$report_status; $REPORT"
+  exit 1
 fi
-
-log "ALL DONE: $REPORT"
+log "PAIR DONE: $REPORT"

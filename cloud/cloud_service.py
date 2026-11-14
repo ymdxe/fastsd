@@ -1,4 +1,7 @@
 import asyncio
+from functools import wraps
+import hashlib
+import json
 import multiprocessing as mp
 import os
 import queue as py_queue
@@ -16,6 +19,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from src.engine import Decoding
 from src.util import parse_arguments
 from src.request_validation import canonicalize_request
+from src.idempotency import IdempotencyCache, IdempotencyConflict
 import uvicorn
 import time
 from diagnostic_trace import trace as DIAG, request_meta as diag_req, item_meta as diag_item, queue_rows as diag_queues, backlog as diag_backlog
@@ -47,6 +51,50 @@ _prefill_timing_updates: Dict[str, dict] = {}
 _cloud_time_lock = threading.Lock()
 _cloud_total_ms_sum: float = 0.0
 _cloud_total_ms_count: int = 0
+_idempotency_cache = IdempotencyCache(
+    max_entries=int(os.environ.get("FASTSD_IDEMPOTENCY_MAX_ENTRIES", "4096")),
+    ttl_s=float(os.environ.get("FASTSD_IDEMPOTENCY_TTL_S", "1800")),
+)
+_metrics_dir: Optional[str] = None
+
+
+def _persist_idempotency_metrics():
+    if _metrics_dir:
+        os.makedirs(_metrics_dir, exist_ok=True)
+        path = os.path.join(_metrics_dir, "idempotency_metrics.json")
+        temporary = path + ".tmp"
+        with open(temporary, "w", encoding="utf-8") as stream:
+            json.dump(_idempotency_cache.stats(), stream, indent=2)
+        os.replace(temporary, path)
+
+
+def idempotent(route):
+    """Replay the entire HTTP result before touching session or timing state."""
+    def decorate(handler):
+        @wraps(handler)
+        async def wrapped(req=None):
+            if req is None or (req.request_id is None and req.request_seq is None):
+                # Older clients retain their original, non-retry protocol.
+                return await handler() if req is None else await handler(req)
+            if not req.request_id or req.request_seq is None:
+                raise HTTPException(status_code=422, detail="request_id and request_seq are required together")
+            key = ("POST", route, req.session_id, getattr(req, "task_id", ""), req.request_seq)
+            expected = json.dumps(key, ensure_ascii=False, separators=(",", ":"))
+            if req.request_id != expected:
+                raise HTTPException(status_code=422, detail="request_id does not match method/route/session/task/sequence")
+            payload = req.model_dump() if hasattr(req, "model_dump") else req.dict()
+            fingerprint = hashlib.sha256(json.dumps(payload, sort_keys=True,
+                ensure_ascii=False, separators=(",", ":")).encode("utf-8")).hexdigest()
+            try:
+                result, replayed = await _idempotency_cache.execute(
+                    key, fingerprint, lambda: handler(req))
+            except IdempotencyConflict as exc:
+                raise HTTPException(status_code=409, detail=str(exc)) from exc
+            if isinstance(result, dict):
+                result = {**result, "request_id": req.request_id, "replayed": replayed}
+            return result
+        return wrapped
+    return decorate
 
 
 def _finite_nonnegative(value: float, field: str) -> float:
@@ -101,11 +149,22 @@ def _record_cloud_total_ms(value_ms: float) -> None:
         _cloud_total_ms_count += 1
 
 
-class SessionReleaseRequest(BaseModel):
+class RequestIdentity(BaseModel):
+    request_id: Optional[str] = None
+    request_seq: Optional[int] = Field(default=None, ge=1)
+
+
+class SessionInitRequest(RequestIdentity):
+    session_id: str = ""
+    task_id: str = ""
+
+
+class SessionReleaseRequest(RequestIdentity):
     session_id: str
+    task_id: str = ""
 
 
-class PrefillRequest(BaseModel):
+class PrefillRequest(RequestIdentity):
     session_id: str
     task_id: str
     draft_output: list[int]
@@ -124,7 +183,7 @@ class PrefillRequest(BaseModel):
     clock_uncertainty_ns: int = Field(default=0, ge=0, le=100_000_000)
 
 
-class PrefillArrivalRequest(BaseModel):
+class PrefillArrivalRequest(RequestIdentity):
     session_id: str
     task_id: str
     edge_send_time_ns: int = 0
@@ -132,7 +191,7 @@ class PrefillArrivalRequest(BaseModel):
     clock_uncertainty_ns: int = Field(default=0, ge=0, le=100_000_000)
 
 
-class PrefillTimingRequest(BaseModel):
+class PrefillTimingRequest(RequestIdentity):
     session_id: str
     task_id: str
     gamma: int
@@ -149,12 +208,12 @@ class PrefillTimingRequest(BaseModel):
     clock_uncertainty_ns: int = Field(default=0, ge=0, le=100_000_000)
 
 
-class PrefillCancelRequest(BaseModel):
+class PrefillCancelRequest(RequestIdentity):
     session_id: str
     task_id: str
 
 
-class VerifyRequest(BaseModel):
+class VerifyRequest(RequestIdentity):
     session_id: str
     task_id: str
     draft_output: list[int]
@@ -315,6 +374,7 @@ def health() -> dict:
         "draining": draining,
         "worker_alive": bool(worker_proc is not None and worker_proc.is_alive()),
         "model_ready": bool(worker_proc is not None and worker_proc.is_alive()),
+        "idempotency": _idempotency_cache.stats(),
     }
 
 
@@ -326,7 +386,8 @@ def clock_sync() -> dict:
 
 
 @app.post("/session/init")
-def session_init() -> dict:
+@idempotent("/session/init")
+async def session_init(req: Optional[SessionInitRequest] = None) -> dict:
     """
     返回新的 session_id（UUID）。
     """
@@ -353,6 +414,7 @@ def _release_abandoned_session(req_id):
 
 
 @app.post("/session/release")
+@idempotent("/session/release")
 async def session_release(req: SessionReleaseRequest) -> dict:
     result = await _enqueue_and_wait({"control_type": "session_release"}, req.session_id)
     _prefill_arrivals.pop(req.session_id, None)
@@ -422,6 +484,7 @@ async def _enqueue_and_wait(request_dict: dict, req_id: str) -> dict:
 
 
 @app.post("/prefill/arrival")
+@idempotent("/prefill/arrival")
 async def prefill_arrival(req: PrefillArrivalRequest) -> dict:
     """Record a Prefill arrival without sending work to the target worker.
 
@@ -464,6 +527,7 @@ async def prefill_arrival(req: PrefillArrivalRequest) -> dict:
 
 
 @app.post("/prefill")
+@idempotent("/prefill")
 async def prefill(req: PrefillRequest) -> dict:
     if request_queue is None:
         return {"error": "queues_not_initialized"}
@@ -477,6 +541,8 @@ async def prefill(req: PrefillRequest) -> dict:
     timing_required = bool(req.timing_required) and not arrival_recorded
 
     request_dict = {
+        "request_id": req.request_id,
+        "request_seq": req.request_seq,
         "task_id": req.task_id,
         # Keep multiprocessing.Queue payloads tensor-free.  Passing a torch
         # storage through the queue uses the resource_sharer FD channel and
@@ -559,6 +625,7 @@ async def prefill(req: PrefillRequest) -> dict:
 
 
 @app.post("/prefill/timing")
+@idempotent("/prefill/timing")
 async def prefill_timing(req: PrefillTimingRequest) -> dict:
     """Legacy timing-control endpoint kept for older clients.
 
@@ -637,6 +704,7 @@ async def prefill_timing(req: PrefillTimingRequest) -> dict:
 
 
 @app.post("/prefill/cancel")
+@idempotent("/prefill/cancel")
 async def prefill_cancel(req: PrefillCancelRequest) -> dict:
     """Cancel a timing-gated Prefill whose Edge draft failed or timed out.
 
@@ -685,6 +753,7 @@ async def prefill_cancel(req: PrefillCancelRequest) -> dict:
 
 
 @app.post("/verify")
+@idempotent("/verify")
 async def verify(req: VerifyRequest) -> dict:
     api_start = time.monotonic()
     cloud_receive_time_ns = time.time_ns()
@@ -696,6 +765,8 @@ async def verify(req: VerifyRequest) -> dict:
     avg_cloud_total_ms = _get_avg_cloud_total_ms()
 
     request_dict = {
+        "request_id": req.request_id,
+        "request_seq": req.request_seq,
         "task_id": req.task_id,
         "draft_output": [int(token) for token in req.draft_output],
         "prefix_len": req.prefix_len,
@@ -787,6 +858,7 @@ async def verify(req: VerifyRequest) -> dict:
 @app.post("/exit")
 def exit_worker() -> dict:
     global _admission_closed, _exit_sent
+    _persist_idempotency_metrics()
     if request_queue is None:
         return {"status": "queues_not_initialized"}
     with _pending_lock:
@@ -810,8 +882,9 @@ def exit_worker() -> dict:
 
 
 def main() -> None:
-    global request_queue, response_queue, worker_proc, _request_max_tokens, _server_sched_mode, _enable_latency_priority
+    global request_queue, response_queue, worker_proc, _request_max_tokens, _server_sched_mode, _enable_latency_priority, _metrics_dir
     args = parse_arguments()
+    _metrics_dir = args.exp_name
     _request_max_tokens = int(args.max_tokens)
     _server_sched_mode = str(getattr(args, "server_sched_mode", "fastsd"))
     _enable_latency_priority = bool(getattr(args, "enable_latency_priority", False))
@@ -826,7 +899,10 @@ def main() -> None:
     # explicit CLOUD_SERVICE_HOST override in the run plan/configuration.
     host = os.environ.get("CLOUD_SERVICE_HOST", "127.0.0.1")
     port = int(os.environ.get("CLOUD_SERVICE_PORT", "8001"))
-    uvicorn.run(app, host=host, port=port, workers=1)
+    try:
+        uvicorn.run(app, host=host, port=port, workers=1)
+    finally:
+        _persist_idempotency_metrics()
 
 
 if __name__ == "__main__":

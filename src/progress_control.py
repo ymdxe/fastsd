@@ -194,7 +194,11 @@ class GammaController:
 class AheadController:
     def __init__(self, cooldown_rounds=4):
         self.observations = deque(maxlen=32)
-        self.state = "enabled"
+        # Start with a bounded probe.  A fresh process has no evidence that
+        # the target wait window can amortize speculative draft work; allowing
+        # the full cap immediately makes every short request pay the worst
+        # case before the controller has observed a single reuse.
+        self.state = "probe"
         self.cooldown_rounds = int(cooldown_rounds)
         self.remaining = 0
         self._round_allowed = None

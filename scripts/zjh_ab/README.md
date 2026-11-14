@@ -1,6 +1,6 @@
 # KV prefetch 参数与验收
 
-本轮修改保持实际 WRR/softfill 调度策略，只调整等待项配置、预测副本和 KV 预取。
+默认使用 h1-only 最小预取，保留 legacy ticket/coordinator/arena 路径供回退；实际 WRR/softfill 调度策略不变。
 模型路径继续由原有 `params.env` 或环境变量提供。
 
 | 环境变量 | 默认值 | 含义 |
@@ -8,89 +8,95 @@
 | `FASTSD_WAIT_LAMBDA` | `0.01` | exp 与分段公式共用的 lambda |
 | `FASTSD_WAIT_LINEAR_UNTIL_S` | `0` | `0` 为纯 exp；正数开启分段公式 |
 | `FASTSD_WAIT_LINEAR_ALPHA` | 自动 | 未指定时取 `lambda * exp(lambda*T0)`；显式 `0` 有效 |
-| `KV_PREFETCH_LOOKAHEAD_ROUNDS` | `1` | 预测深度 K，与实际搬运深度独立 |
-| `KV_PREFETCH_HORIZON_LIMIT` | `1` | 实际预取的最大 horizon；`0` 保留预测但不搬运 |
-| `KV_PREFETCH_H2_MAX_PIDS` | `4` | 每次 intent 的 h2 pid 上限；`0` 禁止 h2 |
+| `KV_PREFETCH_IMPLEMENTATION` | `h1` | `h1` 为最小路径；`legacy` 回退旧实现 |
+| `KV_PREFETCH_LOOKAHEAD_ROUNDS` | `1` | legacy 预测深度 K；h1 固定只预测一轮 |
+| `KV_PREFETCH_HORIZON_LIMIT` | `1` | legacy 的搬运深度；h1 固定为 1 |
+| `KV_PREFETCH_H2_MAX_PIDS` | `4` | legacy h2 pid 上限；h1 不执行 h2/h3 |
 | `KV_PREFETCH_RATE_MB_S` | `0` | 计算期间的提交速率上限，MiB/s；`0` 表示不限速 |
 | `MEASURE_ENERGY` | `0` | 设为 `1`/`true` 后记录 target GPU system energy、平均/峰值功耗和 P95/P99 |
 | `KV_PREFETCH_IDLE_RATE_MB_S` | `0` | GPU 空闲时的提交速率，MiB/s；`0` 表示不限速 |
 | `KV_PREFETCH_CHUNK_KB` | `4096` | 一组提交的最大 KiB；普通 demand ticket 的 tensor 分块上限 |
 | `KV_PREFETCH_SPECULATIVE_CHUNK_KB` | `4096` | 预取 ticket 的单块上限；默认跟随普通 chunk |
-| `KV_PREFETCH_BEFORE_SUBMIT` | `0` | `1` 在当前 plan 完成 reserve 后、executor submit 前预测 |
+| `KV_PREFETCH_BEFORE_SUBMIT` | `0` | legacy 的 submit 前预测；h1 始终在实际提交后预测 |
+| `FASTSD_IDEMPOTENCY_MAX_ENTRIES` | `4096` | target 已完成成功响应的 LRU 容量 |
+| `FASTSD_IDEMPOTENCY_TTL_S` | `1800` | 成功响应最后一次访问后的保留秒数 |
+
+Edge 每个有状态 POST 都生成 `request_seq` 和 `request_id`。序号按
+`(session_id, task_id)` 递增，ID 编码 `POST/route + session_id + task_id + request_seq`；
+同一逻辑请求的网络重试复用完整 JSON 请求体。仅连接中断类错误最多重试三次，
+等待 `0.5/1/2` 秒，重试前关闭并重建对应的 HTTP Session。
+4xx、5xx、业务错误和 timeout 均不自动重发，包括时钟校验的 422。
+重试不会初始化新 target session 或重新生成 draft。
+
+Target 在 HTTP 层合并同 key 的 in-flight 请求，仅缓存成功响应；HTTP 连接
+取消不会取消共享操作。缓存独立于 KV session，session 释放后在 LRU/TTL
+保留期内仍能 replay。响应中的 `replayed` 区分首次执行与缓存/共享响应。
+`runall` 收集 `target/idempotency_metrics.json`，包含 `idempotent_cache_hit`、
+`idempotent_inflight_wait`、`cache_evictions`；`/health` 同时返回即时统计。
+Edge 逐任务 JSONL 记录 `retry_count`、`last_error`、`replayed` 和 `replayed_count`，
+最终失败的连接尝试也写入 edge 日志。
+
+Offload 保留预算、水位和 session 保护规则。仅在需要回收显存时，对 GPU 上
+未保护的 session 计算 `score = (draft_total_time + transport_rtt) / accept_prob - idle`，
+按 score 降序搬运到 CPU，直到释放足够字节。`draft_total_time` 使用最近一轮
+请求的 `lag`，接受率沿用调度器的平滑估计；idle 使用单调时钟秒数。
 
 等待公式为 `exp(lambda*t)`。分段模式在 `t <= T0` 时使用
 `beta + alpha*t`，其中 `beta = exp(lambda*T0) - alpha*T0`，保证值连续；
 自动 alpha 还保证斜率连续。lambda、T0、alpha 必须有限且非负；lambda=0
 关闭等待增长。环境变量在进程启动时读取，实际配置写入 `wait_priority_config`。
 
-无 calibration 时，计算窗口速率取
-`min(RATE, IDLE_RATE * online_fraction)`，随后仍可因 forward 干扰而回退。
-速率控制是带一个 chunk 初始额度的 token bucket，不是 PCIe 带宽承诺。
-若要做“解除软件限速”的机制实验，可将 `KV_PREFETCH_ONLINE_FRACTION=1`、
-`KV_PREFETCH_RATE_MB_S=0`/`KV_PREFETCH_IDLE_RATE_MB_S=0`，并增大
-`KV_PREFETCH_SPECULATIVE_CHUNK_KB`。这只移除本项目的 token-bucket 和分块限制，
-不会突破实际 PCIe/NVLink、CPU pinned memory 或单个 speculative chunk 的串行提交能力。
-新配置下 `K=3` 默认也只搬 h1；如需复现旧 union 搬运，必须显式设置
-`HORIZON_LIMIT=3` 及足够大的 `H2_MAX_PIDS`。
+## 最小 h1 路径
 
-## 推荐的下一轮对照
+每轮实际 plan 提交后预测下一轮 verify pids。只准备 CPU resident、非 protected、
+非 active/reserved、非 in-transfer 的 session；CPU cache 的 D2H producer event
+也必须已完成，源 tensor 必须 pinned。每个 pid 最多一个未退休 ticket。
 
-今天用于定位 FastSD 落后标准 SD 的诊断矩阵可直接运行：
+创建前检查 `free >= ticket_bytes + 256 MiB`，不足则请求执行端在下一个安全边界
+按 offload 排名回收，再复查；仍不足跳过本次预取。执行端不等待这次预取重试，
+预取线程不直接修改正式 KV。`KV_PREFETCH_MB` 限制所有未退休 destination 总字节，
+包括 demand 已弃用但 DMA 尚未完成的 buffer；它不再预分配 arena。
+
+snapshot 包含 cache 对象身份、session_epoch、content_version、valid_len，分配后
+再次校验；全部 GPU destination 和 event 在 copy 前创建。独立 CUDA stream 一次
+提交完整 KV 的异步 H2D，中途不分配显存、不检查 chunk 显存、不取消或 supersede。
+
+执行端真正 acquire KV 时才从 candidate 表 pop。只有 event.query 已完成且 snapshot
+匹配才安装 destination；pending/stale 都走普通 demand restore，不等待 speculative
+stream，也不推进 KV。用完 retire；未完成的旧 copy 保留源 pinned cache、destination
+和 event，event 完成后才能释放，session 释放和版本变化也遵守这一规则。
+GPU 安装后清除 residency record 的旧 CPU cache 引用；有在途 copy 时 ticket 仍保持源生命周期。
+
+回退：target 加 `--kv_prefetch_implementation legacy`，或运行
+`KV_PREFETCH_IMPLEMENTATION=legacy bash scripts/zjh_ab/runall.sh`。
+legacy 的 horizon、chunk、rate、calibration、arena 和 event pool 参数仍保留；
+这些控制不参与最小 h1 的 copy。`--kv_prefetch_mode cpu_prepare` 不提交 h1 DMA。
+
+## 本轮两组对照
+
+在原有拓扑环境变量已设置的 node1 上运行：
 
 ```bash
-DIAGNOSTIC_ONLY=1 MEASURE_ENERGY=1 RUN_TAG=diag_$(date +%Y%m%d_%H%M%S) \
-  bash scripts/zjh_ab/runall.sh
+RUN_TAG=h1_pair_$(date +%Y%m%d_%H%M%S) bash scripts/zjh_ab/runall.sh
 ```
 
-它固定 `gamma=8`、`token_budget=32`、KV budget=2GiB、prefetch rate unlimited，依次比较
-标准 SD offload、FastSD 无 prefetch、完整 FastSD，以及分别关闭 pipeline、proactive、latency
-priority 的三个 FastSD 变体。结果会在每个 condition 的 `target/scheduler_metrics.json`、
-`target/energy_metrics.json`、`edge/edge_metrics_summary*.json` 和 `report.json` 中保留。
+只跑 `<tag>_noprefetch`、`<tag>_prefetch` 两组，各 64 个请求（两台 edge 各 32）。
+同一数据划分、arrival schedule 和 seed；默认 gamma=8、token budget=32、
+KV budget=1800 MiB、prefetch destination 上限=256 MiB。
+`DIAG_GAMMA`、`DIAG_BUDGET`、`DIAG_KV_BUDGET_MB` 可同时修改两组的参数；
+`TOTAL_REQUESTS` 可改请求数。`DIAGNOSTIC_ONLY` 不再切换到多组矩阵。
+失败启动、edge 失败、收集失败或报告 gate 失败都会使 runner 非零退出。
 
-保持 target Qwen3-8B、CPU draft Qwen3-0.6B、32 drafts、batch=8、
-token budget=32、gamma=8、max tokens=400、KV budget=2048 MiB、
-prefetch=256 MiB、每 worker arrival rate=1.6、edge threads=4 不变。
+报告严格检查唯一任务数量、逐任务 output_token_ids（旧记录回退 output_text）、
+CUDA OOM、copy 错误、TTFT/TPOT 的 p50/p95 和总 H2D（包含 demand 与 speculative）。
+runall 延迟容差默认 0（不退化），H2D 增长容差默认 10%；可分别设
+`PREFETCH_LATENCY_TOLERANCE`、`PREFETCH_H2D_TOLERANCE`。
+无重复 KV 推进由重试重放和 ready/pending acquire 回归测试覆盖，输出比较提供实验侧检查。
 
-先在 target 所在主机启动下列配置；每次使用新的 `RUN_NAME`，另在原有两台
-edge 上用相同 run 名及原有 82/82 数据划分启动客户端。这里的命令只启动 target。
-
-```bash
-RUN_NAME=kv_h1_protected_k3_r01 \
-FASTSD_WAIT_LAMBDA=0.01 FASTSD_WAIT_LINEAR_UNTIL_S=0 \
-KV_PREFETCH_LOOKAHEAD_ROUNDS=3 KV_PREFETCH_HORIZON_LIMIT=1 \
-KV_PREFETCH_H2_MAX_PIDS=0 KV_PREFETCH_MB=256 \
-KV_PREFETCH_RATE_MB_S=256 KV_PREFETCH_IDLE_RATE_MB_S=1024 \
-KV_PREFETCH_CHUNK_KB=4096 KV_RESIDENCY_BUDGET_MB=2048 \
-NUM_DRAFTS=32 BATCH_SIZE=8 TOKEN_BUDGET=32 GAMMA=8 MAX_TOKENS=400 \
-./scripts/zjh_ab/serve.sh fastsd
-```
-
-建议依次单独比较以下变化：
-
-1. 同预算的 `fastsd-noprefetch` 与上面的 h1 预取。
-2. K=1 与 K=3，保持 `HORIZON_LIMIT=1`，观察预测成本和 h1 ready。
-3. `HORIZON_LIMIT=2, H2_MAX_PIDS=4`，观察额外 bytes/eviction 是否值得。
-4. chunk=512/1024/4096 KiB，RATE=256/512/1024 MiB/s；一次只改一个参数。
-5. `BEFORE_SUBMIT=1`，测量提前触发收益及当前 plan 的延迟。
-6. lambda=0.005/0.01/0.02；分段 T0=5/30、alpha=0.02 作为独立实验。
-
-标准 SD 若要比较 KV 压力，也必须使用相同非零 residency budget。
-原始表中 SD 的 budget=0、全驻留，不能作为同 KV 压力的对照。
-旧远程 ablation 脚本在 SSH 内设置自己的参数；新的环境变量应放在远端
-`env ... serve.sh` 命令中，不能仅设在发起 SSH 的本机。
-
-## h1 保护规则
-
-预取 intent 用 `PrefetchTarget(pid, horizon, prediction_tick)`；旧 pid-only
-调用仍支持。pid 去重取最早 horizon，h1 先分配预算、先提交 DMA。
-已有有效 h1 不会因降为 h2/h3 或同一 actual plan 内的 refresh 而 retire；
-即使当前 intent 只包含 h2/h3，保留的 h1 也继续推进。
-新 h1 需要空间时优先 retire h2/h3，等待旧 DMA 排空才复用内存。
-如果 h1 分配失败，本轮不会继续给 h2/h3 分配剩余预算。
-
-显式空 intent、cache generation/epoch 变化仍会清理候选；actual plan
-推进后，新的 h1 intent 可以清理已经不再预测到的旧 h1。这样保护不会阻止
-正常的失效处理。耗时准备期间收到低优先级刷新也不会丢弃有效 h1 ticket。
+可设 `PREFETCH_LEGACY_REFERENCE=<完整旧版 condition-dir>`，比较相同任务集的
+ready 命中数；参考数据需同模型、调度和预算。未提供参考时明确标记 UNVERIFIED，
+不会宣称“ready 不下降”已通过；不完整历史数据也不能通过完整性检查。
+`runtime/diag_final` 与 `runtime/overnight` 保留为历史分析数据，不替代本轮 n=64 验收。
 
 ## 指标与报告
 
@@ -100,10 +106,10 @@ NUM_DRAFTS=32 BATCH_SIZE=8 TOKEN_BUDGET=32 GAMMA=8 MAX_TOKENS=400 \
 
 ```bash
 python3 scripts/zjh_ab/accept.py <condition-dir> <another-condition-dir> \
-  --expected-requests 164 --json-output /tmp/kv-prefetch-report.json
+  --prefetch-pair --expected-requests 64 --json-output /tmp/kv-prefetch-report.json
 ```
 
-`n < 164` 标记 incomplete，并使完整性 gate 失败；小型 smoke 可显式调整
+`n < 64` 标记 incomplete，并使完整性 gate 失败；小型 smoke 可显式调整
 `--expected-requests`。旧 run 缺新字段时显示 `n/a`，ready=0 时每 ready
 的成本为 null，不能解释成零成本。
 
@@ -115,37 +121,28 @@ warmup 和负载空隙。旧 summary 只有 wallclock_s 时回退并标记
 | 指标 | 口径 |
 | --- | --- |
 | `prefetch_refresh_count` | 实际重新预测的次数，不含 signature 相同的跳过 |
-| `lookahead_build_count` | 预测 plan 的 build 次数；K=3 通常每次 refresh 为 3 次 |
+| `lookahead_build_count` | 预测 plan 的 build 次数；h1 每次 refresh 最多 1 次 |
 | `prediction_snapshots_consumed` | 各 horizon snapshot 被实际 plan 消费的总数 |
 | `actual_plans` | 成功提交给 executor 的实际 plan 数 |
 | `ready_per_actual_plan` | ready cache 次数 / actual plans，可大于 1，不是概率 |
 | `h2d_bytes_per_ready`、`copies_per_ready` | 全部 H2D bytes / ready，及全部 copies / ready；copies 包括 D2H |
-| `prefetch_intent_by_horizon` | 最新 intent 的 pid 数，当前值 |
-| `prefetch_candidate_by_horizon` | worker 最近一次观察到的候选数量，当前值 |
-| `prefetch_candidates_created_by_horizon` | 按创建 horizon 的累计候选数 |
-| `prefetch_retired_by_horizon` | worker 因 intent 变化/内容失效而 retire 的累计候选数 |
-| `prefetch_skipped_horizon` | 去重 pid 因 horizon limit 或 h2 限额被跳过的累计次数 |
-| `prefetch_bytes_by_horizon` | 源自各 horizon ticket 的实际 H2D bytes，含后续 demand 补完 |
-| `speculative_bytes_by_horizon` | 其中在 demand claim 前实际提交的 bytes |
-| `kv_transfer_by_horizon` | tickets、bytes、完成/retire 数、耗时与有效速率 |
+| `prefetch_ready_hit` | demand acquire 时已完成且 snapshot 匹配的次数 |
+| `prefetch_pending_hit` | claim 遇到未完成 event，立即走 demand restore 的次数 |
+| `prefetch_demand_miss` | 所有 CPU cache demand restore 次数，包含 pending 回退 |
+| `prefetch_skipped_no_memory` | admission 预算/空闲显存不足而跳过的次数 |
+| `prefetch_skipped_stale` | 分配、claim 或完成回收时 snapshot 失效的次数 |
+| `prefetch_copy_ms`、`prefetch_copy_count` | 已完成 speculative copy 的 CUDA event 总毫秒和次数 |
+| `prefetch_lead_ms`、`prefetch_lead_count` | 从 destination 准备到 claim 的总毫秒和样本数 |
+| `prefetch_bytes` | 完整提交的 speculative H2D 累计字节 |
+| `prefetch_candidates` | 当前 candidate 表大小；shutdown 后归零 |
+| `prefetch_candidates_created`、`prefetch_candidates_peak` | 累计创建 ticket 数、candidate 峰值 |
+| `prefetch_reserved_bytes_peak` | 未退休 destination 的最大总字节，含 draining buffer |
 
-bytes 按 ticket **创建时**的 horizon 归因，ready/pending 按保护后的当前
-horizon 归因；h2 提升为 h1 不会改写已搬 bytes 的来源。
-每个 horizon 的 precision/recall 使用该 horizon 的集合统计，coverage 和
-hits/ready 按 actual plans 归一化，不把 snapshot 总数当实际 plan 数。
-后续预测在上一层队列副本上继续投影，不会复活更早层已完成的工作。
-
-`cache_transfers.kv_transfer_recent_tickets` 保留最近 256 张有 DMA 的 ticket
-明细（bytes、耗时、速率、claim/retire）；累计统计不截断。
-耗时从首次提交到观察到最终 event 完成，包含限速、竞争和轮询延迟；它是
-readiness 时间尺度，不等于纯 DMA 时间或 PCIe 带宽。report 的
-`transfer_per_batch_window > 1` 表示平均传输耗时超过一个 batch 窗口，
-本身不是因果证明。
-
-已提供的测量 0.30–0.85s 对 0.11–0.12s，约为 2.5–7.7 个 batch 窗口；
-K=3 的 0.33–0.36s 只覆盖较短的搬运。当前修改通过限制 union、减少低
-horizon 搬运竞争改善准备机会，并未实现 KV 压缩或增量传输。
-真实 ready、TTFT、E2E 收益仍需使用完整的 GPU 对照实验验证。
+`prefetch_copy_ms / prefetch_copy_count` 是起止 CUDA event 之间的时间，
+包含区间内调度和资源竞争，不包含 start event 之前的 stream 排队，不能直接解释为 PCIe 带宽。
+legacy 仍保留其 horizon、intent、retire 和最近 ticket 明细，耗时口径仍为
+host 首次提交至观察到 event 完成，不应直接与 h1 的 CUDA event 时间等同。
+ready=0 时每 ready 成本为 null；历史缺失字段显示 n/a。
 
 ## 验证
 

@@ -300,8 +300,14 @@ def verify_priority_score(req, accept_stats, now=None, lamda=None):
     return -((draft_total_time + transport_rtt) / acc_prob) + wait_term
 
 
-def compute_priority_score(req, accept_stats, now=None, lamda=None):
+def compute_priority_score(req, accept_stats, now=None, lamda=None, *, latency_priority=True):
     """Compatibility dispatcher; scores are compared within one queue."""
+    if not latency_priority:
+        # Preserve WRR/queue selection while removing both new timing scores
+        # and legacy lag/acceptance scores from the latency ablation.
+        return -_finite_nonnegative(
+            req.get("server_enqueue_monotonic", req.get("current_time", 0.0)),
+            "server_enqueue_monotonic")
     if req["task_type"] == "prefill":
         return prefill_priority_score(req, now=now, lamda=lamda)
     return verify_priority_score(req, accept_stats, now=now, lamda=lamda)
@@ -511,8 +517,10 @@ def _as_work_item(item: WorkItem | Mapping[str, Any], task_type: str, category: 
     return WorkItem.from_request(item, category=category, cycle=cycle)
 
 
-def _priority(item: WorkItem, accept_stats: Mapping[Any, Sequence[float]], now: float) -> float:
-    return compute_priority_score(item.request, accept_stats, now=now)
+def _priority(item: WorkItem, accept_stats: Mapping[Any, Sequence[float]], now: float,
+              latency_priority=True) -> float:
+    return compute_priority_score(item.request, accept_stats, now=now,
+                                  latency_priority=latency_priority)
 
 
 def _eligible(item, selected, reserved):
@@ -524,7 +532,8 @@ def _eligible(item, selected, reserved):
     )
 
 
-def take_for_visit(state, category, selected, accept_stats, now, reserved):
+def take_for_visit(state, category, selected, accept_stats, now, reserved,
+                   latency_priority=True):
     """Choose a queue first, then its highest original score, without fit filtering.
 
     A chosen candidate that does not fit seals the batch. Testing a later queue
@@ -533,13 +542,13 @@ def take_for_visit(state, category, selected, accept_stats, now, reserved):
     overdue = [item for item in state["prefill"][category]
                if _eligible(item, selected, reserved) and item.is_overdue_prefill]
     if overdue:
-        return max(overdue, key=lambda item: _priority(item, accept_stats, now))
+        return max(overdue, key=lambda item: _priority(item, accept_stats, now, latency_priority))
     for queue_name in FASTSD_VISIT_QUEUE_ORDER[category]:
         kind, bucket = _QUEUE_COORDINATES[queue_name]
         candidates = [item for item in state[kind][bucket]
                       if _eligible(item, selected, reserved)]
         if candidates:
-            return max(candidates, key=lambda item: _priority(item, accept_stats, now))
+            return max(candidates, key=lambda item: _priority(item, accept_stats, now, latency_priority))
     return None
 
 
@@ -595,6 +604,7 @@ def plan_iteration(
     selection_policy: str = "legacy",
     candidate_value=None,
     max_wait_s: float = 1.0,
+    latency_priority: bool = True,
 ) -> AdmissionPlan:
     """Build an admission plan without mutating queues or WorkItems.
 
@@ -649,12 +659,13 @@ def plan_iteration(
                 kind, category = _QUEUE_COORDINATES[queue_name]
                 candidates = [x for x in state[kind][category] if _eligible(x, selected, reserved)]
                 if candidates:
-                    item = max(candidates, key=lambda x: _priority(x, accept_stats, now))
+                    item = max(candidates, key=lambda x: _priority(x, accept_stats, now, latency_priority))
                     visit_steps = skipped + 1
                     break
         else:
             category = FASTSD_VERIFY_WRR_ORDER[cursor]
-            item = take_for_visit(state, category, selected, accept_stats, now, reserved)
+            item = take_for_visit(state, category, selected, accept_stats, now, reserved,
+                                  latency_priority)
         diag_wrr_item = item
         diag_values = []
         if selection_policy in {"fcfs", "progress"}:
@@ -668,7 +679,7 @@ def plan_iteration(
                     urgent = candidate.is_overdue_prefill or wait >= max_wait_s
                     candidate_slice = _make_slice(candidate, token_budget - used, prefill_chunk_quantum, min_prefill_chunk_tokens)
                     value = (candidate_value(candidate, candidate_slice, verify + prefill) if candidate_value is not None
-                             else _priority(candidate, accept_stats, now))
+                             else _priority(candidate, accept_stats, now, latency_priority))
                     if DIAG.enabled and getattr(DIAG.context, "plan_kind", "") == "admission":
                         diag_values.append([candidate.work_id, urgent, wait if urgent else 0.0, value])
                     return urgent, wait if urgent else 0.0, value

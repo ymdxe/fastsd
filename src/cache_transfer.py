@@ -752,7 +752,7 @@ class CacheTransferManager:
                             dim = max(range(src.ndim), key=lambda d: src.shape[d])
                             if src.shape[dim] <= 1:
                                 raise ValueError("chunk budget must fit at least one KV element")
-                            half = src.shape[dim] // 2
+                            half = src.shape[dim] >> 1
                             views.append((src.narrow(dim, half, src.shape[dim] - half),
                                           dst.narrow(dim, half, dst.shape[dim] - half)))
                             views.append((src.narrow(dim, 0, half), dst.narrow(dim, 0, half)))

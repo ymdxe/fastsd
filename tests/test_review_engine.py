@@ -4,6 +4,7 @@ import importlib.util
 import threading
 import types
 import unittest
+from unittest import mock
 from collections import defaultdict
 
 try:
@@ -18,7 +19,7 @@ except ImportError:
 @unittest.skipUnless(DEPS, "requires model runtime dependencies")
 class ReviewEngineTests(unittest.TestCase):
     def run_worker_case(self, backend, mode="fastsd", device="cpu", cycles=16, adaptive=False,
-                        attention="sdpa_per_sequence"):
+                        attention="sdpa_per_sequence", kv_budget_mb=0, prefetch=True):
         class Runner(Decoding):
             def load_data(self): pass
             def preprocess(self, x): return x
@@ -39,6 +40,7 @@ class ReviewEngineTests(unittest.TestCase):
             gamma=8, token_budget=4, batch_size=2, min_prefill_chunk_tokens=1,
             prefill_chunk_quantum=2, server_sched_mode=mode, pipeline_gamma_adapt=adaptive,
             enable_pipeline=False,
+            kv_residency_budget_mb=kv_budget_mb, kv_prefetch=prefetch,
             session_idle_timeout=30, async_kv_transfer=device != "cpu")
         engine.seed = 1
         engine.last_generation_metrics = {}
@@ -100,6 +102,10 @@ class ReviewEngineTests(unittest.TestCase):
         self.assertGreaterEqual(metrics["released_sessions"], cycles)
         self.assertLessEqual(metrics["peak_cache_sessions"], 1)
         self.assertEqual(metrics["gamma_rounds"], cycles)
+        if kv_budget_mb:
+            self.assertGreater(metrics["residency_pressure_samples"], 0)
+            self.assertEqual(metrics["kv_residency"]["residency_activations"], 1)
+            self.assertEqual(metrics["kv_residency"]["residency_evictions"], 0)
 
     def test_varlen_chunked_rounds_and_repeated_sessions(self):
         self.run_worker_case("varlen")
@@ -114,6 +120,14 @@ class ReviewEngineTests(unittest.TestCase):
 
     def test_baseline_release(self):
         self.run_worker_case("varlen", "vanilla")
+
+    def test_managed_kv_below_high_does_not_warm_prefetch_or_offload(self):
+        with mock.patch("src.engine.CacheTransferManager.warmup_prefetch_pool",
+                        side_effect=AssertionError("prefetch is disabled")):
+            for mode in ("vanilla", "fastsd"):
+                with self.subTest(mode=mode):
+                    self.run_worker_case("varlen", mode, cycles=2,
+                                         kv_budget_mb=1, prefetch=False)
 
     @unittest.skipUnless(DEPS and torch.cuda.is_available(), "requires CUDA")
     def test_cuda_worker_with_async_offload_and_reload(self):

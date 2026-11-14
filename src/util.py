@@ -348,7 +348,8 @@ def parse_arguments():
     parser.add_argument("--ahead_max_tokens", type=int, default=4,
                         help="independent proactive token cap, including the bridge token")
     parser.add_argument("--kv_headroom_mb", type=float, default=512.0,
-                        help="free CUDA memory reserve below which continuing KV is offloaded")
+                        help="free CUDA memory reserve for prefetch and pressure diagnostics; "
+                             "emergency KV eviction uses a separate fixed 256 MiB threshold")
     parser.add_argument("--async_kv_transfer", action=argparse.BooleanOptionalAction, default=True,
                         help="use event-fenced CUDA copies and pinned CPU buffers")
     parser.add_argument("--pinned_pool_mb", type=int, default=128,
@@ -360,6 +361,10 @@ def parse_arguments():
     parser.add_argument("--kv_transfer_gbps", type=float, default=10.0,
                         help="initial exposed-transfer cost estimate; calibrate for the host")
     parser.add_argument("--kv_prefetch", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--kv_prefetch_implementation", choices=("h1", "legacy"),
+                        default=os.environ.get("KV_PREFETCH_IMPLEMENTATION", "h1"),
+                        help="h1: one completed next-verify candidate, no arena or pending-copy waits; "
+                             "legacy: ticket/coordinator/arena fallback")
     parser.add_argument("--kv_prefetch_mode", choices=("overlap", "cpu_prepare"),
                         default="overlap",
                         help="overlap: predicted copies may run during Target compute; "
@@ -368,7 +373,8 @@ def parse_arguments():
                         help="explicit GPU budget for target KV caches in MiB. 0 keeps every "
                              "cache on the GPU and never runs offload/prefetch machinery")
     parser.add_argument("--kv_residency_high_ratio", type=float, default=0.90,
-                        help="enter cache management when used/budget exceeds this ratio")
+                        help="offload when KV used/budget reaches this ratio, "
+                             "or free CUDA memory falls below 256 MiB")
     parser.add_argument("--kv_residency_low_ratio", type=float, default=0.75,
                         help="stop evicting once used/budget falls below this ratio")
     parser.add_argument("--measure_forward_gpu", action=argparse.BooleanOptionalAction, default=False,

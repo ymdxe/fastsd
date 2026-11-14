@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Acceptance report for the three-condition KV residency / SD-vs-FastSD A/B.
+"""Acceptance report for KV residency and the noprefetch/prefetch pair.
 
 Usage:
     python3 scripts/zjh_ab/accept.py exp/zjh_ab
@@ -20,6 +20,7 @@ import argparse
 import glob
 import json
 import os
+import re
 import statistics
 import sys
 
@@ -91,6 +92,8 @@ def summarize(cond_dir, expected_requests=164):
     residency = scheduler.get("kv_residency") or {}
     transfers = scheduler.get("cache_transfers") or {}
     records = load_records(cond_dir)
+    idempotency_path = os.path.join(cond_dir, "target", "idempotency_metrics.json")
+    idempotency = load_json(idempotency_path) if os.path.exists(idempotency_path) else {}
     energy = {}
     energy_path = os.path.join(cond_dir, "target", "energy_metrics.json")
     if os.path.exists(energy_path):
@@ -167,6 +170,18 @@ def summarize(cond_dir, expected_requests=164):
                   transfers.get("kv_transfer_h2d_avg_s") or transfers.get("kv_transfer_avg_s"))
     batch_s = scheduler.get("batch_compute_avg_s")
     transfer_batch_ratio = ratio(transfer_s, batch_s) if transfer_s is not None else None
+    prefetch_metrics = {key: scheduler.get(key) for key in (
+        "prefetch_ready_hit", "prefetch_pending_hit", "prefetch_demand_miss",
+        "prefetch_skipped_no_memory", "prefetch_skipped_stale", "prefetch_copy_ms",
+        "prefetch_copy_count", "prefetch_lead_ms", "prefetch_lead_count",
+        "prefetch_bytes", "prefetch_candidates", "prefetch_candidates_created",
+        "prefetch_candidates_peak", "prefetch_allocation_oom", "prefetch_async_failed")}
+    if prefetch_metrics["prefetch_bytes"] is None:
+        prefetch_metrics["prefetch_bytes"] = transfers.get("speculative_submitted_bytes", 0)
+    log_path = os.path.join(cond_dir, "target", "target.log")
+    with open(log_path, errors="replace") if os.path.exists(log_path) else open(os.devnull) as handle:
+        oom_in_log = bool(re.search(r"CUDA out of memory|(?:cuda\.)?OutOfMemoryError|cudaErrorMemoryAllocation",
+                                    handle.read(), re.IGNORECASE))
 
     return {
         "dir": cond_dir,
@@ -188,12 +203,27 @@ def summarize(cond_dir, expected_requests=164):
         "e2e_p95": percentile(e2e, 0.95),
         "ttft_p50": percentile(ttft, 0.50),
         "tpot_p50": percentile(tpot, 0.50),
+        "ttft_p95": percentile(ttft, 0.95),
+        "tpot_p95": percentile(tpot, 0.95),
+        "latency_samples": {"ttft": len(ttft), "tpot": len(tpot)},
+        "oom_in_log": oom_in_log,
+        "target_log_present": os.path.exists(log_path),
+        "prefetch_implementation": scheduler.get("kv_prefetch_implementation"),
+        "prefetch_metrics": prefetch_metrics,
         "mode": residency.get("mode"),
         "activations": residency.get("residency_activations", 0),
         "evictions": residency.get("residency_evictions", 0),
+        "emergency_eviction_rounds": residency.get("residency_emergency_eviction_rounds", 0),
+        "emergency_evictions": residency.get("residency_emergency_evictions", 0),
+        "emergency_blocked_rounds": residency.get("residency_emergency_blocked_rounds", 0),
         "restores": residency.get("residency_restores", 0),
         "used_bytes": residency.get("used_bytes", 0),
         "eviction_errors": scheduler.get("kv_residency_eviction_errors", 0),
+        "idempotent_cache_hit": idempotency.get("idempotent_cache_hit"),
+        "idempotent_inflight_wait": idempotency.get("idempotent_inflight_wait"),
+        "cache_evictions": idempotency.get("cache_evictions"),
+        "retry_count": sum(record.get("retry_count", 0) for record in records),
+        "replayed_requests": sum(bool(record.get("replayed", False)) for record in records),
         "h2d_bytes": transfers.get("h2d_bytes", 0.0),
         "d2h_bytes": transfers.get("d2h_bytes", 0.0),
         "copies": transfers.get("copies", 0.0),
@@ -234,6 +264,24 @@ def summarize(cond_dir, expected_requests=164):
         "residency_used_bytes_avg": scheduler.get("residency_used_bytes_avg"),
         "prefetch_claim_lead_ms_avg": scheduler.get("prefetch_claim_lead_ms_avg"),
         "prefetch_claim_lead_ms_max": scheduler.get("prefetch_claim_lead_ms_max"),
+        "ahead_generated_tokens": sum(
+            int(s.get("ahead_generated_tokens", 0) or 0) for s in summaries
+        ),
+        "ahead_reused_tokens": sum(
+            int(s.get("ahead_reused_tokens", 0) or 0) for s in summaries
+        ),
+        "ahead_discarded_tokens": sum(
+            int(s.get("ahead_discarded_tokens", 0) or 0) for s in summaries
+        ),
+        "ahead_forward_ms": sum(
+            float(s.get("ahead_forward_ms", 0.0) or 0.0) for s in summaries
+        ),
+        "ahead_reuse_rate": (
+            sum(int(s.get("ahead_reused_tokens", 0) or 0) for s in summaries)
+            / sum(int(s.get("ahead_generated_tokens", 0) or 0) for s in summaries)
+            if sum(int(s.get("ahead_generated_tokens", 0) or 0) for s in summaries) > 0
+            else 0.0
+        ),
         "slo": evaluate_slo(records, wallclock_s=span),
         "energy": energy,
         "records": records,
@@ -290,11 +338,38 @@ def print_diagnostics(rows):
               f"window={row['span_basis']}")
         standard_slo = (row.get("slo", {}).get("combined", {}).get("standard") or {})
         energy = row.get("energy") or {}
+        print("  requests: "
+              f"retries={row.get('retry_count', 0)} "
+              f"replayed_tasks={row.get('replayed_requests', 0)} "
+              f"cache_hit={row.get('idempotent_cache_hit')} "
+              f"inflight_wait={row.get('idempotent_inflight_wait')} "
+              f"cache_evictions={row.get('cache_evictions')}")
+        prefetch = row["prefetch_metrics"]
+        print("  prefetch: "
+              f"implementation={row.get('prefetch_implementation')} "
+              f"ready={row['ready_hit']} pending={row['pending_hit']} demand_miss={row['demand_miss']} "
+              f"skipped_memory={prefetch.get('prefetch_skipped_no_memory')} "
+              f"skipped_stale={prefetch.get('prefetch_skipped_stale')} "
+              f"copy_ms_sum={prefetch.get('prefetch_copy_ms')} "
+              f"lead_ms_sum={prefetch.get('prefetch_lead_ms')} "
+              f"bytes={prefetch.get('prefetch_bytes')} "
+              f"candidates={prefetch.get('prefetch_candidates')} "
+              f"created={prefetch.get('prefetch_candidates_created')} "
+              f"peak={prefetch.get('prefetch_candidates_peak')}")
         print("  pressure: "
               f"max_batch={fmt_bytes(row.get('max_batch_kv_bytes'))} "
               f"max_resident={fmt_bytes(row.get('max_gpu_resident_kv_bytes'))} "
               f"max_total+prefetch={fmt_bytes(row.get('max_total_kv_plus_prefetch_bytes'))} "
+              f"emergency_rounds={row.get('emergency_eviction_rounds', 0)} "
+              f"emergency_evict={row.get('emergency_evictions', 0)} "
+              f"emergency_blocked={row.get('emergency_blocked_rounds', 0)} "
               f"claim_lead_ms={number(row.get('prefetch_claim_lead_ms_avg'))}")
+        print("  proactive: "
+              f"generated={row.get('ahead_generated_tokens', 0)} "
+              f"reused={row.get('ahead_reused_tokens', 0)} "
+              f"discarded={row.get('ahead_discarded_tokens', 0)} "
+              f"reuse_rate={number(row.get('ahead_reuse_rate'))} "
+              f"forward_ms={number(row.get('ahead_forward_ms'))}")
         print("  SLO standard: "
               f"combined_violation={number(standard_slo.get('violation_rate'))} "
               f"goodput_tok_s={number(standard_slo.get('goodput_tok_s'))} "
@@ -335,6 +410,70 @@ def compare_outputs(rows):
         diff[name] = {"comparable": len(shared), "mismatch": len(mismatch),
                       "examples": mismatch[:5]}
     return baseline, diff
+
+
+def prefetch_pair_gates(rows, tolerance=.05, h2d_tolerance=.10, legacy=None):
+    """Strict paired checks; rows are ordered noprefetch then prefetch."""
+    if len(rows) != 2:
+        return [("exactly two paired conditions", False, f"got {len(rows)}")]
+    base, pref = rows
+    results = []
+    tables = []
+    for row in rows:
+        name = os.path.basename(row["dir"])
+        records = row["records"]
+        identities = [str(r.get("task_id")) for r in records if r.get("task_id") is not None]
+        unique = len(identities) == len(set(identities)) == row["expected_requests"] == len(records)
+        results.append((f"{name}: exact unique request count", unique,
+                        f"records={len(records)} unique={len(set(identities))} expected={row['expected_requests']}"))
+        tables.append({str(r["task_id"]): r for r in records if r.get("task_id") is not None})
+        results.append((f"{name}: no CUDA OOM", row["target_log_present"] and not row["oom_in_log"]
+                        and not row["prefetch_metrics"].get("prefetch_allocation_oom"),
+                        f"target_log={row['target_log_present']} OOM={row['oom_in_log']}"))
+        results.append((f"{name}: transfer counters present", not row["missing_transfer_counters"],
+                        str(row["missing_transfer_counters"])))
+        failed = row["prefetch_metrics"].get("prefetch_async_failed")
+        results.append((f"{name}: no prefetch copy errors", failed == 0, f"errors={failed}"))
+        for metric in ("ttft", "tpot"):
+            samples = row["latency_samples"][metric]
+            results.append((f"{name}: {metric} samples present", samples == len(records) and samples > 0,
+                            f"samples={samples}/{len(records)}"))
+    same_keys = set(tables[0]) == set(tables[1]) and bool(tables[0])
+    mismatches = []
+    missing = []
+    for key in set(tables[0]) & set(tables[1]):
+        a, b = tables[0][key], tables[1][key]
+        # Token equality is stronger than decoded text equality and detects
+        # an extra/missing KV advance that happens to decode identically.
+        if a.get("output_token_ids") is not None and b.get("output_token_ids") is not None:
+            equal = a["output_token_ids"] == b["output_token_ids"]
+        elif a.get("output_text") is not None and b.get("output_text") is not None:
+            equal = a["output_text"] == b["output_text"]
+        else:
+            missing.append(key)
+            continue
+        if not equal:
+            mismatches.append(key)
+    results.append(("paired output correctness", same_keys and not mismatches and not missing,
+                    f"same_tasks={same_keys} mismatch={len(mismatches)} missing={len(missing)} examples={mismatches[:5]}"))
+    for metric in ("ttft_p50", "ttft_p95", "tpot_p50", "tpot_p95"):
+        a, b = base[metric], pref[metric]
+        results.append((f"prefetch {metric} within tolerance", b <= a * (1 + tolerance),
+                        f"noprefetch={a:.3f} prefetch={b:.3f} tolerance={tolerance:.1%}"))
+    results.append(("total H2D within tolerance", pref["h2d_bytes"] <= base["h2d_bytes"] * (1 + h2d_tolerance),
+                    f"noprefetch={fmt_bytes(base['h2d_bytes'])} prefetch={fmt_bytes(pref['h2d_bytes'])} tolerance={h2d_tolerance:.1%}"))
+    results.append(("prefetch exercised", (pref["prefetch_metrics"].get("prefetch_bytes") or 0) > 0,
+                    f"bytes={pref['prefetch_metrics'].get('prefetch_bytes')} ready={pref['ready_hit']}"))
+    results.append(("noprefetch has no speculative copies", not base["prefetch_metrics"].get("prefetch_bytes")
+                    and base["ready_hit"] == 0, f"bytes={base['prefetch_metrics'].get('prefetch_bytes')}"))
+    if legacy is not None:
+        comparable = (not legacy["incomplete"] and legacy["requests"] == pref["requests"]
+                      and set(str(r.get("task_id")) for r in legacy["records"]) == set(tables[1]))
+        results.append(("legacy reference complete with same tasks", comparable,
+                        f"reference={legacy['dir']} records={legacy['requests']}"))
+        results.append(("ready hits at least legacy", comparable and pref["ready_hit"] >= legacy["ready_hit"],
+                        f"h1={pref['ready_hit']} legacy={legacy['ready_hit']}"))
+    return results
 
 
 def gates(rows, tolerance):
@@ -391,6 +530,9 @@ def main():
     parser.add_argument("--expected-requests", type=int, default=164,
                         help="required completed records per condition (default 164)")
     parser.add_argument("--json-output", help="write normalized metrics as JSON")
+    parser.add_argument("--prefetch-pair", action="store_true", help="paths are noprefetch then prefetch")
+    parser.add_argument("--h2d-tolerance", type=float, default=.10)
+    parser.add_argument("--legacy-reference", help="existing complete legacy run for ready-hit comparison; no extra run")
     args = parser.parse_args()
 
     dirs = []
@@ -406,6 +548,8 @@ def main():
 
     if args.expected_requests < 1:
         parser.error("--expected-requests must be positive")
+    if args.tolerance < 0 or args.h2d_tolerance < 0:
+        parser.error("tolerances must be nonnegative")
     rows = [summarize(directory, args.expected_requests) for directory in dirs]
     print_table(rows)
     print()
@@ -425,12 +569,19 @@ def main():
         print()
 
     failures = 0
-    for label, ok, detail in gates(rows, args.tolerance):
+    checks = gates(rows, args.tolerance)
+    if args.prefetch_pair:
+        legacy = summarize(args.legacy_reference, args.expected_requests) if args.legacy_reference else None
+        checks.extend(prefetch_pair_gates(rows, args.tolerance, args.h2d_tolerance, legacy))
+        if legacy is None:
+            print("[UNVERIFIED] ready >= legacy: supply --legacy-reference with a complete matching run")
+    for label, ok, detail in checks:
         print(f"[{'PASS' if ok else 'FAIL'}] {label} — {detail}")
         if not ok:
             failures += 1
     print()
-    print("ACCEPTED" if failures == 0 else f"{failures} gate(s) failed")
+    print(("PAIR CHECKS PASSED; legacy readiness unverified" if args.prefetch_pair and not args.legacy_reference
+           else "ACCEPTED") if failures == 0 else f"{failures} gate(s) failed")
     return 0 if failures == 0 else 1
 
 

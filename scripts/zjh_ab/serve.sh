@@ -27,11 +27,15 @@ RESIDENCY=(
   --kv_residency_low_ratio "$KV_LOW"
   --kv_prefetch_online_fraction "$KV_PREFETCH_ONLINE_FRACTION"
   --kv_prefetch_mb "$KV_PREFETCH_MB"
+  --kv_prefetch_implementation "${KV_PREFETCH_IMPLEMENTATION:-h1}"
   --kv_prefetch_chunk_kb "${KV_PREFETCH_CHUNK_KB:-4096}"
-  --kv_prefetch_rate_mb_s "${KV_PREFETCH_RATE_MB_S:-0}"
-  --kv_prefetch_idle_rate_mb_s "${KV_PREFETCH_IDLE_RATE_MB_S:-0}"
+  --kv_prefetch_rate_mb_s "${KV_PREFETCH_RATE_MB_S:-100000}"
+  --kv_prefetch_idle_rate_mb_s "${KV_PREFETCH_IDLE_RATE_MB_S:-100000}"
   --no-measure_forward_gpu
 )
+if [[ "${KV_OVERLAP_AUTO_FALLBACK:-1}" == "0" ]]; then
+  RESIDENCY+=(--no-kv_overlap_auto_fallback)
+fi
 
 ENERGY=(--no-measure_energy)
 if [[ "${MEASURE_ENERGY:-0}" == "1" || "${MEASURE_ENERGY:-0}" == "true" || "${MEASURE_ENERGY:-0}" == "yes" ]]; then

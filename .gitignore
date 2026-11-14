@@ -12,3 +12,14 @@ src/__pycache__/
 .DS_Store
 data/MGSM/
 tmp/
+
+# metrics / logs
+**/edge_metrics_proc*.jsonl
+**/edge_metrics_summary*.json
+**/scheduler_metrics.json
+**/energy_metrics.json
+**/target.log
+**/report.json
+**/report.txt
+*.log
+runtime/

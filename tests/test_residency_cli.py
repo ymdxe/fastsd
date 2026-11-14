@@ -13,6 +13,13 @@ def parse(*extra):
 
 
 class ResidencyCliTests(unittest.TestCase):
+    def test_h1_default_and_legacy_rollback(self):
+        with mock.patch.dict("os.environ", {"KV_PREFETCH_IMPLEMENTATION": "h1"}):
+            self.assertEqual(parse().kv_prefetch_implementation, "h1")
+            self.assertEqual(parse("--kv_prefetch_implementation", "legacy").kv_prefetch_implementation, "legacy")
+        with mock.patch.dict("os.environ", {"KV_PREFETCH_IMPLEMENTATION": "legacy"}):
+            self.assertEqual(parse().kv_prefetch_implementation, "legacy")
+
     def test_transfer_environment_defaults_and_cli_override(self):
         with mock.patch.dict("os.environ", {"KV_PREFETCH_CHUNK_KB": "512",
                 "KV_PREFETCH_RATE_MB_S": "256", "KV_PREFETCH_IDLE_RATE_MB_S": "1024"}):

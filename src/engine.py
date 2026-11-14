@@ -30,6 +30,7 @@ from .cache_residency import (
 from .session_lifecycle import SessionLifecycle
 from .cache_transfer import CacheTransferManager
 from .cache_protocol import PrefetchTarget
+from .minimal_prefetch import CudaH1Copy, H1Prefetcher
 from .progress_control import AcceptanceProfile, BatchCostModel, GammaController, choose_gamma, draft_seconds_per_token
 from .util import seed_everything, norm_logits, sample, max_fn
 from .runtime import resolve_dtype, synchronize
@@ -288,6 +289,62 @@ class Decoding(ABC):
             2,
         )
         return service
+
+    def _start_energy_campaign(self, energy_service, *, metadata=None) -> bool:
+        """Start the measurement window owned by this target benchmark.
+
+        The cloud target runs in its own worker process, so it cannot rely on
+        the draft-process lifecycle to start the campaign.  Keep the HTTP
+        control call here, after the local FastAPI service is ready and just
+        before entering the target request loop.
+        """
+        if energy_service is None:
+            return False
+        payload_metadata = {
+            "role": "target",
+            "event": "benchmark_start",
+        }
+        if metadata:
+            payload_metadata.update(metadata)
+        self._post_energy_event(
+            "start",
+            {
+                "exp_id": str(self.args.exp_name),
+                "metadata": payload_metadata,
+            },
+            retries=60,
+        )
+        self.color_print("[ENERGY] START_MEASURE sent (target benchmark)", 2)
+        return True
+
+    def _stop_energy_campaign(self, energy_service, started: bool, *, metadata=None) -> None:
+        """Stop the target-owned campaign before shutting down its service."""
+        if energy_service is None or not started:
+            return
+        payload_metadata = {
+            "role": "target",
+            "event": "benchmark_exit",
+        }
+        if metadata:
+            payload_metadata.update(metadata)
+        try:
+            result = self._post_energy_event(
+                "stop",
+                {
+                    "exp_id": str(self.args.exp_name),
+                    "total_tasks": None,
+                    "metadata": payload_metadata,
+                },
+                retries=10,
+            )
+            campaign = result.get("result_b_campaign_window", {})
+            self.color_print(
+                f"[ENERGY] STOP_MEASURE sent (target benchmark), "
+                f"campaign={float(campaign.get('energy_j', 0.0)):.4f}J",
+                2,
+            )
+        except Exception as exc:  # pragma: no cover - diagnostics must not mask shutdown
+            self.color_print(f"[ENERGY] STOP_MEASURE failed during target shutdown: {exc}", 1)
 
     @abstractmethod
     def load_data(self):
@@ -594,6 +651,7 @@ class Decoding(ABC):
         )
         self.vocab_size = self.args.vocab_size
         energy_service = self._maybe_start_energy_service()
+        energy_campaign_started = False
 
         require_full_attention(target_model)
         gamma_control = self._gamma_controller()
@@ -776,6 +834,10 @@ class Decoding(ABC):
         last_prefill_time = time.time()
 
         try:
+            energy_campaign_started = self._start_energy_campaign(
+                energy_service,
+                metadata={"worker_mode": "legacy_target"},
+            )
             while True:
                 try:
                     while True:
@@ -812,6 +874,11 @@ class Decoding(ABC):
                 else:
                     time.sleep(0.01)
         finally:
+            self._stop_energy_campaign(
+                energy_service,
+                energy_campaign_started,
+                metadata={"worker_mode": "legacy_target"},
+            )
             if energy_service is not None:
                 energy_service.shutdown()
 
@@ -839,6 +906,7 @@ class Decoding(ABC):
             compute_stream.wait_stream(torch.cuda.current_stream(target_model.device))
         self.vocab_size = self.args.vocab_size
         energy_service = self._maybe_start_energy_service()
+        energy_campaign_started = False
 
         # 批处理版 KVCache 管理器
         kv_cache_manager = KVCacheModel_batching(target_model,
@@ -985,6 +1053,13 @@ class Decoding(ABC):
             headroom_bytes=int(float(getattr(self.args, "kv_headroom_mb", 512.0)) * 1024 ** 2),
         )
         plan_sequence = {"tick": 0}
+        use_h1_prefetch = getattr(self.args, "kv_prefetch_implementation", "h1") == "h1"
+        h1_prefetch = None
+        prefetch_reclaim = {"required_free": 0}
+        scheduler_metrics["kv_prefetch_implementation"] = "h1" if use_h1_prefetch else "legacy"
+        if use_h1_prefetch:
+            scheduler_metrics.update(prefetch_lookahead_rounds=1, prefetch_horizon_limit=1,
+                                     prefetch_h2_max_pids=0, prefetch_before_submit=False)
         cache_lock = residency.lock
         preloaded_gpu_pids = residency.resident
         # pids whose cache is currently owned by the executing batch (forward +
@@ -1010,7 +1085,10 @@ class Decoding(ABC):
                 kv_cache_manager.reset(pid)
                 transfers.release_cache(owner=pid)
             if ticket is not None:
-                transfers.retire(ticket)
+                if h1_prefetch is not None:
+                    h1_prefetch.retire(ticket)
+                else:
+                    transfers.retire(ticket)
             residency_manager.release(pid)
             with accept_stats_lock:
                 accept_stats.pop(pid, None)
@@ -1031,6 +1109,8 @@ class Decoding(ABC):
             # BYPASS must not touch the transfer registry at all.
             if residency_manager.active:
                 transfers.collect()
+                if h1_prefetch is not None:
+                    h1_prefetch.collect()
             lifecycle.sweep()
             scheduler_metrics["released_sessions"] = lifecycle.released
             scheduler_metrics["cache_sessions"] = len(kv_cache_manager._past_key_values)
@@ -1198,7 +1278,7 @@ class Decoding(ABC):
         # The prefetch arena, pinned pool and copy streams are created only
         # when the residency manager enters ACTIVE; BYPASS allocates nothing.
         calibration_path = getattr(self.args, "kv_prefetch_calibration", None)
-        if calibration_path:
+        if calibration_path and not use_h1_prefetch:
             gpu_uuid = (str(torch.cuda.get_device_properties(target_model.device).uuid)
                         if target_model.device.type == "cuda" else "cpu")
             transfers.load_calibration(calibration_path, context={
@@ -1211,6 +1291,7 @@ class Decoding(ABC):
                 "kv_batch_mode": requested_kv_batch_mode,
             })
         phase_leases = []
+        phase_prefetch_tickets = []
 
         def acquire_cache(req):
             pid = req["proc_id"]
@@ -1229,6 +1310,32 @@ class Decoding(ABC):
                 snapshot = residency.snapshot_locked(pid, cache)
                 ticket = req.pop("_cache_ticket", None)
             record = residency_manager.get(pid)
+            if h1_prefetch is not None and req.get("task_type") == "verify":
+                pending_before = scheduler_metrics["prefetch_pending_hit"]
+                ticket = h1_prefetch.claim(pid, snapshot)
+                if ticket is not None:
+                    # Completed DMA only: consume records allocation lifetime,
+                    # never inserts a stream wait for a speculative copy.
+                    ready_cache = h1_prefetch.consume(ticket, compute_stream)
+                    phase_prefetch_tickets.append(ticket)
+                    with cache_lock:
+                        kv_cache_manager._past_key_values[pid] = ready_cache
+                        transfers.retain_cache(ready_cache, owner=pid)
+                    residency_manager.transition(pid, RESTORE_PENDING)
+                    record.gpu_cache = ready_cache
+                    record.cpu_cache = None
+                    residency_manager.transition(pid, GPU_RESIDENT)
+                    residency_manager.note_used(pid, plan_sequence["tick"])
+                    residency_manager.counters["restores"] += 1
+                    residency_manager.counters["prefetch_claimed"] += 1
+                    scheduler_metrics["prefetch_verify_ready_hit"] += 1
+                    bucket = scheduler_metrics["prefetch_ready_by_horizon"].setdefault("1", {"ready": 0})
+                    bucket["ready"] += 1
+                    return ready_cache
+                if scheduler_metrics["prefetch_pending_hit"] > pending_before:
+                    scheduler_metrics["prefetch_verify_pending_hit"] += 1
+                    bucket = scheduler_metrics["prefetch_pending_by_horizon"].setdefault("1", {"pending": 0})
+                    bucket["pending"] += 1
             if ticket is not None and not ticket.matches(snapshot):
                 transfers.retire(ticket)
                 ticket = None
@@ -1266,6 +1373,7 @@ class Decoding(ABC):
             residency_manager.note_used(pid, plan_sequence["tick"])
             if record is not None:
                 record.gpu_cache = lease.cache
+                record.cpu_cache = None
                 if record.state in (RESTORE_PENDING,):
                     residency_manager.transition(pid, GPU_RESIDENT)
                     residency_manager.counters["restores"] += 1
@@ -1345,8 +1453,13 @@ class Decoding(ABC):
                     pid, valid_len=length, bytes_per_token=per_token,
                     cache=cache, version=residency.version(pid),
                     epoch=getattr(residency, "epochs", {}).get(pid, 0))
-            transfers.warmup_prefetch_pool()
-            prefetch_worker.start()
+            if (not use_strict_fcfs and prefetch_enabled
+                    and getattr(self.args, "kv_prefetch", True)):
+                if not use_h1_prefetch:
+                    transfers.warmup_prefetch_pool()
+                    prefetch_worker.start()
+                elif transfers.enabled and transfers.mode == "overlap":
+                    prefetch_worker.start()
             scheduler_metrics["kv_residency_activations"] = (
                 scheduler_metrics.get("kv_residency_activations", 0) + 1)
             return True
@@ -1360,10 +1473,10 @@ class Decoding(ABC):
             if target_model.device.type == "cuda":
                 guard_free, _ = torch.cuda.mem_get_info(target_model.device)
             used = residency_manager.used_bytes()
-            high = residency_manager.update_pressure(
+            pressure = residency_manager.update_pressure(
                 used, guard_free_bytes=guard_free)
             scheduler_metrics["residency_pressure_samples"] += 1
-            scheduler_metrics["residency_high_samples"] += int(high)
+            scheduler_metrics["residency_high_samples"] += int(residency_manager.high)
             scheduler_metrics["residency_used_bytes_sum"] += int(used)
             scheduler_metrics["residency_used_bytes_max"] = max(
                 scheduler_metrics.get("residency_used_bytes_max", 0), int(used)
@@ -1371,7 +1484,7 @@ class Decoding(ABC):
             scheduler_metrics["residency_pressure_guard_trips"] = int(
                 residency_manager.counters.get("pressure_guard_trips", 0)
             )
-            return high
+            return pressure
 
         def finish_cache_phase(batch):
             if not residency_manager.active:
@@ -1400,13 +1513,28 @@ class Decoding(ABC):
                     record.in_transfer = False
                     if record.state == RESTORE_PENDING:
                         residency_manager.transition(pid, GPU_RESIDENT)
+                # Fresh prefills had no record when acquire_cache() ran.
+                # Register their recency after creation as well, so new KV
+                # does not appear older than every previously used session.
+                residency_manager.note_used(pid, plan_sequence["tick"])
+                if req.get("task_type") in {"prefill", "verify"}:
+                    with accept_stats_lock:
+                        accepted, proposed = accept_stats.get(pid, (0, 0))
+                    # Match the scheduler's smoothed acceptance estimate.
+                    probability = ((accepted + 1.0) / (proposed + 1.0)
+                                   if proposed > 0 else 1.0)
+                    residency_manager.note_request_cost(
+                        pid, draft_total_time=req.get("lag", 0.0),
+                        transport_rtt=req.get("transport_rtt", 0.0),
+                        accept_prob=probability)
                 if target_model.device.type == "cuda":
                     preloaded_gpu_pids.add(pid)
             scheduler_metrics["max_gpu_resident_kv_bytes"] = max(
                 scheduler_metrics.get("max_gpu_resident_kv_bytes", 0),
                 residency_manager.used_bytes(),
             )
-            prefetch_reserved = int(transfers.metrics.get("prefetch_reserved_bytes", 0) or 0)
+            prefetch_reserved = (h1_prefetch.reserved_bytes if h1_prefetch is not None else
+                                 int(transfers.metrics.get("prefetch_reserved_bytes", 0) or 0))
             scheduler_metrics["max_prefetch_reserved_bytes"] = max(
                 scheduler_metrics.get("max_prefetch_reserved_bytes", 0), prefetch_reserved
             )
@@ -1415,28 +1543,40 @@ class Decoding(ABC):
                 residency_manager.used_bytes() + prefetch_reserved,
             )
 
-        def rebalance_cache_memory(batch_pids):
-            """Make room for this batch: pressure plus its own restores.
+        def rebalance_cache_memory(batch_pids, *, min_free_bytes=0):
+            """Trim at high residency or on the 256 MiB free-memory emergency.
 
-            Runs at every batch boundary, with no sampling delay.  ``need`` is
-            the bytes this batch has to bring back from CPU, so a restore never
-            waits for the high watermark to be crossed first.
+            Restore estimates alone cannot start offloading below high. Read
+            free memory at the execution boundary so a planner sample from
+            the preceding forward cannot hide or prolong an emergency.
             """
 
             if not residency_manager.enabled:
                 return 0
+            guard_free = None
+            if target_model.device.type == "cuda":
+                guard_free, _ = torch.cuda.mem_get_info(target_model.device)
             restore_bytes = sum(
                 record.nbytes for record in (
                     residency_manager.get(pid) for pid in batch_pids)
                 if record is not None and record.state != GPU_RESIDENT)
-            needed = residency_manager.deficit_bytes(restore_bytes)
+            needed = residency_manager.deficit_bytes(restore_bytes, guard_free_bytes=guard_free)
+            if guard_free is not None:
+                needed = max(needed, min_free_bytes - guard_free)
             if needed <= 0:
                 return 0
+            emergency = (guard_free is not None
+                         and guard_free < residency_manager.emergency_free_bytes)
+            if emergency:
+                residency_manager.counters["emergency_eviction_rounds"] += 1
             protected = set(batch_pids) | residency.protected_snapshot()
-            victims = residency_manager.select_victims(
-                needed, plan_sequence["tick"], exclude=protected)
+            victims = residency_manager.rank_victims(
+                plan_sequence["tick"], exclude=protected)
             evicted = 0
+            freed_bytes = 0
             for pid in victims:
+                if freed_bytes >= needed:
+                    break
                 record = residency_manager.get(pid)
                 if record is None or record.state != GPU_RESIDENT:
                     continue
@@ -1481,10 +1621,15 @@ class Decoding(ABC):
                 residency_manager.transition(pid, CPU_RESIDENT)
                 preloaded_gpu_pids.discard(pid)
                 evicted += 1
+                freed_bytes += record.nbytes
             if evicted:
                 residency_manager.counters["evictions"] += evicted
+                if emergency:
+                    residency_manager.counters["emergency_evictions"] += evicted
                 scheduler_metrics["kv_residency_evictions"] = (
                     scheduler_metrics.get("kv_residency_evictions", 0) + evicted)
+            elif emergency:
+                residency_manager.counters["emergency_blocked_rounds"] += 1
             return evicted
 
         # --------------------- 批量处理（Prefill / Verify） ----------------
@@ -1514,13 +1659,23 @@ class Decoding(ABC):
                 )
             residency.activate(proc_ids)
             phase_leases.clear()
+            phase_prefetch_tickets.clear()
             forward_measurements.clear()
             current_batch[:] = batch
             try:
                 started = time.perf_counter()
                 # Evict before touching this batch: victims are chosen outside
                 # the active/reserved set and never include a batch pid.
-                rebalance_cache_memory(proc_ids)
+                if h1_prefetch is not None:
+                    # Formal placement is owned by the executor. A speculative
+                    # memory shortage requests eviction at this safe boundary;
+                    # the worker skips rather than blocking this forward.
+                    with cache_lock:
+                        required_free = prefetch_reclaim["required_free"]
+                        prefetch_reclaim["required_free"] = 0
+                    rebalance_cache_memory(proc_ids, min_free_bytes=required_free)
+                else:
+                    rebalance_cache_memory(proc_ids)
                 for req in batch:
                     with cache_lock:
                         existing = kv_cache_manager._past_key_values.get(req["proc_id"])
@@ -1561,6 +1716,8 @@ class Decoding(ABC):
             finally:
                 for lease in phase_leases:
                     transfers.release_consumer(lease, compute_stream=compute_stream)
+                for ticket in phase_prefetch_tickets:
+                    h1_prefetch.retire(ticket)
                 if residency_manager.active:
                     transfers.end_execution(compute_stream=compute_stream)
                 residency.deactivate(proc_ids)
@@ -1902,7 +2059,9 @@ class Decoding(ABC):
             # ingress/completion actually changed the queues.
             priority = ((lambda request, stats, now: 0.0)
                         if getattr(self.args, "scheduler_policy", "legacy") == "fifo"
-                        else _compute_priority_score)
+                        else lambda request, stats, now: _compute_priority_score(
+                            request, stats, now=now,
+                            latency_priority=bool(getattr(self.args, "enable_latency_priority", True))))
             task_queues.sort(
                 accept_stats_snapshot(),
                 now=time.monotonic() if now is None else now,
@@ -1930,26 +2089,40 @@ class Decoding(ABC):
             # must bind it explicitly (CPU returns without touching CUDA).
             set_thread_device(target_model.device)
 
-        prefetch_worker = KVPrefetchWorker(
-            residency=residency,
-            get_cache=_cache_get,
-            set_cache=_cache_set,
-            move_cache=transfers.move,
-            transfers=transfers,
-            gpu_device=target_model.device,
-            metrics=scheduler_metrics,
-            on_error=lambda message: self.color_print(
-                f"[KV-PREFETCH-FAILED] {message}", 2
-            ),
-            thread_setup=_bind_target_device,
-        )
-        prefetch_coordinator = PrefetchCoordinator(
-            submit=prefetch_worker.submit,
-            resident_snapshot=residency.available_snapshot,
-            protected_snapshot=residency.protected_snapshot,
-            metrics=scheduler_metrics,
-            pending_snapshot=prefetch_worker.has_pending,
-        )
+        if use_h1_prefetch:
+            def request_prefetch_reclaim(required_free):
+                with cache_lock:
+                    prefetch_reclaim["required_free"] = max(
+                        prefetch_reclaim["required_free"], required_free)
+
+            h1_prefetch = H1Prefetcher(
+                residency=residency, manager=residency_manager, get_cache=_cache_get,
+                driver=CudaH1Copy(target_model.device), metrics=scheduler_metrics,
+                max_bytes=int(getattr(self.args, "kv_prefetch_mb", 64)) * 1024 ** 2,
+                tick=lambda: plan_sequence["tick"], reclaim=request_prefetch_reclaim,
+                thread_setup=_bind_target_device)
+            prefetch_worker = prefetch_coordinator = h1_prefetch
+        else:
+            prefetch_worker = KVPrefetchWorker(
+                residency=residency,
+                get_cache=_cache_get,
+                set_cache=_cache_set,
+                move_cache=transfers.move,
+                transfers=transfers,
+                gpu_device=target_model.device,
+                metrics=scheduler_metrics,
+                on_error=lambda message: self.color_print(
+                    f"[KV-PREFETCH-FAILED] {message}", 2
+                ),
+                thread_setup=_bind_target_device,
+            )
+            prefetch_coordinator = PrefetchCoordinator(
+                submit=prefetch_worker.submit,
+                resident_snapshot=residency.available_snapshot,
+                protected_snapshot=residency.protected_snapshot,
+                metrics=scheduler_metrics,
+                pending_snapshot=prefetch_worker.has_pending,
+            )
 
         def _slice_request(item: WorkItem, sl):
             req = dict(item.request)
@@ -2074,6 +2247,7 @@ class Decoding(ABC):
                 reserved_work_ids=reserved_work_ids,
                 excluded_proc_ids=excluded_proc_ids,
                 selection_policy=getattr(self.args, "scheduler_policy", "legacy"),
+                latency_priority=bool(getattr(self.args, "enable_latency_priority", True)),
                 candidate_value=lambda item, sl, selected: candidate_value(item, sl, selected, items),
                 max_wait_s=float(getattr(self.args, "scheduler_max_wait_s", 1.0)))
             if diagnostic_kind == "lookahead" or projected_plan is not None:
@@ -2139,6 +2313,8 @@ class Decoding(ABC):
 
             if not prefetch_enabled or not getattr(self.args, "kv_prefetch", True):
                 return
+            if use_h1_prefetch and (not transfers.enabled or transfers.mode != "overlap"):
+                return
             if not residency_manager.enabled or residency_manager.cpu_resident_count() == 0:
                 # Nothing is offloaded, so there is nothing to prefetch.
                 return
@@ -2170,7 +2346,8 @@ class Decoding(ABC):
             projected = in_flight["plan"]
             step_gap = float(estimate) if estimate is not None else 0.0
             prediction_tick = int(plan_sequence["tick"])
-            for step in range(1, PREFETCH_LOOKAHEAD_ROUNDS + 1):
+            lookahead_rounds = 1 if use_h1_prefetch else PREFETCH_LOOKAHEAD_ROUNDS
+            for step in range(1, lookahead_rounds + 1):
                 lookahead = build_plan(
                     projected_plan=projected,
                     diagnostic_kind="lookahead",
@@ -2207,7 +2384,7 @@ class Decoding(ABC):
                 set(predicted.verify_proc_ids) for predicted in predicted_plans
             ]
             for stale in [tick for tick in prediction_snapshots
-                          if tick < prediction_tick - PREFETCH_LOOKAHEAD_ROUNDS]:
+                          if tick < prediction_tick - lookahead_rounds]:
                 prediction_snapshots.pop(stale, None)
             prediction_horizon_by_pid.clear()
             prediction_horizon_by_pid.update(horizons)
@@ -2222,7 +2399,7 @@ class Decoding(ABC):
             h2_count = 0
             for pid in ordered_pids:
                 horizon = horizons[pid]
-                if (horizon > PREFETCH_HORIZON_LIMIT or
+                if not use_h1_prefetch and (horizon > PREFETCH_HORIZON_LIMIT or
                         (horizon == 2 and h2_count >= PREFETCH_H2_MAX_PIDS)):
                     skipped = scheduler_metrics["prefetch_skipped_horizon"]
                     key = str(horizon)
@@ -2252,7 +2429,8 @@ class Decoding(ABC):
             if prefetch_coordinator.refresh(safe_pids, prediction_tick=prediction_tick):
                 scheduler_metrics["prefetch_intents_issued"] = (
                     scheduler_metrics.get("prefetch_intents_issued", 0) + 1)
-            reserved_prefetch = int(transfers.metrics.get("prefetch_reserved_bytes", 0) or 0)
+            reserved_prefetch = (h1_prefetch.reserved_bytes if h1_prefetch is not None else
+                                 int(transfers.metrics.get("prefetch_reserved_bytes", 0) or 0))
             scheduler_metrics["max_prefetch_reserved_bytes"] = max(
                 scheduler_metrics.get("max_prefetch_reserved_bytes", 0), reserved_prefetch
             )
@@ -2328,7 +2506,7 @@ class Decoding(ABC):
                         req["_plan_ready_at"] = ready_at
                         req["_prediction_horizon"] = prediction_horizon_by_pid.get(pid)
                         cache = kv_cache_manager._past_key_values.get(pid)
-                        if cache is not None:
+                        if cache is not None and not use_h1_prefetch:
                             ticket = residency.claim_locked(pid, cache, id(plan))
                             if ticket is not None:
                                 ready = ticket.ready()
@@ -2382,7 +2560,7 @@ class Decoding(ABC):
             in_flight["job"] = job
             scheduler_metrics["iterations"] += 1
             try:
-                if PREFETCH_BEFORE_SUBMIT:
+                if PREFETCH_BEFORE_SUBMIT and not use_h1_prefetch:
                     refresh_prefetch()
                 executor.submit(job)
                 scheduler_metrics["actual_plans"] += 1
@@ -2778,6 +2956,13 @@ class Decoding(ABC):
         ingress_relay = None
         wake_event = threading.Event()
         try:
+            energy_campaign_started = self._start_energy_campaign(
+                energy_service,
+                metadata={
+                    "worker_mode": "target_batching",
+                    "scheduler_mode": getattr(self.args, "server_sched_mode", None),
+                },
+            )
             if use_strict_fcfs:
                 while True:
                     try:
@@ -2804,6 +2989,13 @@ class Decoding(ABC):
                             energy_service.enter_active()
                         try:
                             req["_plan_ready_at"] = time.monotonic()
+                            # FCFS bypasses submit_plan(), so it must advance
+                            # the same recency clock and sample the same budget
+                            # itself. A frozen tick protects every previously
+                            # used cache forever and silently defeats eviction.
+                            plan_sequence["tick"] += 1
+                            ensure_cache_management()
+                            observe_memory()
                             handle_request_batch([req])
                         finally:
                             if energy_service is not None:
@@ -2860,7 +3052,22 @@ class Decoding(ABC):
             for pid in list(lifecycle.last_seen):
                 lifecycle.release(pid)
             flush_session_releases()
+            if h1_prefetch is not None:
+                h1_prefetch.close()
             transfers.close()
+            if h1_prefetch is not None:
+                # Include whole-ticket H2D in the same totals as demand/D2H;
+                # otherwise the paired report would hide speculative traffic.
+                copied = scheduler_metrics["prefetch_bytes"]
+                copies = scheduler_metrics["prefetch_copy_count"]
+                transfers.metrics["h2d_bytes"] += copied
+                transfers.metrics["copies"] += copies
+                transfers.metrics["speculative_submitted_bytes"] += copied
+                transfers.metrics["prefetch_bytes_by_horizon"] = {"1": copied}
+                transfers.metrics["speculative_bytes_by_horizon"] = {"1": copied}
+                transfers.metrics["prefetch_reserved_bytes_peak"] = scheduler_metrics["prefetch_reserved_bytes_peak"]
+                transfers.metrics["kv_transfer_prefetch_avg_s"] = (
+                    scheduler_metrics["prefetch_copy_ms"] / copies / 1000 if copies else 0.0)
             scheduler_metrics["cache_transfers"] = dict(transfers.metrics)
             scheduler_metrics["prefetch_bytes_by_horizon"] = dict(transfers.metrics["prefetch_bytes_by_horizon"])
             scheduler_metrics["kv_residency"] = residency_manager.stats()
@@ -2904,6 +3111,14 @@ class Decoding(ABC):
                 bucket["coverage_per_actual_plan"] = bucket["plans"] / actual_plans if actual_plans else None
                 bucket["hits_per_actual_plan"] = bucket["hits"] / actual_plans if actual_plans else None
             scheduler_metrics["batch_cost_profiles"] = {str(k): v for k, v in batch_cost.table.items()}
+            self._stop_energy_campaign(
+                energy_service,
+                energy_campaign_started,
+                metadata={
+                    "worker_mode": "target_batching",
+                    "scheduler_mode": getattr(self.args, "server_sched_mode", None),
+                },
+            )
             if energy_service is not None:
                 energy_service.shutdown()
 

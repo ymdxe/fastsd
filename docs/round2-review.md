@@ -34,7 +34,7 @@
 - 残余 Verify 的收益以已接受位置为条件；非最终片段全接受时不计 bonus，发生拒绝时仍计 correction。缓存生存曲线和切片收益，候选评分不反复扫描 128 轮历史。
 - 所有服务模式通过同一个 `GammaController.finish` 在逻辑轮结束时更新一次。内部切片不更新 γ；CUDA 服务使用完整逻辑轮累计 forward GPU 时间。
 - 新协议携带 `fresh_decode_tokens` 和 `draft_timing_valid`。全复用没有有效物理 decode 观测，服务器沿用上一次 EMA，不再退回 `lag/gamma`。旧客户端未携带有效性字段时保留兼容路径。第一轮 Prefill 与后续 decode 分开计时。
-- ahead 使用 enabled/cooldown/probe。没有实际计算不写收益观测；probe 至少需要 bridge 加一个候选。只有下一轮实际消费了候选才记 reused，终止时未消费的候选计零收益。
+- ahead 使用 enabled/cooldown/probe。控制器按 draft worker 跨任务保留，启动时先做有上限的 probe，避免每个任务重复支付冷启动 ahead 成本。没有实际计算不写收益观测；probe 至少需要 bridge 加一个候选。只有下一轮实际消费了候选才记 reused，终止时未消费的候选计零收益。
 - 候选评分、已选 batch 和实际观测共用 `cost_features()`，统一 cached context、bridge 和 forward token 数。
 - 预测和提交共用纯函数 `transition_work_item()`，统一部分 Verify、Prefill 剩余长度分类、cycle aging 和完成状态。lookahead 使用投影对象的特征，不读取原对象的旧 cursor。
 
