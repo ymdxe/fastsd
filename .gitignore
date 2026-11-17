@@ -1,3 +1,4 @@
+# ---- upstream fastsd baseline ----
 comparison/eval_gsm8k_lookahead.py
 comparison/eval_humaneval_lookahead.py
 
@@ -11,15 +12,38 @@ src/__pycache__/
 *.py[cod]
 .DS_Store
 data/MGSM/
-tmp/
 
-# metrics / logs
+# ---- local experiment outputs ----
+runtime/
+reports/
+experiments/
+data_dual_node*/
+data_tri_node*/
+*.log
+*.pid
+tmp/
+*.pdf
+config1-14b-full4-p60-*
+
+# ---- generated power / benchmark artifacts ----
+**/power_summary.json
+**/power_samples.jsonl
+**/power_samples.csv
+**/power_process_samples.jsonl
+**/power_process_samples.csv
+**/power_monitor.pid
+**/worker_lifecycle.jsonl
+**/idempotency_metrics.json
 **/edge_metrics_proc*.jsonl
 **/edge_metrics_summary*.json
 **/scheduler_metrics.json
 **/energy_metrics.json
-**/target.log
 **/report.json
 **/report.txt
-*.log
-runtime/
+
+# ---- local-only comparison runners ----
+scripts/zjh_ab/runall_no_ar.sh
+scripts/zjh_ab/runall_resume.sh
+scripts/zjh_ab/runall_ar_direct.sh
+scripts/zjh_ab/runall_bypass_only.sh
+scripts/zjh_ab/runall_bypass_huge.sh

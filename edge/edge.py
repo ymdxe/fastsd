@@ -613,6 +613,19 @@ class EdgeClient:
         resp = self._post("/session/init", {})
         return resp["session_id"]
 
+    def generate_autoregressive(
+        self, *, prompt: str, task_id: str, max_tokens: int
+    ) -> Dict[str, Any]:
+        """Call the target-only AR endpoint without loading a draft model."""
+        session_id = self._client_id
+        payload = {
+            "session_id": session_id,
+            "task_id": str(task_id),
+            "prompt": str(prompt),
+            "max_tokens": int(max_tokens),
+        }
+        return self._post("/generate", payload)
+
 
     def synchronize_clock(self, samples: int = 5) -> dict[str, Any]:
         """Calibrate cloud-edge epoch offset with NTP-style probes.
@@ -957,6 +970,11 @@ class EdgeRunner(Decoding):
 
     def __init__(self, args: argparse.Namespace):
         super().__init__(args)
+        self.is_target_only_ar = str(getattr(args, "case", "")).lower() in {"ar", "target-only", "target_only"}
+        if self.is_target_only_ar:
+            # The target tokenizer is needed to format prompts, but no draft
+            # model is loaded or instantiated on this path.
+            args.draft_model = args.target_model
         self.load_tokenizer()
         self.answer_trigger = "The answer is"
         self.gsm8k_prompt = self._create_gsm8k_demo_text(
@@ -1168,10 +1186,27 @@ class EdgeRunner(Decoding):
                 sample["question"].strip(),
                 str(sample.get("question_id", f"mgsm-{proc_id}-{idx}")),
             )
+        turn_index = max(0, min(int(getattr(self.args, "mt_bench_turns", 1)) - 1, len(sample.get("turns", [])) - 1))
+        turns = sample.get("turns") or [""]
         return (
-            sample["turns"][0].strip(),
+            turns[turn_index].strip(),
             str(sample.get("task_id", f"mtbench-{proc_id}-{idx}")),
         )
+
+    def _expand_mt_bench_samples(self, samples: list[dict]) -> list[dict]:
+        """Materialize MT-Bench single/dual turn workloads deterministically."""
+        if self.args.dataset != "mt_bench" or int(getattr(self.args, "mt_bench_turns", 1)) != 2:
+            return samples
+        expanded = []
+        for sample in samples:
+            turns = sample.get("turns") or []
+            for turn_index in range(min(2, len(turns))):
+                item = dict(sample)
+                item["prompt"] = str(turns[turn_index])
+                item["sample_id"] = f"{sample.get('task_id', sample.get('sample_id', len(expanded)))}-turn{turn_index + 1}"
+                item["task_id"] = item["sample_id"]
+                expanded.append(item)
+        return expanded
 
     def _warmup_stateful_requests(self, client: EdgeClient, draft_model, tokenizer, samples, proc_id: int) -> None:
         """Exercise the real session/prefill/verify path before measurement.
@@ -1594,14 +1629,102 @@ class EdgeRunner(Decoding):
                 if prefill_wait_after_first_draft_ms
                 else 0.0
             ),
-            "slo": evaluate_slo(records, wallclock_s=wallclock_s),
+            "slo": evaluate_slo(records, wallclock_s=wallclock_s, dataset=self.args.dataset),
         }
         summary_path = os.path.join(self.args.exp_name, "edge_metrics_summary.json")
         with open(summary_path, "w") as f:
             json.dump(summary, f, indent=2, ensure_ascii=True)
         self.color_print(f"[METRICS] wrote summary: {summary_path}", 2)
 
+    def _eval_target_only_ar(self) -> None:
+        """Run direct target generation and emit the common request schema."""
+        from src.common_metrics import summarize_requests
+
+        os.makedirs(self.args.exp_name, exist_ok=True)
+        client = EdgeClient(
+            self.args.server_url,
+            timeout=self.args.request_timeout,
+            clock_uncertainty_limit_ms=float(getattr(self.args, "timing_max_clock_uncertainty_ms", 100.0)),
+        )
+        try:
+            health = client.health()
+            if health.get("status") not in {"ok", "healthy"}:
+                raise RuntimeError(f"Cloud service health check failed: {health}")
+            data_file = self._resolve_data_file()
+            with open(data_file, encoding="utf-8") as stream:
+                samples = [json.loads(line) for line in stream if line.strip()]
+            samples = self._expand_mt_bench_samples(samples)
+            limit = int(getattr(self.args, "max_tasks_per_draft", 0))
+            if limit > 0:
+                samples = samples[:limit]
+            records = []
+            run_started = time.monotonic()
+            for idx, sample in enumerate(samples):
+                prompt, task_id = self._sample_prompt(sample, 0, idx)
+                started = time.monotonic()
+                started_epoch = time.time()
+                response = client.generate_autoregressive(
+                    prompt=prompt, task_id=task_id, max_tokens=self.args.max_tokens
+                )
+                finished = time.monotonic()
+                e2e_ms = float(response.get("e2e_ms", (finished - started) * 1000.0))
+                output_tokens = int(response.get("output_tokens", response.get("generated_tokens", 0)) or 0)
+                records.append({
+                    "sample_id": task_id,
+                    "task_id": task_id,
+                    "success": response.get("success", response.get("status") == "ok"),
+                    "status": response.get("status", "ok"),
+                    "ttft_ms": response.get("ttft_ms"),
+                    "tpot_ms": response.get("tpot_ms"),
+                    "e2e_ms": e2e_ms,
+                    "request_e2e_ms": e2e_ms,
+                    "generated_tokens": output_tokens,
+                    "output_tokens": output_tokens,
+                    "output_token_ids": response.get("output_token_ids", []),
+                    "output_text": response.get("output_text", ""),
+                    "reference": sample.get("reference", sample.get("answer")),
+                    "processing_start_monotonic_s": started,
+                    "processing_start_epoch_s": started_epoch,
+                    "completion_monotonic_s": finished,
+                    "completion_epoch_s": time.time(),
+                    "request_id": response.get("request_id"),
+                    "retry_count": response.get("retry_count", 0),
+                    "replayed": response.get("replayed", False),
+                    "draft_metrics": "n/a",
+                    "verify_metrics": "n/a",
+                })
+            wallclock = max(0.0, time.monotonic() - run_started)
+            path = self._metrics_path(0)
+            with open(path, "w", encoding="utf-8") as stream:
+                for record in records:
+                    stream.write(json.dumps(record, ensure_ascii=True) + "\n")
+            summary = summarize_requests(
+                records,
+                method="ar",
+                dataset=self.args.dataset,
+                workload_hash=str(getattr(self.args, "workload_hash", "") or ""),
+                run_id=os.path.basename(self.args.exp_name.rstrip("/")),
+                wallclock_s=wallclock,
+                extra={
+                    "case": "ar",
+                    "server_sched_mode": "target-only",
+                    "draft_model_loaded": False,
+                    "draft_metrics": "n/a",
+                    "verify_metrics": "n/a",
+                    "prefetch": "disabled",
+                    "offload": "disabled",
+                    "tok_per_s": (sum(r["generated_tokens"] for r in records) / wallclock if wallclock > 0 else 0.0),
+                },
+            )
+            with open(os.path.join(self.args.exp_name, "edge_metrics_summary.json"), "w", encoding="utf-8") as stream:
+                json.dump(summary, stream, indent=2, ensure_ascii=True)
+        finally:
+            client.close()
+
     def eval(self):
+        if self.is_target_only_ar:
+            self._eval_target_only_ar()
+            return
         configure_spawn_executable()
         if torch.cuda.is_available():
             torch.cuda.init()
@@ -1741,6 +1864,7 @@ class EdgeRunner(Decoding):
         data_file = self._resolve_data_file()
         with open(data_file, "r") as f:
             samples = [json.loads(line) for line in f.readlines()]
+        samples = self._expand_mt_bench_samples(samples)
 
         self._warmup_stateful_requests(client, draft_model, tokenizer, samples, proc_id)
         client.reset_transport_stats()
@@ -2530,6 +2654,9 @@ class EdgeRunner(Decoding):
 
 def parse_edge_arguments() -> argparse.Namespace:
     edge_parser = argparse.ArgumentParser(add_help=False)
+    edge_parser.add_argument(
+        "--case", type=str, default=os.environ.get("EDGE_CASE", "sd"),
+    )
     edge_parser.add_argument("--server_url", type=str, default="http://127.0.0.1:8001")
     edge_parser.add_argument("--request_timeout", type=float, default=30.0)
     edge_parser.add_argument("--edge_gpu_start", type=int, default=0)
@@ -2554,6 +2681,7 @@ def parse_edge_arguments() -> argparse.Namespace:
     base_args.request_timeout = edge_args.request_timeout
     base_args.edge_gpu_start = edge_args.edge_gpu_start
     base_args.edge_gpus = edge_args.edge_gpus
+    base_args.case = edge_args.case
     # Edge is the formal canonical-request launcher.  Keep its default
     # unbounded even though legacy benchmark entrypoints retain their explicit
     # smoke cap from src.util.parse_arguments().

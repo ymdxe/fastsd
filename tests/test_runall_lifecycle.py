@@ -16,16 +16,20 @@ ROOT = Path(__file__).resolve().parents[1]
 HELPER = ROOT / 'scripts/zjh_ab/managed_job.py'
 
 
-class PairedRunallTests(unittest.TestCase):
+class SixConditionRunallTests(unittest.TestCase):
+    def test_power_collection_precedes_round_cleanup(self):
+        source = (ROOT / 'scripts/zjh_ab/runall.sh').read_text()
+        self.assertLess(source.index('collect_power_round "$run"'), source.index('if ! stop_round; then'))
+
     def run_pair(self, round_status=0, report_status=0):
         tail = (ROOT / 'scripts/zjh_ab/runall.sh').read_text().split(
-            '# One paired experiment: identical workload, seed and placement budget.\n')[1]
+            '# Six conditions share the same dataset, deterministic order, seed, arrival\n')[1]
         with tempfile.TemporaryDirectory() as root:
             script = Path(root) / 'pair.sh'
             script.write_text('set -euo pipefail\n'
                 + 'REPORT=' + shlex.quote(root) + '\n'
                 + 'ROOT=' + shlex.quote(str(ROOT)) + '\n'
-                + 'RUN_TAG=trial\nTOTAL_REQUESTS=64\nLOCAL_PY=report_stub\n'
+                + 'RUN_TAG=trial\nTOTAL_REQUESTS=64\nDATASET=humaneval\nLOCAL_PY=report_stub\n'
                 + 'budget_for() { printf "%s" "$1"; }\n'
                 + 'log() { printf "%s\\n" "$*"; }\n'
                 + 'cleanup_jobs() { printf "cleanup\\n" >>"$REPORT/cleanup"; }\n'
@@ -39,20 +43,30 @@ class PairedRunallTests(unittest.TestCase):
             report = (Path(root) / 'report_args').read_text()
             return result, rounds, report
 
-    def test_only_two_matching_conditions_and_64_requests(self):
+    def test_six_matching_conditions_and_64_requests(self):
         result, rounds, report = self.run_pair()
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(len(rounds), 2)
-        self.assertEqual(rounds[0].split()[1:3], rounds[1].split()[1:3])
-        self.assertIn('trial_noprefetch 8 32 fastsd-noprefetch', rounds[0])
-        self.assertIn('trial_prefetch 8 32 fastsd', rounds[1])
-        self.assertIn('--prefetch-pair --expected-requests 64', report)
+        self.assertEqual(len(rounds), 6)
+        self.assertEqual(
+            [round.split()[:2] for round in rounds],
+            [[name, '8'] for name in (
+                'trial_ar', 'trial_sd', 'trial_prefetch_direct',
+                'trial_prefetch_h1', 'trial_no_pressure_prefetch',
+                'trial_no_pressure_sd')],
+        )
+        self.assertIn('trial_ar 8 32 ar', rounds[0])
+        self.assertIn('trial_sd 8 32 sd-cpu', rounds[1])
+        self.assertIn('trial_prefetch_direct 8 32 fastsd-prefetch-direct', rounds[2])
+        self.assertIn('trial_prefetch_h1 8 32 fastsd-prefetch-h1', rounds[3])
+        self.assertIn('trial_no_pressure_prefetch 8 32 fastsd-prefetch-h1', rounds[4])
+        self.assertIn('trial_no_pressure_sd 8 32 sd-cpu', rounds[5])
+        self.assertIn('--expected-requests 64', report)
 
     def test_failed_round_or_failed_report_returns_nonzero(self):
         for a, b in ((1, 0), (0, 1)):
             with self.subTest(round=a, report=b):
                 result, rounds, _ = self.run_pair(a, b)
-                self.assertEqual(len(rounds), 2)
+                self.assertEqual(len(rounds), 6)
                 self.assertNotEqual(result.returncode, 0)
 
 

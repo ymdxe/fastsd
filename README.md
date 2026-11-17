@@ -143,7 +143,7 @@ Draft 使用 `draft_top_k` 构建完整的稀疏支持集，并在该集合内�
 
 默认请求使用 `varlen`；模型结构不受支持时直接报错，避免无意中运行 padding 路径。只有显式指定 `--kv_batch_mode padded` 才使用旧的补齐实现。调度器把 Verify 和 Prefill 分批执行并优先处理 Verify；`token_budget` 是容量上限，不保证每轮恰好填满。
 
-缓存驻留由 `cache_offload_policy.py` 和云端执行循环共同控制：Prefill 后可以将缓存卸载到 CPU，Verify 根据缓存是否被选为预加载对象决定是否保留在 GPU。FastSD 使用同一调度器预测下一批 Verify 会话，并由后台线程搬运缓存，使预加载与当前计算重叠。`FASTSD_DISABLE_TARGET_CACHE_OFFLOAD` 可以关闭卸载。
+缓存驻留由 `cache_offload_policy.py` 和云端执行循环共同控制：Prefill 后可以将缓存卸载到 CPU，Verify 在计算请求真正需要时恢复 CPU-resident KV。标准 SD 使用 vanilla/FCFS、超预算 LRU 淘汰和 demand restore，不启用预取、pipeline 或 proactive draft；FastSD 使用调度器预测下一批 Verify 会话，并由后台线程搬运缓存，使预加载与当前计算重叠。`FASTSD_DISABLE_TARGET_CACHE_OFFLOAD` 可以关闭卸载。
 
 ## 7. 本地解码与基线流程
 

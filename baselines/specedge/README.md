@@ -26,6 +26,11 @@ Tree、SpecExec 和 proactive draft 调用协议，不构造一次性 `/generate
 gRPC 服务。该路径的结果名称固定为 `specedge_cpu_adapted`，不应写成 untouched official
 SpecEdge。
 
+最终实验的独立配置位于 `configs/final/`：Qwen3-8B/Qwen3-0.6B on A5000 24GB，以及
+Qwen3-32B/Qwen3-1.7B on A100 80GB。官方实现没有 TP，也不启用 offload；2×A6000 的
+32B 尝试只能记录 OOM/unsupported。服务器准备清单见
+[`docs/specedge_server_todo.md`](../../docs/specedge_server_todo.md)。
+
 ## 当前 Windows 本地状态
 
 Windows 本地可以完成源码获取、版本固定、配置检查和 Python 语法编译；不能据此声称

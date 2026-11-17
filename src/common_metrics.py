@@ -7,6 +7,7 @@ import math
 import random
 import re
 import statistics
+import os
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -68,11 +69,91 @@ def _metric_stats(records: list[dict[str, Any]], key: str) -> dict[str, float | 
     }
 
 
+def resolve_slo_thresholds(
+    thresholds: dict[str, dict[str, float]] | None = None,
+    *,
+    dataset: str | None = None,
+    scenario: str | None = None,
+    environ: dict[str, str] | None = None,
+) -> dict[str, dict[str, float]]:
+    """Resolve request-level SLO limits without inventing defaults.
+
+    Explicit ``thresholds`` wins.  Otherwise a JSON object in
+    ``SLO_CONFIG_JSON`` may contain ``default``, dataset, or scenario entries,
+    and the three ``SLO_*_MS`` variables provide a small command-line-friendly
+    override.  An empty result means SLO is unset and must be reported as such.
+    """
+
+    if thresholds is not None:
+        return thresholds
+    env = environ if environ is not None else os.environ
+    config: Any = {}
+    raw_config = env.get("SLO_CONFIG_JSON")
+    if raw_config:
+        try:
+            config = json.loads(raw_config)
+        except (TypeError, ValueError):
+            config = {}
+    if isinstance(config, dict):
+        selected: Any = config.get("default", config)
+        if dataset and isinstance(config.get(dataset), dict):
+            selected = config[dataset]
+        if scenario and isinstance(config.get(scenario), dict):
+            selected = config[scenario]
+        if isinstance(selected, dict) and selected:
+            normalized: dict[str, dict[str, float]] = {}
+            for metric, value in selected.items():
+                key = str(metric).lower()
+                if key in {"ttft", "ttft_ms"}:
+                    key = "ttft_ms"
+                elif key in {"tpot", "tpot_ms"}:
+                    key = "tpot_ms"
+                elif key in {"e2e", "e2e_ms"}:
+                    key = "e2e_ms"
+                else:
+                    continue
+                if isinstance(value, dict):
+                    normalized[key] = {str(tier): float(limit) for tier, limit in value.items()}
+                else:
+                    normalized[key] = {"configured": float(value)}
+            if normalized:
+                return normalized
+
+    def read_metric(metric: str) -> float | None:
+        suffix = metric.upper().replace("_MS", "") + "_MS"
+        names = []
+        if scenario:
+            names.append(f"SLO_{str(scenario).upper()}_{suffix}")
+        if dataset:
+            names.append(f"SLO_{str(dataset).upper()}_{suffix}")
+        names.append(f"SLO_{suffix}")
+        for name in names:
+            raw = env.get(name)
+            if raw in (None, ""):
+                continue
+            try:
+                value = float(raw)
+            except (TypeError, ValueError):
+                continue
+            if math.isfinite(value) and value >= 0:
+                return value
+        return None
+
+    resolved: dict[str, dict[str, float]] = {}
+    for metric in ("ttft_ms", "tpot_ms", "e2e_ms"):
+        value = read_metric(metric)
+        if value is not None:
+            resolved[metric] = {"configured": value}
+    return resolved
+
+
 def evaluate_slo(
     records: Iterable[dict[str, Any]],
     *,
     wallclock_s: float | None,
     thresholds: dict[str, dict[str, float]] | None = None,
+    dataset: str | None = None,
+    scenario: str | None = None,
 ) -> dict[str, Any]:
     """Evaluate multi-tier latency SLOs and retain request-level evidence.
 
@@ -84,7 +165,24 @@ def evaluate_slo(
     """
 
     rows = [dict(record) for record in records]
-    configured = thresholds or DEFAULT_SLO_THRESHOLDS
+    configured = resolve_slo_thresholds(
+        thresholds, dataset=dataset, scenario=scenario
+    )
+    if not configured:
+        return {
+            "status": "unset",
+            "thresholds_ms": {},
+            "by_metric": {},
+            "combined": {},
+            "TTFT_violation_rate": "unset",
+            "TPOT_violation_rate": "unset",
+            "E2E_violation_rate": "unset",
+            "combined_violation_rate": "unset",
+            "goodput_tok_s": "unset",
+            "definitions": {
+                "status": "No SLO_TTFT_MS/SLO_TPOT_MS/SLO_E2E_MS or explicit threshold was configured."
+            },
+        }
     normalized: dict[str, dict[str, float]] = {}
     for metric, tiers in configured.items():
         normalized[metric] = {
@@ -148,7 +246,11 @@ def evaluate_slo(
         }
 
     combined: dict[str, dict[str, Any]] = {}
-    tier_names = sorted({tier for tiers in normalized.values() for tier in tiers})
+    # A combined SLO is meaningful only when all three request-level limits
+    # are configured. Individual metric rates remain available for partial
+    # configurations.
+    combined_enabled = set(normalized) == {"ttft_ms", "tpot_ms", "e2e_ms"}
+    tier_names = sorted({tier for tiers in normalized.values() for tier in tiers}) if combined_enabled else []
     for tier in tier_names:
         limits = {metric: normalized[metric].get(tier) for metric in normalized}
         details = []
@@ -187,11 +289,25 @@ def evaluate_slo(
             "goodput_tok_s": passing_tokens / duration if duration > 0 else None,
             "details": details,
         }
+    # Keep a flat request-level view for reports and shell collectors.  The
+    # selected tier is ``standard`` when present, otherwise the first tier.
+    def selected(metric: str) -> dict[str, Any] | None:
+        tiers = by_metric.get(metric) or {}
+        return tiers.get("standard") or next(iter(tiers.values()), None)
+
+    selected_rows = {metric: selected(metric) for metric in ("ttft_ms", "tpot_ms", "e2e_ms")}
+    combined_row = combined.get("standard") or next(iter(combined.values()), None)
     return {
+        "status": "configured" if combined_enabled else "partial",
         "thresholds_ms": normalized,
         "wallclock_s": duration,
         "by_metric": by_metric,
         "combined": combined,
+        "TTFT_violation_rate": (selected_rows["ttft_ms"] or {}).get("violation_rate", "unset"),
+        "TPOT_violation_rate": (selected_rows["tpot_ms"] or {}).get("violation_rate", "unset"),
+        "E2E_violation_rate": (selected_rows["e2e_ms"] or {}).get("violation_rate", "unset"),
+        "combined_violation_rate": (combined_row or {}).get("violation_rate", "unset"),
+        "goodput_tok_s": (combined_row or {}).get("goodput_tok_s", "unset"),
         "definitions": {
             "violation_rate": "failed requests or requests exceeding the threshold/missing the metric divided by all completed requests",
             "goodput_req_s": "successful requests satisfying the selected SLO divided by measured run wallclock",
@@ -388,6 +504,32 @@ def exact_match_quality(records: list[dict[str, Any]], dataset: str) -> float | 
     return correct / scored if scored else None
 
 
+def pass_at_1_quality(records: list[dict[str, Any]], dataset: str) -> float | None:
+    """Use explicit isolated-executor evidence when available; never guess."""
+    if dataset != "humaneval":
+        return None
+    values = []
+    for record in records:
+        value = record.get("pass_at_1", record.get("passed"))
+        if isinstance(value, bool):
+            values.append(float(value))
+        elif isinstance(value, (int, float)):
+            values.append(float(value))
+    return statistics.mean(values) if values else None
+
+
+def mt_bench_judge_quality(records: list[dict[str, Any]], dataset: str) -> float | None:
+    """Return a score only when an external judge explicitly supplied one."""
+    if dataset != "mt_bench":
+        return None
+    values = []
+    for record in records:
+        value = record.get("judge_score", record.get("mt_bench_score"))
+        if isinstance(value, (int, float)):
+            values.append(float(value))
+    return statistics.mean(values) if values else None
+
+
 def summarize_requests(
     records: Iterable[dict[str, Any]],
     *,
@@ -468,6 +610,15 @@ def summarize_requests(
             statistics.mean(accepted_per_verify) if accepted_per_verify else None
         ),
         "quality_exact_match": exact_match_quality(request_records, dataset),
+        "quality_pass_at_1": pass_at_1_quality(request_records, dataset),
+        "humaneval_pass_at_1": pass_at_1_quality(request_records, dataset),
+        "mt_bench_judge_score": mt_bench_judge_quality(request_records, dataset),
+        "quality_metric": (
+            "numeric_answer_accuracy" if dataset in {"gsm8k", "mgsm"}
+            else "pass@1" if dataset == "humaneval"
+            else "judge_score" if dataset == "mt_bench"
+            else "unset"
+        ),
         "metric_definitions": {
             "ttft_ms": (
                 "CPU worker request processing start before session/input preparation to first "
@@ -499,8 +650,14 @@ def summarize_requests(
             request_records,
             wallclock_s=wallclock_s,
             thresholds=slo_thresholds,
+            dataset=dataset,
         ),
     }
+    summary["TTFT_violation_rate"] = summary["slo"].get("TTFT_violation_rate", "unset")
+    summary["TPOT_violation_rate"] = summary["slo"].get("TPOT_violation_rate", "unset")
+    summary["E2E_violation_rate"] = summary["slo"].get("E2E_violation_rate", "unset")
+    summary["combined_violation_rate"] = summary["slo"].get("combined_violation_rate", "unset")
+    summary["goodput_tok_s_slo"] = summary["slo"].get("goodput_tok_s", "unset")
     if paired_records is not None:
         baseline = list(paired_records)
         summary["paired_ci_vs_baseline"] = {

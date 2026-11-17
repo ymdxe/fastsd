@@ -5,6 +5,7 @@ import json
 import multiprocessing as mp
 import os
 import queue as py_queue
+import signal
 import sys
 import threading
 import uuid
@@ -56,6 +57,44 @@ _idempotency_cache = IdempotencyCache(
     ttl_s=float(os.environ.get("FASTSD_IDEMPOTENCY_TTL_S", "1800")),
 )
 _metrics_dir: Optional[str] = None
+
+
+def _worker_lifecycle(event: str, **fields) -> None:
+    """Persist target-worker lifecycle events for round-level diagnosis."""
+
+    if not _metrics_dir:
+        return
+    try:
+        os.makedirs(_metrics_dir, exist_ok=True)
+        path = os.path.join(_metrics_dir, "worker_lifecycle.jsonl")
+        payload = {
+            "event": event,
+            "time_epoch_s": time.time(),
+            "pid": os.getpid(),
+            **fields,
+        }
+        with open(path, "a", encoding="utf-8") as stream:
+            stream.write(json.dumps(payload, ensure_ascii=True) + "\n")
+    except OSError:
+        # Lifecycle diagnostics must never take down the HTTP service.
+        pass
+
+
+def _mark_worker_ready(args, mode: str) -> None:
+    """Mark readiness only after the target model has finished loading."""
+
+    lifecycle_dir = getattr(args, "exp_name", None)
+    if not lifecycle_dir:
+        return
+    try:
+        os.makedirs(lifecycle_dir, exist_ok=True)
+        with open(os.path.join(lifecycle_dir, "worker_ready"), "w", encoding="utf-8") as stream:
+            stream.write(str(os.getpid()))
+        with open(os.path.join(lifecycle_dir, "worker_lifecycle.jsonl"), "a", encoding="utf-8") as stream:
+            stream.write(json.dumps({"event": "worker_ready", "time_epoch_s": time.time(),
+                                     "pid": os.getpid(), "mode": mode}) + "\n")
+    except OSError:
+        pass
 
 
 def _persist_idempotency_metrics():
@@ -241,6 +280,15 @@ class VerifyRequest(RequestIdentity):
     clock_uncertainty_ns: int = Field(default=0, ge=0, le=100_000_000)
 
 
+class GenerateRequest(RequestIdentity):
+    """Target-only autoregressive request; deliberately has no draft fields."""
+
+    session_id: str = ""
+    task_id: str
+    prompt: str
+    max_tokens: int = Field(default=400, ge=1)
+
+
 class CloudTargetWorker(Decoding):
     """
     云端 target 侧服务：
@@ -282,10 +330,52 @@ def _worker_entry(args, req_q: mp.Queue, resp_q: mp.Queue) -> None:
     """
     Worker 进程入口（必须是模块级函数，便于 spawn 模式 pickle）。
     """
-    worker = CloudTargetWorker(args)
-    worker.load_tokenizer()
-    response_queues = _ResponseQueuesProxy(resp_q)
-    worker.run_target_process_batching(worker.tokenizer, req_q, response_queues)
+    mode = os.environ.get("FASTSD_TARGET_MODE", "speculative").lower()
+    try:
+        # The controller owns worker shutdown through the queue sentinel.  A
+        # terminal SIGINT delivered to the parent must not make the AR child
+        # disappear first and turn in-flight edge requests into HTTP 503s.
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+        # This file is written by the child as well as the parent.  It makes a
+        # premature AR worker exit distinguishable from an edge-side 503.
+        lifecycle_dir = getattr(args, "exp_name", None)
+        if lifecycle_dir:
+            os.makedirs(lifecycle_dir, exist_ok=True)
+            with open(os.path.join(lifecycle_dir, "worker_lifecycle.jsonl"), "a", encoding="utf-8") as stream:
+                stream.write(json.dumps({"event": "worker_start", "time_epoch_s": time.time(),
+                                         "pid": os.getpid(), "mode": mode}) + "\n")
+        worker = CloudTargetWorker(args)
+        if mode == "ar":
+            worker.load_service_tokenizer()
+        else:
+            worker.load_tokenizer()
+        worker._service_ready_callback = lambda: _mark_worker_ready(args, mode)
+        response_queues = _ResponseQueuesProxy(resp_q)
+        if mode == "ar":
+            worker.run_target_process_autoregressive(worker.tokenizer, req_q, response_queues)
+        else:
+            worker.run_target_process_batching(worker.tokenizer, req_q, response_queues)
+    except BaseException as exc:
+        lifecycle_dir = getattr(args, "exp_name", None)
+        if lifecycle_dir:
+            try:
+                os.makedirs(lifecycle_dir, exist_ok=True)
+                with open(os.path.join(lifecycle_dir, "worker_lifecycle.jsonl"), "a", encoding="utf-8") as stream:
+                    stream.write(json.dumps({"event": "worker_error", "time_epoch_s": time.time(),
+                                             "pid": os.getpid(), "mode": mode,
+                                             "error": f"{type(exc).__name__}: {exc}"}) + "\n")
+            except OSError:
+                pass
+        raise
+    finally:
+        lifecycle_dir = getattr(args, "exp_name", None)
+        if lifecycle_dir:
+            try:
+                with open(os.path.join(lifecycle_dir, "worker_lifecycle.jsonl"), "a", encoding="utf-8") as stream:
+                    stream.write(json.dumps({"event": "worker_exit", "time_epoch_s": time.time(),
+                                             "pid": os.getpid(), "mode": mode}) + "\n")
+            except OSError:
+                pass
 
 
 def _start_worker(args, req_q: mp.Queue, resp_q: mp.Queue) -> mp.Process:
@@ -293,8 +383,12 @@ def _start_worker(args, req_q: mp.Queue, resp_q: mp.Queue) -> mp.Process:
     启动 Worker 进程，内部使用 Decoding.run_target_process_batching。
     """
     ctx = mp.get_context("spawn")
-    proc = ctx.Process(target=_worker_entry, args=(args, req_q, resp_q), daemon=True)
+    # The parent owns shutdown through /exit.  A daemon worker can be torn
+    # down as a side effect of an unrelated parent shutdown and leave edges
+    # observing a cascade of 503 responses before the round is drained.
+    proc = ctx.Process(target=_worker_entry, args=(args, req_q, resp_q), daemon=False)
     proc.start()
+    _worker_lifecycle("worker_spawn", child_pid=proc.pid, mode=os.environ.get("FASTSD_TARGET_MODE", "speculative"))
     return proc
 
 
@@ -360,20 +454,37 @@ def startup_event() -> None:
 def health() -> dict:
     with _pending_lock:
         draining = _admission_closed
+    worker_alive = bool(worker_proc is not None and worker_proc.is_alive())
+    worker_ready = bool(
+        worker_alive
+        and (_metrics_dir is None or os.path.exists(os.path.join(_metrics_dir, "worker_ready")))
+    )
     if request_queue is None:
         status = "not_initialized"
     elif draining:
         # The worker may stay alive for a while to drain accepted work.
         status = "draining"
-    elif worker_proc is None or not worker_proc.is_alive():
+    elif not worker_alive:
         status = "failed"
+    elif not worker_ready:
+        status = "starting"
     else:
         status = "ok"
     return {
         "status": status,
         "draining": draining,
-        "worker_alive": bool(worker_proc is not None and worker_proc.is_alive()),
-        "model_ready": bool(worker_proc is not None and worker_proc.is_alive()),
+        "worker_alive": worker_alive,
+        "worker_pid": getattr(worker_proc, "pid", None) if worker_proc is not None else None,
+        "worker_exitcode": (
+            getattr(worker_proc, "exitcode", None)
+            if worker_proc is not None and not worker_proc.is_alive()
+            else None
+        ),
+        "model_ready": worker_ready,
+        "worker_ready": worker_ready,
+        "target_mode": os.environ.get("FASTSD_TARGET_MODE", "speculative"),
+        "target_tp_size": int(os.environ.get("TARGET_TP_SIZE", "1")),
+        "target_tp_gpus": os.environ.get("TARGET_TP_GPUS", ""),
         "idempotency": _idempotency_cache.stats(),
     }
 
@@ -420,6 +531,23 @@ async def session_release(req: SessionReleaseRequest) -> dict:
     _prefill_arrivals.pop(req.session_id, None)
     _prefill_timing_updates.pop(req.session_id, None)
     return {"session_id": req.session_id, **result}
+
+
+@app.post("/generate")
+@idempotent("/generate")
+async def generate(req: GenerateRequest) -> dict:
+    """Direct target-only AR generation endpoint."""
+    if os.environ.get("FASTSD_TARGET_MODE", "speculative").lower() != "ar":
+        raise HTTPException(status_code=404, detail="target-only AR mode is disabled")
+    if not req.prompt:
+        raise HTTPException(status_code=422, detail="prompt must not be empty")
+    result = await _enqueue_and_wait({
+        "task_type": "ar",
+        "prompt": req.prompt,
+        "max_tokens": int(req.max_tokens),
+        "task_id": req.task_id,
+    }, req.session_id or req.task_id)
+    return {"task_id": req.task_id, **result}
 
 
 async def _enqueue_and_wait(request_dict: dict, req_id: str) -> dict:
@@ -881,10 +1009,39 @@ def exit_worker() -> dict:
     return {"status": "sent", "draining": True}
 
 
+def _shutdown_worker_process() -> None:
+    """Drain and join the target worker when uvicorn itself is stopping."""
+
+    global _admission_closed, _exit_sent
+    proc = worker_proc
+    if proc is None:
+        return
+    if proc.is_alive():
+        with _pending_lock:
+            if not _exit_sent and request_queue is not None:
+                _admission_closed = True
+                try:
+                    request_queue.put(None)
+                    _exit_sent = True
+                except BaseException:
+                    _admission_closed = False
+        proc.join(timeout=30)
+    if proc.is_alive():
+        _worker_lifecycle("worker_force_terminate", child_pid=proc.pid)
+        proc.terminate()
+        proc.join(timeout=5)
+    _worker_lifecycle("worker_joined", child_pid=proc.pid, exitcode=proc.exitcode)
+
+
 def main() -> None:
     global request_queue, response_queue, worker_proc, _request_max_tokens, _server_sched_mode, _enable_latency_priority, _metrics_dir
     args = parse_arguments()
     _metrics_dir = args.exp_name
+    if _metrics_dir:
+        try:
+            os.remove(os.path.join(_metrics_dir, "worker_ready"))
+        except FileNotFoundError:
+            pass
     _request_max_tokens = int(args.max_tokens)
     _server_sched_mode = str(getattr(args, "server_sched_mode", "fastsd"))
     _enable_latency_priority = bool(getattr(args, "enable_latency_priority", False))
@@ -902,6 +1059,7 @@ def main() -> None:
     try:
         uvicorn.run(app, host=host, port=port, workers=1)
     finally:
+        _shutdown_worker_process()
         _persist_idempotency_metrics()
 
 

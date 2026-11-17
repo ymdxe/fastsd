@@ -4,6 +4,7 @@ import random
 import statistics
 import tempfile
 import unittest
+import os
 from pathlib import Path, PurePosixPath
 
 from scripts.eval_suite import (
@@ -129,6 +130,46 @@ class DraftOnlyPromptTests(unittest.TestCase):
         self.assertIn("actual_arrival = 0.0", source)
         self.assertIn("configure_spawn_executable()", source)
         self.assertIn("mp.set_executable(executable)", source)
+
+    def test_slo_unset_is_not_reported_as_all_violations(self):
+        old = {key: os.environ.pop(key, None) for key in ("SLO_TTFT_MS", "SLO_TPOT_MS", "SLO_E2E_MS")}
+        try:
+            result = evaluate_slo([{"ttft_ms": 1, "tpot_ms": 1, "e2e_ms": 1}], wallclock_s=1.0)
+            self.assertEqual(result["status"], "unset")
+            self.assertEqual(result["combined_violation_rate"], "unset")
+        finally:
+            for key, value in old.items():
+                if value is not None:
+                    os.environ[key] = value
+
+    def test_slo_environment_is_request_level(self):
+        old = {key: os.environ.get(key) for key in ("SLO_TTFT_MS", "SLO_TPOT_MS", "SLO_E2E_MS")}
+        os.environ.update(SLO_TTFT_MS="100", SLO_TPOT_MS="10", SLO_E2E_MS="500")
+        try:
+            result = evaluate_slo([
+                {"success": True, "ttft_ms": 50, "tpot_ms": 5, "e2e_ms": 100, "generated_tokens": 4},
+                {"success": True, "ttft_ms": 150, "tpot_ms": 20, "e2e_ms": 900, "generated_tokens": 8},
+            ], wallclock_s=2.0)
+            self.assertEqual(result["TTFT_violation_rate"], 0.5)
+            self.assertEqual(result["TPOT_violation_rate"], 0.5)
+            self.assertEqual(result["E2E_violation_rate"], 0.5)
+            self.assertEqual(result["combined_violation_rate"], 0.5)
+            self.assertEqual(result["combined"]["configured"]["violation_count"], 1)
+        finally:
+            for key, value in old.items():
+                if value is None:
+                    os.environ.pop(key, None)
+                else:
+                    os.environ[key] = value
+
+    def test_partial_slo_keeps_combined_unset(self):
+        result = evaluate_slo(
+            [{"ttft_ms": 10, "tpot_ms": 1, "e2e_ms": 20}],
+            wallclock_s=1.0,
+            thresholds={"ttft_ms": {"configured": 100}},
+        )
+        self.assertEqual(result["status"], "partial")
+        self.assertEqual(result["combined_violation_rate"], "unset")
 
 
 class SpecEdgeAdapterTests(unittest.TestCase):

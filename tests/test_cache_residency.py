@@ -190,6 +190,17 @@ class VictimTests(unittest.TestCase):
         self.now[0] = 10.
         self.assertEqual(self.m.select_victims(150, 10), ["c", "b"])
 
+    def test_lru_policy_evicts_oldest_request_first(self):
+        self.m = manager(budget=1000, clock=lambda: self.now[0], victim_policy="lru")
+        self.make("a", 100, 1)
+        self.make("b", 100, 2)
+        self.make("c", 100, 3)
+        self.m.note_request_cost("a", draft_total_time=100, accept_prob=0.01)
+        self.m.note_request_cost("c", draft_total_time=0)
+        self.now[0] = 10.
+        self.assertEqual(self.m.select_victims(150, 10), ["a", "b"])
+        self.assertEqual(self.m.stats()["victim_policy"], "lru")
+
     def test_cost_accounts_for_draft_transport_and_acceptance(self):
         self.now[0] = 10.
         # a: (4 + 1) / .5 - 9 = 1; b: 8 - 8 = 0; c: 0 - 7 = -7.

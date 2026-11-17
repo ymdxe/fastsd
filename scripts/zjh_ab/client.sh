@@ -10,7 +10,7 @@
 # HTTP directly it falls back to an SSH tunnel for its own connection only.
 set -euo pipefail
 
-CASE="${1:?usage: client.sh <sd-cpu|fastsd>}"
+CASE="${1:?usage: client.sh <ar|sd-cpu|fastsd>}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=params.env
 source "$HERE/params.env"
@@ -20,6 +20,7 @@ DATA_PATH="${DATA_PATH:-data}"
 ARRIVAL_DISTRIBUTION="${ARRIVAL_DISTRIBUTION:-immediate}"
 ARRIVAL_RATE="${ARRIVAL_RATE:-1.0}"
 ARRIVAL_SEED="${ARRIVAL_SEED:-1234}"
+export SLO_TTFT_MS SLO_TPOT_MS SLO_E2E_MS
 
 RUN="${RUN_NAME:-$CASE}"
 EXP_DIR="$EXP_ROOT/$RUN/edge"
@@ -40,7 +41,37 @@ export MKL_NUM_THREADS="${MKL_NUM_THREADS:-1}"
 export OPENBLAS_NUM_THREADS="${OPENBLAS_NUM_THREADS:-1}"
 
 TUNNEL_PID=""
-cleanup() { [ -n "$TUNNEL_PID" ] && kill "$TUNNEL_PID" 2>/dev/null || true; }
+POWER_MONITOR_PID=""
+stop_power_monitor() {
+  if [[ -n "$POWER_MONITOR_PID" ]]; then
+    kill -TERM "$POWER_MONITOR_PID" 2>/dev/null || true
+    wait "$POWER_MONITOR_PID" 2>/dev/null || true
+    POWER_MONITOR_PID=""
+  fi
+}
+start_power_monitor() {
+  case "${POWER_MONITOR:-0}" in
+    1|true|yes|on)
+      local monitor_args=(--role edge_cpu
+        --experiment-id "${POWER_EXPERIMENT_ID:-$RUN}"
+        --output-dir "$EXP_DIR"
+        --sample-interval-ms "${POWER_SAMPLE_INTERVAL_MS:-250}"
+        --root-pid "$$" --no-enable-gpu)
+      if [[ -n "$TUNNEL_PID" ]]; then
+        monitor_args+=(--exclude-pid "$TUNNEL_PID")
+      fi
+      "$NODE3_PY" -m src.power_monitor \
+        "${monitor_args[@]}" \
+        >"$EXP_DIR/power_monitor.log" 2>&1 &
+      POWER_MONITOR_PID=$!
+      echo "$POWER_MONITOR_PID" >"$EXP_DIR/power_monitor.pid"
+      ;;
+  esac
+}
+cleanup() {
+  stop_power_monitor
+  [ -n "$TUNNEL_PID" ] && kill "$TUNNEL_PID" 2>/dev/null || true
+}
 trap cleanup EXIT
 
 SERVER_URL="$TARGET_URL"
@@ -74,7 +105,12 @@ fi
 
 DEVICE=cpu
 EXTRA=()
-if [[ "$CASE" == fastsd* ]]; then
+if [[ "$CASE" == ar || "$CASE" == target-only || "$CASE" == target_only ]]; then
+  EXTRA=(--case ar --profile vanilla --server_sched_mode vanilla --no-enable_pipeline
+         --no-enable_proactive_draft --no-enable_latency_priority
+         --no-overlap_prefill_first_draft --no-kv_prefetch
+         --kv_residency_budget_mb 0)
+elif [[ "$CASE" == fastsd* ]]; then
   EXTRA=(--server_sched_mode fastsd)
   if [[ "$CASE" == *nopipeline* ]]; then
     EXTRA+=(--no-enable_pipeline --no-overlap_prefill_first_draft)
@@ -92,19 +128,20 @@ if [[ "$CASE" == fastsd* ]]; then
     EXTRA+=(--enable_latency_priority)
   fi
 else
-  EXTRA=(--server_sched_mode vanilla --no-enable_pipeline
+  EXTRA=(--profile vanilla --server_sched_mode vanilla --no-enable_pipeline
          --no-enable_proactive_draft --no-enable_latency_priority
-         --no-overlap_prefill_first_draft)
+         --no-overlap_prefill_first_draft --no-kv_prefetch)
 fi
 
 ARGS=(
+  --case "$CASE"
   --dataset "$DATASET" --data_path "$DATA_PATH"
+  --mt_bench_turns "$MT_BENCH_TURNS"
   --arrival_distribution "$ARRIVAL_DISTRIBUTION"
   --arrival_rate "$ARRIVAL_RATE"
   --arrival_seed "$ARRIVAL_SEED"
-  --draft_model "$DRAFT_MODEL" --target_model "$TARGET_MODEL"
+  --target_model "$TARGET_MODEL"
   --draft_dtype bfloat16 --num_drafts "$NUM_DRAFTS" --edge_gpus 1
-  --max_tasks_per_draft $(( (REQUESTS + NUM_DRAFTS - 1) / NUM_DRAFTS ))
   --max_tokens "$MAX_TOKENS" --gamma "$GAMMA" --seed "$SEED"
   --verify_method "${VERIFY_METHOD:-greedy}" --temp 0 --top_k 0 --top_p 1 --stop_policy eos
   --edge_threads "$EDGE_THREADS"
@@ -116,12 +153,27 @@ ARGS=(
   "${EXTRA[@]}"
   --exp_name "$EXP_DIR"
 )
+if [[ "$CASE" != ar && "$CASE" != target-only && "$CASE" != target_only ]]; then
+  ARGS+=(--draft_model "$DRAFT_MODEL" --max_tasks_per_draft $(( (REQUESTS + NUM_DRAFTS - 1) / NUM_DRAFTS )))
+else
+  ARGS+=(--max_tasks_per_draft "$REQUESTS")
+fi
 
 say "run edge [$RUN] draft_device=$DEVICE"
+CMD=("$NODE3_PY" edge/edge.py "${ARGS[@]}")
+if [[ -n "${EDGE_CPU_AFFINITY:-}" ]]; then
+  command -v taskset >/dev/null 2>&1 || {
+    echo "EDGE_CPU_AFFINITY=$EDGE_CPU_AFFINITY requires taskset" >&2
+    exit 2
+  }
+  CMD=(taskset -c "$EDGE_CPU_AFFINITY" "${CMD[@]}")
+  say "edge CPU affinity=$EDGE_CPU_AFFINITY"
+fi
+start_power_monitor
 if [ "$DRY_RUN" = "1" ]; then
-  RUN env CUDA_VISIBLE_DEVICES="$DRAFT_GPU" "$NODE3_PY" edge/edge.py "${ARGS[@]}"
+  RUN env CUDA_VISIBLE_DEVICES="$DRAFT_GPU" "${CMD[@]}"
 else
   CUDA_VISIBLE_DEVICES="$DRAFT_GPU" timeout "$RUN_TIMEOUT_S" \
-    "$NODE3_PY" edge/edge.py "${ARGS[@]}"
+    "${CMD[@]}"
 fi
 say "edge finished -> $EXP_DIR"

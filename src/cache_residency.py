@@ -1,10 +1,12 @@
 """Explicit target KV cache residency states, budget and victim choice.
 
-``BYPASS`` is the default: every cache stays on the GPU and none of the
-transfer machinery (tickets, CUDA events, pinned buffers, prefetch thread,
-planner lookahead) may run. ``ACTIVE`` tracks sessions whenever an explicit
-byte budget is configured. Offloading starts when actual resident KV reaches
-the high watermark, or free GPU memory falls below 256 MiB, using these states::
+``BYPASS`` keeps every cache on the GPU and none of the transfer machinery
+(tickets, CUDA events, pinned buffers, prefetch thread, planner lookahead) may
+run. The production lazy mode starts in ``SHADOW``: it observes pressure but
+does not create records or transfers until it enters ``ACTIVE``. ``ACTIVE``
+tracks sessions whenever an explicit byte budget is configured. Offloading
+starts when actual resident KV reaches the high watermark, or free GPU memory
+falls below 256 MiB, using these states::
 
     GPU_RESIDENT --evict--> EVICTION_PENDING --D2H done--> CPU_RESIDENT
           ^                                                     |
@@ -24,7 +26,10 @@ import threading
 import time
 
 BYPASS = "bypass"
+SHADOW = "shadow"
 ACTIVE = "active"
+
+ACTIVATION_MODES = ("lazy", "eager", "bypass")
 
 GPU_RESIDENT = "gpu_resident"
 EVICTION_PENDING = "eviction_pending"
@@ -93,7 +98,9 @@ class ResidencyManager:
     """
 
     def __init__(self, *, budget_bytes=0, high_ratio=0.90, low_ratio=0.75,
-                 headroom_bytes=0, clock=time.monotonic):
+                 headroom_bytes=0, clock=time.monotonic,
+                 victim_policy="cost_minus_idle_descending",
+                 activation_mode=None):
         if not 0.0 <= float(low_ratio) < float(high_ratio) <= 1.0:
             raise ValueError("residency ratios must satisfy 0 <= low < high <= 1")
         self.budget_bytes = max(0, int(budget_bytes))
@@ -102,11 +109,32 @@ class ResidencyManager:
         self.low_ratio = float(low_ratio)
         self.headroom_bytes = max(0, int(headroom_bytes))
         self.clock = clock
+        self.victim_policy = str(victim_policy)
+        if self.victim_policy not in {"lru", "cost_minus_idle_descending"}:
+            raise ValueError(
+                "victim_policy must be 'lru' or 'cost_minus_idle_descending'"
+            )
         self.lock = threading.RLock()
         self.records: dict = {}
+        # Direct users of the manager historically received eager ACTIVE
+        # semantics.  The production engine passes its explicit environment
+        # default (lazy), while keeping this API default preserves the old
+        # unit-level contract and makes the activation policy explicit.
+        requested_mode = ("eager" if activation_mode is None else
+                          str(activation_mode).strip().lower())
+        if requested_mode not in ACTIVATION_MODES:
+            raise ValueError(
+                "activation_mode must be one of 'lazy', 'eager', or 'bypass'"
+            )
+        self.activation_mode = requested_mode
         # Management is a property of the budget, not of the current pressure:
         # eviction and prefetch are triggered independently (see engine).
-        self.mode = ACTIVE if self.budget_bytes > 0 else BYPASS
+        if self.budget_bytes <= 0 or requested_mode == "bypass":
+            self.mode = BYPASS
+        elif requested_mode == "lazy":
+            self.mode = SHADOW
+        else:
+            self.mode = ACTIVE
         self.high = False
         self.emergency_free_bytes = EMERGENCY_FREE_BYTES
         self.free_bytes = None
@@ -127,22 +155,43 @@ class ResidencyManager:
             "emergency_eviction_rounds": 0,
             "emergency_evictions": 0,
             "emergency_blocked_rounds": 0,
+            "shadow_pressure_samples": 0,
         }
 
     # -- mode ------------------------------------------------------------
     @property
     def enabled(self) -> bool:
-        return self.budget_bytes > 0
+        """Whether residency is configured and may become ACTIVE.
+
+        ``enabled`` intentionally remains true in SHADOW so callers can
+        distinguish a configured lazy manager from a permanent BYPASS.  Code
+        that creates records, tickets, or transfers must use ``active``.
+        """
+
+        return self.budget_bytes > 0 and self.activation_mode != "bypass"
+
+    @property
+    def shadow(self) -> bool:
+        return self.mode == SHADOW
 
     @property
     def active(self) -> bool:
         return self.mode == ACTIVE
 
+    def activate(self) -> bool:
+        """Enter ACTIVE exactly once; resource setup is owned by the engine."""
+
+        with self.lock:
+            if not self.enabled or self.mode == BYPASS or self.mode == ACTIVE:
+                return False
+            self.mode = ACTIVE
+            return True
+
     def mark_started(self) -> bool:
         """One-time resource setup hook; returns True the first time."""
 
         with self.lock:
-            if not self.enabled or self._started:
+            if not self.active or self._started:
                 return False
             self._started = True
             self.counters["activations"] += 1
@@ -152,6 +201,8 @@ class ResidencyManager:
     def note_created(self, pid, *, nbytes=0, bytes_per_token=0, valid_len=0,
                      epoch=0, version=0, cache=None):
         with self.lock:
+            if not self.active:
+                return None
             record = self.records.get(pid)
             if record is None:
                 record = SessionRecord(pid=pid, last_used_time=self.clock())
@@ -170,6 +221,8 @@ class ResidencyManager:
 
     def note_used(self, pid, tick):
         with self.lock:
+            if not self.active:
+                return
             record = self.records.get(pid)
             if record is not None:
                 record.last_used_tick = int(tick)
@@ -183,6 +236,8 @@ class ResidencyManager:
         if any(not math.isfinite(value) or value < 0 for value in values):
             raise ValueError("offload timing and acceptance must be finite and non-negative")
         with self.lock:
+            if not self.active:
+                return
             record = self.records.get(pid)
             if record is not None:
                 record.draft_total_time, record.transport_rtt, probability = values
@@ -190,6 +245,8 @@ class ResidencyManager:
 
     def note_mutated(self, pid, *, version=0, valid_len=0):
         with self.lock:
+            if not self.active:
+                return None
             record = self.records.get(pid)
             if record is None:
                 return None
@@ -259,6 +316,8 @@ class ResidencyManager:
     # -- pressure --------------------------------------------------------
     def used_bytes(self) -> int:
         with self.lock:
+            if not self.active:
+                return 0
             return sum(r.nbytes for r in self.records.values()
                        if r.state in (GPU_RESIDENT, EVICTION_PENDING, RESTORE_PENDING))
 
@@ -272,6 +331,8 @@ class ResidencyManager:
         """Sample budget and free memory; return whether eviction is needed."""
 
         with self.lock:
+            if not self.active:
+                return False
             self.counters["pressure_samples"] += 1
             used = int(used_bytes)
             high = self.enabled and used >= self.high_watermark_bytes()
@@ -291,7 +352,7 @@ class ResidencyManager:
 
     def needs_eviction(self) -> bool:
         with self.lock:
-            return self.enabled and (self.used_bytes() >= self.high_watermark_bytes()
+            return self.active and (self.used_bytes() >= self.high_watermark_bytes()
                                      or self.emergency)
 
     def deficit_bytes(self, extra_bytes=0, *, guard_free_bytes=None) -> int:
@@ -304,6 +365,8 @@ class ResidencyManager:
         """
 
         with self.lock:
+            if not self.active:
+                return 0
             used = self.used_bytes()
             if guard_free_bytes is not None:
                 self._record_free_bytes(guard_free_bytes)
@@ -333,23 +396,28 @@ class ResidencyManager:
 
     # -- victims ---------------------------------------------------------
     def rank_victims(self, tick, *, exclude=()):
-        """Rank unprotected GPU sessions by cost - idle, descending.
+        """Rank unprotected GPU sessions according to the configured policy.
 
-        cost = (draft_total_time + transport_rtt) / accept_prob
-        idle = now - last_used_time
-        Both terms use seconds; scheduling ticks only control protection.
+        The standard SD baseline uses plain LRU (oldest request first). FastSD
+        keeps the cost-minus-idle policy, which uses draft/transport cost and
+        acceptance estimates. Scheduling ticks only control protection.
         """
         excluded = set(exclude)
         with self.lock:
+            if not self.active:
+                return []
             now = self.clock()
             candidates = [
                 r for r in self.records.values()
                 if r.state == GPU_RESIDENT and not r.in_transfer
                 and r.nbytes > 0 and r.pid not in excluded and not r.protected(tick)
             ]
-            candidates.sort(key=lambda r: (
-                (r.draft_total_time + r.transport_rtt) / r.accept_prob
-                - (now - r.last_used_time)), reverse=True)
+            if self.victim_policy == "lru":
+                candidates.sort(key=lambda r: (r.last_used_tick, r.last_used_time))
+            else:
+                candidates.sort(key=lambda r: (
+                    (r.draft_total_time + r.transport_rtt) / r.accept_prob
+                    - (now - r.last_used_time)), reverse=True)
             return [record.pid for record in candidates]
 
     def select_victims(self, needed_bytes, tick, *, exclude=()):
@@ -372,7 +440,8 @@ class ResidencyManager:
                 counts[record.state] = counts.get(record.state, 0) + 1
             return {
                 "mode": self.mode,
-                "victim_policy": "cost_minus_idle_descending",
+                "activation_mode": self.activation_mode,
+                "victim_policy": self.victim_policy,
                 "budget_bytes": self.budget_bytes,
                 "high_watermark_bytes": self.high_watermark_bytes(),
                 "low_watermark_bytes": self.low_watermark_bytes(),

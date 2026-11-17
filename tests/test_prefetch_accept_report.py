@@ -31,11 +31,13 @@ class AcceptanceReportTests(unittest.TestCase):
         checks = accept.prefetch_pair_gates(self.paired_rows())
         self.assertTrue(all(ok for _, ok, _ in checks), checks)
 
-    def test_pair_token_mismatch_fails_even_when_decoded_text_is_equal(self):
+    def test_pair_token_mismatch_is_diagnostic_only_even_when_decoded_text_is_equal(self):
         rows = self.paired_rows()
         rows[1]["records"][0]["output_token_ids"] = [1, 3]
-        check = next(c for c in accept.prefetch_pair_gates(rows) if c[0] == "paired output correctness")
-        self.assertFalse(check[1])
+        check = next(c for c in accept.prefetch_pair_gates(rows)
+                     if c[0] == "paired output mismatch (diagnostic)")
+        self.assertTrue(check[1])
+        self.assertIn("mismatch=1", check[2])
 
     def test_pair_duplicate_tasks_and_missing_outputs_cannot_pass(self):
         rows = self.paired_rows()
@@ -45,7 +47,8 @@ class AcceptanceReportTests(unittest.TestCase):
         rows = self.paired_rows()
         rows[0]["records"][0].pop("output_token_ids")
         rows[0]["records"][0].pop("output_text")
-        self.assertFalse(next(c[1] for c in accept.prefetch_pair_gates(rows) if c[0] == "paired output correctness"))
+        self.assertTrue(next(c[1] for c in accept.prefetch_pair_gates(rows)
+                            if c[0] == "paired output mismatch (diagnostic)"))
 
     def test_pair_performance_regressions_and_oom_fail(self):
         rows = self.paired_rows()

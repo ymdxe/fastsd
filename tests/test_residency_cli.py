@@ -47,6 +47,12 @@ class ResidencyCliTests(unittest.TestCase):
         args = parse("--kv_residency_budget_mb", "4096")
         self.assertEqual(args.kv_residency_budget_mb, 4096)
 
+    def test_lru_victim_policy_is_available_for_vanilla_sd(self):
+        self.assertEqual(
+            parse("--kv_residency_victim_policy", "lru").kv_residency_victim_policy,
+            "lru",
+        )
+
     def test_online_fraction_is_bounded(self):
         self.assertEqual(parse().kv_prefetch_online_fraction, 1.0)
         with self.assertRaises(SystemExit):

@@ -19,7 +19,8 @@ except ImportError:
 @unittest.skipUnless(DEPS, "requires model runtime dependencies")
 class ReviewEngineTests(unittest.TestCase):
     def run_worker_case(self, backend, mode="fastsd", device="cpu", cycles=16, adaptive=False,
-                        attention="sdpa_per_sequence", kv_budget_mb=0, prefetch=True):
+                        attention="sdpa_per_sequence", kv_budget_mb=0, prefetch=True,
+                        victim_policy="cost_minus_idle_descending"):
         class Runner(Decoding):
             def load_data(self): pass
             def preprocess(self, x): return x
@@ -41,6 +42,7 @@ class ReviewEngineTests(unittest.TestCase):
             prefill_chunk_quantum=2, server_sched_mode=mode, pipeline_gamma_adapt=adaptive,
             enable_pipeline=False,
             kv_residency_budget_mb=kv_budget_mb, kv_prefetch=prefetch,
+            kv_residency_victim_policy=victim_policy,
             session_idle_timeout=30, async_kv_transfer=device != "cpu")
         engine.seed = 1
         engine.last_generation_metrics = {}
@@ -106,6 +108,8 @@ class ReviewEngineTests(unittest.TestCase):
             self.assertGreater(metrics["residency_pressure_samples"], 0)
             self.assertEqual(metrics["kv_residency"]["residency_activations"], 1)
             self.assertEqual(metrics["kv_residency"]["residency_evictions"], 0)
+        if not prefetch:
+            self.assertEqual(metrics["kv_prefetch_implementation"], "disabled")
 
     def test_varlen_chunked_rounds_and_repeated_sessions(self):
         self.run_worker_case("varlen")
@@ -127,7 +131,8 @@ class ReviewEngineTests(unittest.TestCase):
             for mode in ("vanilla", "fastsd"):
                 with self.subTest(mode=mode):
                     self.run_worker_case("varlen", mode, cycles=2,
-                                         kv_budget_mb=1, prefetch=False)
+                                         kv_budget_mb=1, prefetch=False,
+                                         victim_policy="lru")
 
     @unittest.skipUnless(DEPS and torch.cuda.is_available(), "requires CUDA")
     def test_cuda_worker_with_async_offload_and_reload(self):
