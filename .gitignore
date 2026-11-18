@@ -47,3 +47,12 @@ scripts/zjh_ab/runall_resume.sh
 scripts/zjh_ab/runall_ar_direct.sh
 scripts/zjh_ab/runall_bypass_only.sh
 scripts/zjh_ab/runall_bypass_huge.sh
+
+# ---- local-only paths (untracked from index) ----
+.vscode/
+scripts/
+docs/
+configs/
+tests/
+fastsd/
+diagnostic_trace.py
