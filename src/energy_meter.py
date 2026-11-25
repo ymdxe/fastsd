@@ -1,10 +1,11 @@
 import json
-import math
 import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional
+
+from .gpu_energy import EnergyAccumulator, NvidiaPowerReader
 
 try:
     from fastapi import FastAPI, HTTPException
@@ -22,71 +23,6 @@ except ImportError:  # pragma: no cover
     uvicorn = None
 
 
-class EnergyAccumulator:
-    """Accumulate energy by integrating sampled power over time."""
-
-    def __init__(self):
-        self._total_energy_j = 0.0
-        self._total_duration_s = 0.0
-        self._running = False
-        self._power_samples: list[float] = []
-
-    def start(self, timestamp_s: float) -> None:
-        del timestamp_s
-        if self._running:
-            raise RuntimeError("accumulator is already running")
-        self._running = True
-
-    def update(self, power_w: float, dt_s: float) -> None:
-        if not self._running:
-            return
-        if dt_s <= 0:
-            return
-        self._total_energy_j += power_w * dt_s
-        self._total_duration_s += dt_s
-        if math.isfinite(float(power_w)) and power_w >= 0:
-            self._power_samples.append(float(power_w))
-
-    def pause(self, timestamp_s: float) -> None:
-        del timestamp_s
-        if self._running:
-            self._running = False
-
-    def stop(self, timestamp_s: float) -> dict[str, float]:
-        if not self._running:
-            raise RuntimeError("accumulator is not running")
-        self.pause(timestamp_s)
-        return self.summary()
-
-    def summary(self) -> dict[str, float]:
-        avg_power = (
-            self._total_energy_j / self._total_duration_s
-            if self._total_duration_s > 0
-            else 0.0
-        )
-        ordered = sorted(self._power_samples)
-        def quantile(q: float) -> float:
-            if not ordered:
-                return 0.0
-            position = (len(ordered) - 1) * q
-            low = int(position)
-            high = min(low + 1, len(ordered) - 1)
-            return ordered[low] + (ordered[high] - ordered[low]) * (position - low)
-        return {
-            "energy_j": self._total_energy_j,
-            "duration_s": self._total_duration_s,
-            "avg_power_w": avg_power,
-            "peak_power_w": max(ordered) if ordered else 0.0,
-            "power_p95_w": quantile(0.95),
-            "power_p99_w": quantile(0.99),
-            "power_sample_count": len(ordered),
-        }
-
-    @property
-    def is_running(self) -> bool:
-        return self._running
-
-
 class MeasureStartRequest(BaseModel):
     exp_id: str = "default"
     metadata: dict[str, Any] = Field(default_factory=dict)
@@ -100,7 +36,7 @@ class MeasureStopRequest(BaseModel):
 
 @dataclass
 class EnergyServiceConfig:
-    gpu_index: int
+    gpu_indices: tuple[int, ...]
     host: str
     port: int
     sample_interval_ms: int
@@ -114,24 +50,19 @@ class _CloudEnergyManager:
         self._stop_event = threading.Event()
         self._sample_interval_s = max(0.01, float(cfg.sample_interval_ms) / 1000.0)
 
-        self._campaign = EnergyAccumulator()
-        self._active = EnergyAccumulator()
-
         self._active_depth = 0
         self._campaign_started = False
         self._exp_id = "default"
         self._result: Optional[dict[str, Any]] = None
 
-        try:
-            import pynvml  # pylint: disable=import-outside-toplevel
-        except ImportError as exc:  # pragma: no cover
-            raise RuntimeError(
-                "pynvml is required for energy measurement. Install with `pip install nvidia-ml-py3`."
-            ) from exc
-
-        self._pynvml = pynvml
-        self._pynvml.nvmlInit()
-        self._handle = self._pynvml.nvmlDeviceGetHandleByIndex(cfg.gpu_index)
+        if not cfg.gpu_indices:
+            raise ValueError("energy measurement requires physical GPU indices")
+        self._readers = [NvidiaPowerReader(index) for index in cfg.gpu_indices]
+        error = next((reader.error for reader in self._readers if not reader.available), None)
+        if error is not None:
+            for reader in self._readers:
+                reader.close()
+            raise RuntimeError(error)
 
         self._sampler_thread = threading.Thread(target=self._sampler_loop, daemon=True)
 
@@ -140,40 +71,36 @@ class _CloudEnergyManager:
 
     def shutdown(self) -> None:
         self._stop_event.set()
-        self._sampler_thread.join(timeout=3.0)
-        self._pynvml.nvmlShutdown()
+        self._sampler_thread.join()
+        for reader in self._readers:
+            reader.close()
 
-    def _read_power_w(self) -> float:
-        return float(self._pynvml.nvmlDeviceGetPowerUsage(self._handle)) / 1000.0
+    def _sample(self):
+        samples = [reader.sample() for reader in self._readers]
+        return time.monotonic(), samples
 
     def _sampler_loop(self) -> None:
-        prev_t = time.monotonic()
-        while not self._stop_event.is_set():
-            power_w = self._read_power_w()
-            now_t = time.monotonic()
-            dt = now_t - prev_t
-            prev_t = now_t
-
+        while not self._stop_event.wait(self._sample_interval_s):
             with self._lock:
-                if self._campaign_started and self._campaign.is_running:
-                    self._campaign.update(power_w, dt)
-                if self._active_depth > 0 and self._active.is_running:
-                    self._active.update(power_w, dt)
-
-            time.sleep(self._sample_interval_s)
+                if self._campaign_started:
+                    snapshot = self._sample()
+                    self._campaign.update(*snapshot)
+                    if self._active.is_running:
+                        self._active.update(*snapshot)
 
     def start_campaign(self, exp_id: str, metadata: dict[str, Any]) -> dict[str, Any]:
         del metadata
-        now_t = time.monotonic()
         with self._lock:
             if self._campaign_started:
                 return {
                     "status": "already_started",
                     "exp_id": self._exp_id,
                 }
+            self._campaign = EnergyAccumulator(len(self._readers))
+            self._active = EnergyAccumulator(len(self._readers))
+            self._campaign.start(*self._sample())
             self._campaign_started = True
             self._exp_id = exp_id
-            self._campaign.start(now_t)
         return {
             "status": "started",
             "exp_id": exp_id,
@@ -185,7 +112,6 @@ class _CloudEnergyManager:
         total_tasks: Optional[int],
         metadata: dict[str, Any],
     ) -> dict[str, Any]:
-        now_t = time.monotonic()
         with self._lock:
             if not self._campaign_started:
                 raise RuntimeError("campaign has not started")
@@ -194,18 +120,19 @@ class _CloudEnergyManager:
                     f"exp_id mismatch: running={self._exp_id}, got={exp_id}"
                 )
 
-            self._campaign.pause(now_t)
+            snapshot = self._sample()
+            self._campaign.stop(*snapshot)
             if self._active.is_running:
-                self._active.pause(now_t)
+                self._active.stop(*snapshot)
 
             active_summary = self._active.summary()
             campaign_summary = self._campaign.summary()
-            overhead_j = campaign_summary["energy_j"] - active_summary["energy_j"]
-            overhead_ratio = (
-                campaign_summary["energy_j"] / active_summary["energy_j"]
-                if active_summary["energy_j"] > 0
-                else 0.0
-            )
+            campaign_j, active_j = campaign_summary["energy_j"], active_summary["energy_j"]
+            overhead_j = campaign_j - active_j if campaign_j is not None and active_j is not None else None
+            overhead_ratio = (campaign_j / active_j if active_j > 0 else 0.0) if overhead_j is not None else None
+            fallback_indices = [index for index, reader in zip(self._cfg.gpu_indices, self._readers)
+                                if reader.counter_unsupported]
+            nvml_error = next((reader.error for reader in self._readers if reader.error), None)
 
             self._campaign_started = False
             self._active_depth = 0
@@ -227,6 +154,11 @@ class _CloudEnergyManager:
             "system_power_p95_w": campaign_summary["power_p95_w"],
             "system_power_p99_w": campaign_summary["power_p99_w"],
             "system_power_sample_count": campaign_summary["power_sample_count"],
+            "sampled_gpu_indices": list(self._cfg.gpu_indices),
+            "energy_source": campaign_summary["energy_source"],
+            "power_integration_gpu_indices": fallback_indices,
+            "energy_counter_fallback_reason": "NVML_ERROR_NOT_SUPPORTED" if fallback_indices else None,
+            "nvml_error": nvml_error,
             "total_tasks": total_tasks,
             "metadata": metadata,
         }
@@ -239,21 +171,21 @@ class _CloudEnergyManager:
         return self._result
 
     def enter_active(self) -> None:
-        now_t = time.monotonic()
         with self._lock:
+            if not self._campaign_started:
+                return
             self._active_depth += 1
-            if self._active_depth == 1 and not self._active.is_running:
-                self._active.start(now_t)
+            if self._active_depth == 1:
+                self._active.start(*self._sample())
 
     def exit_active(self) -> None:
-        now_t = time.monotonic()
         with self._lock:
             if self._active_depth <= 0:
                 self._active_depth = 0
                 return
             self._active_depth -= 1
             if self._active_depth == 0 and self._active.is_running:
-                self._active.pause(now_t)
+                self._active.stop(*self._sample())
 
 
 class EnergyControlService:

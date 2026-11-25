@@ -10,6 +10,8 @@ import sys
 import threading
 import time
 import uuid
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+
 from diagnostic_trace import trace as DIAG, request_meta as diag_req, item_meta as diag_item, queue_rows as diag_queues, backlog as diag_backlog
 from typing import Any, Callable, Dict, List
 
@@ -17,12 +19,10 @@ import requests
 import torch
 from transformers import AutoModelForCausalLM
 
-sys.path.append(os.path.join(sys.path[0], "../"))
-
 from src.arrival import poisson_arrival_offsets, shard_samples
 from src.engine import Decoding
 from src.kvcache import KVCacheModel
-from src.metrics import elapsed_ms, tpot_ms
+from src.metrics import elapsed_ms, request_latency
 try:
     from src.common_metrics import evaluate_slo
 except ImportError:  # lightweight entrypoint tests stub the src package
@@ -616,15 +616,58 @@ class EdgeClient:
     def generate_autoregressive(
         self, *, prompt: str, task_id: str, max_tokens: int
     ) -> Dict[str, Any]:
-        """Call the target-only AR endpoint without loading a draft model."""
-        session_id = self._client_id
+        """Receive the first AR token separately from the final result."""
+        path = "/generate/stream"
         payload = {
-            "session_id": session_id,
+            "session_id": self._client_id,
             "task_id": str(task_id),
             "prompt": str(prompt),
             "max_tokens": int(max_tokens),
         }
-        return self._post("/generate", payload)
+        self._identify_request(path, payload)
+        body = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        with self._stats_lock:
+            self._request_bytes += len(body)
+            self._rpc_count += 1
+        first_token_at = completion_at = result = None
+        response_bytes = 0
+        with self.session.post(f"{self.server_url}{path}", data=body,
+                               headers={"Content-Type": "application/json"},
+                               timeout=self.timeout, stream=True) as response:
+            response.raise_for_status()
+            if response.headers.get("Content-Type", "").split(";", 1)[0] != "application/x-ndjson":
+                raise RuntimeError("AR timing requires an NDJSON token stream")
+            chunk_size = None if response.headers.get("Transfer-Encoding", "").lower() == "chunked" else 1
+            for line in response.iter_lines(chunk_size=chunk_size):
+                received_at = time.monotonic()
+                response_bytes += len(line) + 1
+                if not line:
+                    continue
+                event = json.loads(line)
+                if event.get("event") == "ar_first_token" and first_token_at is None and result is None:
+                    first_token_at = received_at
+                elif event.get("event") == "done" and result is None:
+                    completion_at = received_at
+                    result = event["result"]
+                else:
+                    raise RuntimeError("Unexpected AR stream event")
+        with self._stats_lock:
+            self._response_bytes += response_bytes
+        if result is None:
+            raise RuntimeError("AR stream ended without a final result")
+        if result.get("status") == "ok" and result.get("generated_tokens") and first_token_at is None:
+            raise RuntimeError("AR stream completed without a first-token event")
+        # These timestamps are observed by the edge process.  Do not reuse the
+        # target worker's internal monotonic timestamps: monotonic clocks are
+        # process/host local and cannot be compared across machines.
+        return {**result, "edge_first_token_monotonic_s": first_token_at,
+                "edge_completion_monotonic_s": completion_at,
+                # Compatibility aliases. Both are edge-observed timestamps;
+                # they are never copied from the target worker response.
+                "first_token_monotonic_s": first_token_at,
+                "completion_monotonic_s": completion_at,
+                "request_id": payload["request_id"],
+                "retry_count": 0, "replayed": False}
 
 
     def synchronize_clock(self, samples: int = 5) -> dict[str, Any]:
@@ -1015,7 +1058,30 @@ class EdgeRunner(Decoding):
     def preprocess(self, input_text):
         return input_text.strip()
 
+    def _prepare_comparison_tokenizer(self):
+        from baselines.specedge.integration.modeling import compare_token_signatures, load_tokenizer, model_config
+
+        architecture = model_config(self.args.target_model)
+        self._comparison_chat = architecture.model_type == "qwen3" or self.args.dataset == "mt_bench"
+        target_path = os.environ.get("FASTSD_COMPARISON_TOKENIZER", self.args.target_model)
+        draft_path = os.environ.get("FASTSD_COMPARISON_DRAFT_TOKENIZER", self.args.draft_model)
+        self._comparison_tokenizer, target_signature = load_tokenizer(
+            self.args.target_model, target_path, architecture, chat=self._comparison_chat,
+        )
+        _, draft_signature = load_tokenizer(self.args.draft_model, draft_path, model_config(self.args.draft_model))
+        compare_token_signatures(target_signature, draft_signature)
+        self.args.eos_token_ids = target_signature["eos"]["effective"]
+        self.args.canonical_tokenizer_model = target_path
+        self.args.canonical_inputs = True
+
     def _encode_input_ids(self, tokenizer, input_text: str, sample: dict | None = None):
+        if getattr(self.args, "specedge_comparison", False):
+            from baselines.specedge.integration.dataset_adapter import ADAPTERS
+
+            if not hasattr(self, "_comparison_chat"):
+                self._prepare_comparison_tokenizer()
+            prompt = ADAPTERS[self.args.dataset].build_prompt(sample, self._comparison_tokenizer, chat=self._comparison_chat)
+            return self._comparison_tokenizer.encode(prompt, return_tensors="pt")
         if self.args.dataset != "mt_bench":
             return tokenizer.encode(input_text, return_tensors="pt")
 
@@ -1292,6 +1358,14 @@ class EdgeRunner(Decoding):
             finally:
                 client.release_session(session_id)
 
+    def _release_target_session(self, client: EdgeClient, session_id: str) -> bool:
+        try:
+            client.release_session(session_id)
+        except Exception as exc:
+            self.color_print(f"[SESSION-RELEASE-FAILED] {session_id}: {exc}", 2)
+            return False
+        return True
+
 
     @staticmethod
     def _percentile(values: List[float], q: float) -> float:
@@ -1368,6 +1442,8 @@ class EdgeRunner(Decoding):
         return bool((tail == tail[-1]).all().item())
 
     def _write_summary(self, wallclock_s: float) -> None:
+        from src.common_metrics import summarize_io_stall
+
         records: List[Dict[str, Any]] = []
         for path in sorted(glob.glob(os.path.join(self.args.exp_name, "edge_metrics_proc*.jsonl"))):
             with open(path, "r") as f:
@@ -1514,6 +1590,7 @@ class EdgeRunner(Decoding):
                 else 0.0
             ),
             "num_tasks": len(records),
+            "io_stall": summarize_io_stall(records),
             "wallclock_s": float(wallclock_s),
             "benchmark_start_epoch_s": getattr(self, "_benchmark_start_epoch_s", None),
             "benchmark_end_epoch_s": getattr(self, "_benchmark_end_epoch_s", None),
@@ -1636,11 +1713,10 @@ class EdgeRunner(Decoding):
             json.dump(summary, f, indent=2, ensure_ascii=True)
         self.color_print(f"[METRICS] wrote summary: {summary_path}", 2)
 
-    def _eval_target_only_ar(self) -> None:
-        """Run direct target generation and emit the common request schema."""
-        from src.common_metrics import summarize_requests
+    def _run_target_only_ar_worker(self, samples, proc_id: int, arrival_origin=None) -> None:
+        """Run one concurrent AR edge worker without loading a draft model."""
+        from src.common_metrics import IO_STALL_NOT_APPLICABLE
 
-        os.makedirs(self.args.exp_name, exist_ok=True)
         client = EdgeClient(
             self.args.server_url,
             timeout=self.args.request_timeout,
@@ -1650,76 +1726,152 @@ class EdgeRunner(Decoding):
             health = client.health()
             if health.get("status") not in {"ok", "healthy"}:
                 raise RuntimeError(f"Cloud service health check failed: {health}")
-            data_file = self._resolve_data_file()
-            with open(data_file, encoding="utf-8") as stream:
-                samples = [json.loads(line) for line in stream if line.strip()]
-            samples = self._expand_mt_bench_samples(samples)
-            limit = int(getattr(self.args, "max_tasks_per_draft", 0))
-            if limit > 0:
-                samples = samples[:limit]
+            num_workers = max(1, int(getattr(self.args, "num_drafts", 1)))
+            indexed_samples = shard_samples(
+                samples,
+                num_shards=num_workers,
+                shard_id=proc_id,
+                max_items=int(getattr(self.args, "max_tasks_per_draft", 0)),
+            )
+            arrival_offsets = None
+            if getattr(self.args, "arrival_distribution", "immediate") == "poisson":
+                arrival_offsets = poisson_arrival_offsets(
+                    len(samples),
+                    float(getattr(self.args, "arrival_rate", 1.0)),
+                    int(getattr(self.args, "arrival_seed", 1234)),
+                )
+            seed_everything(42 + proc_id)
             records = []
-            run_started = time.monotonic()
-            for idx, sample in enumerate(samples):
-                prompt, task_id = self._sample_prompt(sample, 0, idx)
+            for local_idx, (global_idx, sample) in enumerate(indexed_samples):
+                scheduled_arrival_s = 0.0
+                arrival_lag_ms = 0.0
+                actual_arrival_s = None
+                if arrival_offsets is not None and arrival_origin is not None:
+                    scheduled_arrival_s = float(arrival_offsets[global_idx])
+                    remaining_s = scheduled_arrival_s - (time.monotonic() - arrival_origin)
+                    if remaining_s > 0:
+                        time.sleep(remaining_s)
+                    actual_arrival_s = time.monotonic() - arrival_origin
+                prompt, task_id = self._sample_prompt(sample, proc_id, local_idx)
                 started = time.monotonic()
                 started_epoch = time.time()
+                if actual_arrival_s is not None:
+                    arrival_lag_ms = max(0.0, (started - arrival_origin - scheduled_arrival_s) * 1000.0)
                 response = client.generate_autoregressive(
                     prompt=prompt, task_id=task_id, max_tokens=self.args.max_tokens
                 )
-                finished = time.monotonic()
-                e2e_ms = float(response.get("e2e_ms", (finished - started) * 1000.0))
+                finished = response["edge_completion_monotonic_s"]
+                first_token_at = response.get("edge_first_token_monotonic_s")
+                e2e_ms = elapsed_ms(started, finished)
                 output_tokens = int(response.get("output_tokens", response.get("generated_tokens", 0)) or 0)
+                ttft, tpot, ttft_fallback = request_latency(
+                    e2e_ms,
+                    elapsed_ms(started, first_token_at) if first_token_at is not None else None,
+                    output_tokens,
+                )
                 records.append({
                     "sample_id": task_id,
                     "task_id": task_id,
+                    "proc_id": int(proc_id),
                     "success": response.get("success", response.get("status") == "ok"),
                     "status": response.get("status", "ok"),
-                    "ttft_ms": response.get("ttft_ms"),
-                    "tpot_ms": response.get("tpot_ms"),
+                    "ttft_ms": ttft,
+                    "ttft_fallback_to_e2e": ttft_fallback,
+                    "tpot_ms": tpot,
                     "e2e_ms": e2e_ms,
                     "request_e2e_ms": e2e_ms,
+                    "latency_basis": "edge_request_start_to_edge_first_output",
+                    "latency_source": "edge_stream",
+                    "queue_wait_ms": response.get("queue_wait_ms"),
                     "generated_tokens": output_tokens,
                     "output_tokens": output_tokens,
                     "output_token_ids": response.get("output_token_ids", []),
                     "output_text": response.get("output_text", ""),
                     "reference": sample.get("reference", sample.get("answer")),
+                    "scheduled_arrival_s": scheduled_arrival_s,
+                    "actual_arrival_s": actual_arrival_s,
+                    "arrival_lag_ms": arrival_lag_ms,
                     "processing_start_monotonic_s": started,
                     "processing_start_epoch_s": started_epoch,
+                    "first_token_monotonic_s": first_token_at,
+                    "first_token_epoch_s": started_epoch + (first_token_at - started) if first_token_at is not None else None,
                     "completion_monotonic_s": finished,
-                    "completion_epoch_s": time.time(),
+                    "completion_epoch_s": started_epoch + (finished - started),
                     "request_id": response.get("request_id"),
                     "retry_count": response.get("retry_count", 0),
                     "replayed": response.get("replayed", False),
                     "draft_metrics": "n/a",
                     "verify_metrics": "n/a",
+                    **IO_STALL_NOT_APPLICABLE,
                 })
-            wallclock = max(0.0, time.monotonic() - run_started)
-            path = self._metrics_path(0)
-            with open(path, "w", encoding="utf-8") as stream:
+            with open(self._metrics_path(proc_id), "w", encoding="utf-8") as stream:
                 for record in records:
                     stream.write(json.dumps(record, ensure_ascii=True) + "\n")
-            summary = summarize_requests(
-                records,
-                method="ar",
-                dataset=self.args.dataset,
-                workload_hash=str(getattr(self.args, "workload_hash", "") or ""),
-                run_id=os.path.basename(self.args.exp_name.rstrip("/")),
-                wallclock_s=wallclock,
-                extra={
-                    "case": "ar",
-                    "server_sched_mode": "target-only",
-                    "draft_model_loaded": False,
-                    "draft_metrics": "n/a",
-                    "verify_metrics": "n/a",
-                    "prefetch": "disabled",
-                    "offload": "disabled",
-                    "tok_per_s": (sum(r["generated_tokens"] for r in records) / wallclock if wallclock > 0 else 0.0),
-                },
-            )
-            with open(os.path.join(self.args.exp_name, "edge_metrics_summary.json"), "w", encoding="utf-8") as stream:
-                json.dump(summary, stream, indent=2, ensure_ascii=True)
         finally:
             client.close()
+
+    def _eval_target_only_ar(self) -> None:
+        """Run concurrent target-only AR edge workers and emit common metrics."""
+        from src.common_metrics import summarize_requests
+
+        os.makedirs(self.args.exp_name, exist_ok=True)
+        existing_metrics = glob.glob(os.path.join(self.args.exp_name, "edge_metrics_proc*.jsonl"))
+        if existing_metrics:
+            raise FileExistsError(
+                "refusing to overwrite existing Edge metrics; use a new exp_name: "
+                + ", ".join(sorted(existing_metrics))
+            )
+        data_file = self._resolve_data_file()
+        with open(data_file, encoding="utf-8") as stream:
+            samples = [json.loads(line) for line in stream if line.strip()]
+        samples = self._expand_mt_bench_samples(samples)
+        num_workers = max(1, int(getattr(self.args, "num_drafts", 1)))
+        run_started_epoch = time.time()
+        run_started = time.monotonic()
+        arrival_origin = run_started if getattr(self.args, "arrival_distribution", "immediate") == "poisson" else None
+        with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
+            futures = [executor.submit(EdgeRunner._run_target_only_ar_worker, self, samples, proc_id, arrival_origin)
+                       for proc_id in range(num_workers)]
+            errors = []
+            for future in futures:
+                try:
+                    future.result()
+                except BaseException as exc:
+                    errors.append(exc)
+        wallclock = max(0.0, time.monotonic() - run_started)
+        run_finished_epoch = time.time()
+        records = []
+        for path in sorted(glob.glob(os.path.join(self.args.exp_name, "edge_metrics_proc*.jsonl"))):
+            with open(path, encoding="utf-8") as stream:
+                records.extend(json.loads(line) for line in stream if line.strip())
+        summary = summarize_requests(
+            records,
+            method="ar",
+            dataset=self.args.dataset,
+            workload_hash=str(getattr(self.args, "workload_hash", "") or ""),
+            run_id=os.path.basename(self.args.exp_name.rstrip("/")),
+            wallclock_s=wallclock,
+            concurrency=num_workers,
+            arrival_distribution=getattr(self.args, "arrival_distribution", "immediate"),
+            extra={
+                "case": "ar",
+                "benchmark_start_epoch_s": run_started_epoch,
+                "benchmark_end_epoch_s": run_finished_epoch,
+                "latency_source": "edge_stream",
+                "active_edge_workers": len({record["proc_id"] for record in records}),
+                "server_sched_mode": "target-only",
+                "draft_model_loaded": False,
+                "draft_metrics": "n/a",
+                "verify_metrics": "n/a",
+                "prefetch": "disabled",
+                "offload": "disabled",
+                "tok_per_s": (sum(r.get("generated_tokens", 0) for r in records) / wallclock if wallclock > 0 else 0.0),
+            },
+        )
+        with open(os.path.join(self.args.exp_name, "edge_metrics_summary.json"), "w", encoding="utf-8") as stream:
+            json.dump(summary, stream, indent=2, ensure_ascii=True)
+        if errors:
+            raise RuntimeError(f"{len(errors)} AR edge worker(s) failed: {errors[0]}")
 
     def eval(self):
         if self.is_target_only_ar:
@@ -1776,6 +1928,8 @@ class EdgeRunner(Decoding):
             default_file = "mgsm.jsonl"
         elif self.args.dataset == "mt_bench":
             default_file = "mt_bench.jsonl"
+        elif self.args.dataset == "mbpp":
+            default_file = "mbpp.jsonl"
         else:
             raise ValueError(f"Unsupported dataset: {self.args.dataset}")
 
@@ -1818,6 +1972,8 @@ class EdgeRunner(Decoding):
         arrival_start_time=None,
         executor_holder: Dict[str, Any] | None = None,
     ):
+        from src.common_metrics import IOStall
+
         # Support CPU device for draft workers
         use_cpu = getattr(self.args, "edge_use_cpu", False)
         if use_cpu:
@@ -1866,6 +2022,8 @@ class EdgeRunner(Decoding):
             samples = [json.loads(line) for line in f.readlines()]
         samples = self._expand_mt_bench_samples(samples)
 
+        if getattr(self.args, "specedge_comparison", False):
+            self._prepare_comparison_tokenizer()
         self._warmup_stateful_requests(client, draft_model, tokenizer, samples, proc_id)
         client.reset_transport_stats()
 
@@ -1917,6 +2075,7 @@ class EdgeRunner(Decoding):
             DIAG.emit("request_start", task_id=sample.get("sample_id"), index=idx, scheduled_arrival_s=scheduled_arrival_s, actual_arrival_s=actual_arrival_s, arrival_lag_ms=arrival_lag_ms, pending_arrived=diag_backlog(arrival_offsets or [], actual_arrival_s, global_idx), local_t0=arrival_origin)
             transport_before = client.snapshot_transport_stats()
             session_id = client.init_session()
+            session_released = None
             try:
                 sampling_seed = int(self.args.seed) + int(global_idx)
                 verify_method = str(getattr(self.args, "verify_method", "rejection")).lower()
@@ -2050,7 +2209,9 @@ class EdgeRunner(Decoding):
                 sum_cloud_total_ms = 0.0
                 sum_verify_ms = 0.0
                 target_components = {key: 0.0 for key in (
-                    "forward_gpu_ms", "batch_start_delay_ms", "exposed_h2d_stall_ms")}
+                    "forward_gpu_ms", "batch_start_delay_ms")}
+                io_stall = IOStall()
+                io_stall.add(prefill_resp, allow_unmarked=True)
                 sum_transport_rtt_ms = 0.0
                 sum_push_ms = 0.0
                 sum_pull_ms = 0.0
@@ -2331,6 +2492,7 @@ class EdgeRunner(Decoding):
                     sum_verify_ms += verify_ms
                     for key in target_components:
                         target_components[key] += float(verify_resp.get(key, 0.0))
+                    io_stall.add(verify_resp, allow_unmarked=True)
                     sum_transport_rtt_ms += last_transport_rtt * 1000.0
                     sum_push_ms += push_s * 1000.0
                     sum_pull_ms += pull_s * 1000.0
@@ -2436,7 +2598,7 @@ class EdgeRunner(Decoding):
                                 2,
                             )
                         break
-                    if self._is_degenerate_repeat(prefix, input_ids.shape[1]):
+                    if not getattr(self.args, "specedge_comparison", False) and self._is_degenerate_repeat(prefix, input_ids.shape[1]):
                         self.color_print(
                             f"[VERIFY-EDGE-STOP][pid={proc_id}][session={session_id}] reason=degenerate_repeat",
                             2,
@@ -2490,6 +2652,7 @@ class EdgeRunner(Decoding):
                     for key in ("request_bytes", "response_bytes", "rpc_count",
                                 "retry_count", "replayed_count")
                 }
+                session_released = self._release_target_session(client, session_id)
 
                 generated_text = tokenizer.decode(
                     prefix[0, input_ids.shape[1]:], skip_special_tokens=True
@@ -2510,27 +2673,28 @@ class EdgeRunner(Decoding):
                 self.color_print(f"[Edge {proc_id}] task {task_id} output:\n{generated_text}", 2)
 
                 generated_tokens = int(prefix.shape[1] - input_ids.shape[1])
+                input_ids_hash = sample.get("input_ids_sha256")
+                if getattr(self.args, "specedge_comparison", False):
+                    from src.evaluation import token_ids_hash
+
+                    input_ids_hash = token_ids_hash(input_ids[0].tolist())
                 request_e2e_ms = elapsed_ms(request_start, completion_time)
                 task_e2e_ms = request_e2e_ms
                 decode_e2e_ms = elapsed_ms(decode_start, completion_time)
-                ttft_value = (
-                    elapsed_ms(request_start, first_token_time)
-                    if first_token_time is not None
-                    else None
+                ttft_value, tpot_value, ttft_fallback = request_latency(
+                    request_e2e_ms,
+                    elapsed_ms(request_start, first_token_time) if first_token_time is not None else None,
+                    generated_tokens,
                 )
                 decode_ttft_value = (
                     elapsed_ms(decode_start, first_token_time)
                     if first_token_time is not None
                     else None
                 )
-                tpot_value = (
-                    tpot_ms(first_token_time, completion_time, generated_tokens)
-                    if first_token_time is not None
-                    else None
-                )
                 completion_s = completion_time - processing_origin
                 per_task = {
                     "task_id": task_id,
+                    "target_session_released": session_released,
                     "proc_id": int(proc_id),
                     "profile": self.args.profile,
                     "server_sched_mode": self.args.server_sched_mode,
@@ -2547,7 +2711,17 @@ class EdgeRunner(Decoding):
                     "generated_tokens": generated_tokens,
                     "input_token_count": int(input_ids.shape[1]),
                     "prompt_sha256": sample.get("prompt_sha256"),
-                    "input_ids_sha256": sample.get("input_ids_sha256"),
+                    "input_ids_sha256": input_ids_hash,
+                    "max_tokens": int(self.args.max_tokens),
+                    "temperature": self.args.temp,
+                    "top_p": self.args.top_p,
+                    "top_k": self.args.top_k,
+                    "seed": self.args.seed,
+                    "stop_policy": self.args.stop_policy,
+                    "client_count": self.args.num_drafts,
+                    "arrival_distribution": self.args.arrival_distribution,
+                    "arrival_rate": self.args.arrival_rate,
+                    "arrival_seed": self.args.arrival_seed,
                     "canonical_inputs": bool(getattr(self.args, "canonical_inputs", False)),
                     "tokenizer_model": getattr(self.args, "canonical_tokenizer_model", self.args.draft_model),
                     "eos_token_ids": getattr(self.args, "eos_token_ids", [tokenizer.eos_token_id]),
@@ -2587,13 +2761,15 @@ class EdgeRunner(Decoding):
                     "e2e_ms": request_e2e_ms,
                     "decode_e2e_ms": decode_e2e_ms,
                     **target_components,
+                    **io_stall.fields(),
                     "ttft_ms": ttft_value,
+                    "ttft_fallback_to_e2e": ttft_fallback,
                     "decode_ttft_ms": decode_ttft_value,
                     "tpot_ms": tpot_value,
                     "completion_s": completion_s,
                     "task_e2e_ms": task_e2e_ms,
                     "tok_per_s_task": float(generated_tokens / (task_e2e_ms / 1000.0)) if task_e2e_ms > 0 else 0.0,
-                    "throughput_tok_s": float(generated_tokens / (request_e2e_ms / 1000.0)) if request_e2e_ms > 0 else 0.0,
+                    "request_throughput_tok_s": float(generated_tokens / (request_e2e_ms / 1000.0)) if request_e2e_ms > 0 else None,
                     "rounds": int(rounds),
                     "avg_round_ms": float(sum_round_ms / rounds) if rounds > 0 else 0.0,
                     "avg_draft_ms": float(sum_draft_ms / rounds) if rounds > 0 else 0.0,
@@ -2608,6 +2784,8 @@ class EdgeRunner(Decoding):
                     "accepted_total": int(accepted_total),
                     "drafted_total": int(drafted_total),
                     "accept_rate": float(accepted_total / drafted_total) if drafted_total > 0 else 0.0,
+                    "accept_length": float(accepted_total / rounds) if rounds > 0 else 0.0,
+                    "verify_steps": int(rounds),
                     "mean_accepted_tokens_per_verify": (
                         float(accepted_total / rounds) if rounds > 0 else None
                     ),
@@ -2645,15 +2823,14 @@ class EdgeRunner(Decoding):
                 with open(self._metrics_path(proc_id), "a") as f:
                     f.write(json.dumps(per_task, ensure_ascii=True) + "\n")
             finally:
-                try:
-                    client.release_session(session_id)
-                except Exception as exc:
-                    self.color_print(f"[SESSION-RELEASE-FAILED] {session_id}: {exc}", 2)
+                if session_released is None:
+                    self._release_target_session(client, session_id)
 
 
 
 def parse_edge_arguments() -> argparse.Namespace:
     edge_parser = argparse.ArgumentParser(add_help=False)
+    edge_parser.add_argument("--specedge-comparison", dest="specedge_comparison", action="store_true")
     edge_parser.add_argument(
         "--case", type=str, default=os.environ.get("EDGE_CASE", "sd"),
     )
@@ -2682,6 +2859,11 @@ def parse_edge_arguments() -> argparse.Namespace:
     base_args.edge_gpu_start = edge_args.edge_gpu_start
     base_args.edge_gpus = edge_args.edge_gpus
     base_args.case = edge_args.case
+    base_args.specedge_comparison = edge_args.specedge_comparison
+    if base_args.specedge_comparison:
+        from baselines.specedge.integration.settings import check_comparison_sampling
+
+        check_comparison_sampling(base_args.temp, base_args.top_p, base_args.top_k, base_args.verify_method)
     # Edge is the formal canonical-request launcher.  Keep its default
     # unbounded even though legacy benchmark entrypoints retain their explicit
     # smoke cap from src.util.parse_arguments().

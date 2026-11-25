@@ -8,11 +8,94 @@ import random
 import re
 import statistics
 import os
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
 
 
 SCHEMA_VERSION = 1
+
+_IO_STALL_METRICS = ("io_stall_ms_total", "io_stall_count", "exposed_h2d_stall_ms")
+IO_STALL_NOT_APPLICABLE = {
+    "io_stall_ms_total": 0.0,
+    "io_stall_count": 0,
+    "exposed_h2d_stall_ms": 0.0,
+    "io_stall_available": False,
+    "io_stall_restore_count": 0,
+}
+
+
+def io_stall_fields(record: dict[str, Any], *, allow_unmarked: bool = False) -> dict[str, Any]:
+    """Normalize a request record; only live target responses can infer availability."""
+    complete = all(record.get(key) is not None for key in _IO_STALL_METRICS)
+    marker = record.get("io_stall_available", allow_unmarked)
+    available = complete and marker is True
+    preserve = complete and (available or record.get("io_stall_available") is False)
+    fields = {key: record.get(key) if preserve else None for key in _IO_STALL_METRICS}
+    restores = record.get("io_stall_restore_count")
+    fields["io_stall_restore_count"] = (
+        restores if restores is not None else fields["io_stall_count"]
+    ) if preserve else None
+    fields["io_stall_available"] = available
+    return fields
+
+
+@dataclass
+class IOStall:
+    """Accumulate restore waits across phases of one request."""
+
+    total_ms: float = 0.0
+    count: int = 0
+    exposed_h2d_ms: float = 0.0
+    restore_count: int = 0
+    available: bool = True
+
+    def record(self, milliseconds: float | None, *, restored: bool = False) -> None:
+        if milliseconds is None:
+            self.available = False
+            return
+        self.total_ms += milliseconds
+        self.exposed_h2d_ms += milliseconds
+        self.count += int(milliseconds > 0)
+        self.restore_count += int(restored or milliseconds > 0)
+
+    def add(self, record: dict[str, Any], *, allow_unmarked: bool = False) -> None:
+        fields = io_stall_fields(record, allow_unmarked=allow_unmarked)
+        if not fields["io_stall_available"]:
+            self.available = False
+            return
+        self.total_ms += fields["io_stall_ms_total"]
+        self.count += fields["io_stall_count"]
+        self.exposed_h2d_ms += fields["exposed_h2d_stall_ms"]
+        self.restore_count += fields["io_stall_restore_count"]
+
+    def fields(self) -> dict[str, Any]:
+        return {
+            "io_stall_ms_total": self.total_ms if self.available else None,
+            "io_stall_count": self.count if self.available else None,
+            "exposed_h2d_stall_ms": self.exposed_h2d_ms if self.available else None,
+            "io_stall_restore_count": self.restore_count if self.available else None,
+            "io_stall_available": self.available,
+        }
+
+    def summary(self) -> dict[str, float | int | None]:
+        return {
+            "total_ms": self.total_ms if self.available else None,
+            "count": self.count if self.available else None,
+            "avg_ms": self.total_ms / self.restore_count if self.available and self.restore_count else None,
+        }
+
+
+def summarize_io_stall(records: list[dict[str, Any]]) -> dict[str, float | int | None]:
+    measured = [record for record in records if record.get("io_stall_available") is True
+                and all(record.get(key) is not None for key in _IO_STALL_METRICS)]
+    stall = IOStall(available=bool(measured))
+    for record in measured:
+        stall.add(record)
+    return {"available_count": len(measured), "unavailable_count": len(records) - len(measured),
+            "restore_count": stall.restore_count if measured else None,
+            "exposed_h2d_stall_ms": stall.exposed_h2d_ms if measured else None,
+            **stall.summary()}
 
 # Default SLO tiers are deliberately explicit and overrideable.  Each metric
 # uses milliseconds, and a request passes a tier only when its observed value
@@ -56,6 +139,85 @@ def percentile(values: list[float], quantile: float) -> float | None:
 
 def _numeric(records: list[dict[str, Any]], key: str) -> list[float]:
     return [float(record[key]) for record in records if record.get(key) is not None]
+
+
+def _successful(record: dict[str, Any]) -> bool:
+    """Whether a request produced a completed result for system throughput."""
+
+    status = str(record.get("status", "ok")).lower()
+    value = record.get("success")
+    if value is not None:
+        return bool(value) and status not in {"error", "failed", "timeout"}
+    return status not in {"error", "failed", "timeout", "cancelled", "canceled"}
+
+
+def derive_measurement_window(records: Iterable[dict[str, Any]]) -> dict[str, Any]:
+    """Derive the common workload window without summing concurrent requests.
+
+    The preferred fields are workload-relative ``actual_arrival_s`` and
+    ``completion_s``.  Epoch and monotonic pairs are accepted only when every
+    record uses the same declared clock domain.  Missing or mixed domains are
+    reported as unavailable instead of manufacturing a duration from the sum
+    of request latencies.
+    """
+
+    rows = [dict(record) for record in records]
+    if not rows:
+        return {
+            "wallclock_s": None,
+            "status": "missing_records",
+            "definition": "common workload window from release/arrival to last completion",
+        }
+
+    domains = {
+        str(row["clock_domain"])
+        for row in rows
+        if row.get("clock_domain") not in (None, "")
+    }
+    if len(domains) > 1:
+        return {
+            "wallclock_s": None,
+            "status": "incompatible_clock_domains",
+            "clock_domains": sorted(domains),
+            "definition": "common workload window from release/arrival to last completion",
+        }
+
+    pairs = (
+        ("actual_arrival_s", "completion_s", "workload_relative_s"),
+        ("scheduled_arrival_s", "completion_s", "workload_relative_s"),
+        ("processing_start_s", "completion_s", "workload_relative_s"),
+        ("processing_start_epoch_s", "completion_epoch_s", "epoch_s"),
+        ("processing_start_monotonic_s", "completion_monotonic_s", "monotonic_s"),
+    )
+    for start_key, end_key, inferred_domain in pairs:
+        starts = _numeric(rows, start_key)
+        ends = _numeric(rows, end_key)
+        if not starts or not ends:
+            continue
+        start = min(starts)
+        end = max(ends)
+        duration = end - start
+        if not math.isfinite(duration) or duration < 0:
+            return {
+                "wallclock_s": None,
+                "status": "invalid_window",
+                "clock_domain": next(iter(domains), inferred_domain),
+                "definition": "common workload window from release/arrival to last completion",
+            }
+        return {
+            "wallclock_s": float(duration),
+            "status": "derived",
+            "clock_domain": next(iter(domains), inferred_domain),
+            "start": float(start),
+            "end": float(end),
+            "definition": "min release/arrival to max completion over the measured workload",
+        }
+    return {
+        "wallclock_s": None,
+        "status": "missing_window_timestamps",
+        "clock_domains": sorted(domains),
+        "definition": "common workload window from release/arrival to last completion",
+    }
 
 
 def _metric_stats(records: list[dict[str, Any]], key: str) -> dict[str, float | None]:
@@ -370,17 +532,30 @@ def paired_bootstrap_ci(
     }
 
 
-def _with_derived_throughput(records: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Copy records and expose per-request output throughput for paired analysis."""
+def _with_derived_request_throughput(records: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Copy records and expose explicitly named request output speed.
+
+    Older artifacts called this field ``throughput_tok_s``.  That name is now
+    reserved for run-level system throughput; the compatibility read below
+    keeps old JSONL usable without allowing it to masquerade as a system
+    metric in new reports.
+    """
 
     result: list[dict[str, Any]] = []
     for record in records:
         item = dict(record)
-        if item.get("throughput_tok_s") is None:
+        if item.get("request_throughput_tok_s") is None:
+            legacy = item.get("throughput_tok_s")
+            if legacy is not None:
+                try:
+                    item["request_throughput_tok_s"] = float(legacy)
+                except (TypeError, ValueError):
+                    pass
+        if item.get("request_throughput_tok_s") is None:
             e2e_ms = item.get("e2e_ms")
             generated = item.get("generated_tokens")
             if e2e_ms is not None and generated is not None and float(e2e_ms) > 0:
-                item["throughput_tok_s"] = float(generated) / (float(e2e_ms) / 1000.0)
+                item["request_throughput_tok_s"] = float(generated) / (float(e2e_ms) / 1000.0)
         result.append(item)
     return result
 
@@ -403,13 +578,13 @@ def paired_method_analysis(
     mean, which keeps the output dependency-free and auditable.
     """
 
-    left = _with_derived_throughput(method_records)
-    right = _with_derived_throughput(baseline_records)
+    left = _with_derived_request_throughput(method_records)
+    right = _with_derived_request_throughput(baseline_records)
     metric_directions = {
         "ttft_ms": "lower_is_better",
         "e2e_ms": "lower_is_better",
         "tpot_ms": "lower_is_better",
-        "throughput_tok_s": "higher_is_better",
+        "request_throughput_tok_s": "higher_is_better",
     }
     metrics: dict[str, Any] = {}
     for key, direction in metric_directions.items():
@@ -448,6 +623,19 @@ def paired_method_analysis(
             "improvement_ci95_pct": ci_pct,
             "direction": direction,
         }
+    # Keep the historical key as an explicit N/A compatibility entry.  A
+    # system throughput CI requires one value per run/repeat, not one value per
+    # request, so it must never be computed by this paired request bootstrap.
+    metrics["throughput_tok_s"] = {
+        "n": 0,
+        "mean_delta": None,
+        "ci95": None,
+        "baseline_mean": None,
+        "improvement_pct": None,
+        "improvement_ci95_pct": None,
+        "direction": "higher_is_better",
+        "status": "run_level_metric_requires_repeat_aggregation",
+    }
     return {
         "schema_version": SCHEMA_VERSION,
         "method": method,
@@ -468,6 +656,10 @@ def _resource_stats(records: list[dict[str, Any]]) -> dict[str, Any]:
         "rpc_count",
         "kv_copy_ms",
         "kv_copy_bytes",
+        "h2d_bytes",
+        "d2h_bytes",
+        "evictions",
+        "restores",
         "cpu_time_ms",
     )
     result: dict[str, Any] = {}
@@ -482,6 +674,122 @@ def _resource_stats(records: list[dict[str, Any]]) -> dict[str, Any]:
     return result
 
 
+_T_CRITICAL_95 = {
+    1: None,
+    2: 12.706,
+    3: 4.303,
+    4: 3.182,
+    5: 2.776,
+    6: 2.571,
+    7: 2.447,
+    8: 2.365,
+    9: 2.306,
+    10: 2.262,
+    11: 2.228,
+    12: 2.201,
+    13: 2.179,
+    14: 2.160,
+    15: 2.145,
+    16: 2.131,
+    17: 2.120,
+    18: 2.110,
+    19: 2.101,
+    20: 2.093,
+    21: 2.086,
+    22: 2.080,
+    23: 2.074,
+    24: 2.069,
+    25: 2.064,
+    26: 2.060,
+    27: 2.056,
+    28: 2.052,
+    29: 2.048,
+    30: 2.045,
+}
+
+
+def aggregate_repeat_summaries(
+    summaries: Iterable[dict[str, Any]],
+    *,
+    method: str | None = None,
+    dataset: str | None = None,
+    metrics: Iterable[str] = (
+        "throughput_tok_s",
+        "goodput_tok_s",
+        "goodput_req_s",
+        "ttft_ms",
+        "tpot_ms",
+        "e2e_ms",
+    ),
+) -> dict[str, Any]:
+    """Aggregate independent run summaries with run-level 95% intervals."""
+
+    rows = [dict(item) for item in summaries]
+    if method is not None:
+        rows = [item for item in rows if item.get("method") == method]
+    if dataset is not None:
+        rows = [item for item in rows if item.get("dataset") == dataset]
+    repeat_indices = []
+    for item in rows:
+        value = item.get("repeat_index")
+        if value is None and isinstance(item.get("topology"), dict):
+            value = item["topology"].get("repeat_index")
+        repeat_indices.append(None if value is None else int(value))
+    known_indices = [value for value in repeat_indices if value is not None]
+    if len(known_indices) != len(set(known_indices)):
+        raise ValueError("repeat_index must be unique within a run-level aggregation")
+    hashes = {str(item.get("workload_hash")) for item in rows if item.get("workload_hash")}
+    if len(hashes) > 1:
+        raise ValueError("workload_hash differs across repeats")
+
+    def scalar(item: dict[str, Any], key: str) -> float | None:
+        value = item.get(key)
+        if isinstance(value, dict):
+            value = value.get("avg", value.get("mean"))
+        try:
+            value = float(value)
+        except (TypeError, ValueError, OverflowError):
+            return None
+        return value if math.isfinite(value) else None
+
+    def stats(values: list[float]) -> dict[str, Any]:
+        if not values:
+            return {"n": 0, "mean": None, "median": None, "std": None, "ci95": None, "iqr": None}
+        mean = statistics.mean(values)
+        median = statistics.median(values)
+        if len(values) < 2:
+            std = 0.0
+            interval = [mean, mean]
+        else:
+            std = statistics.stdev(values)
+            critical = _T_CRITICAL_95.get(len(values), 1.96)
+            half = critical * std / math.sqrt(len(values))
+            interval = [mean - half, mean + half]
+        return {
+            "n": len(values),
+            "mean": mean,
+            "median": median,
+            "std": std,
+            "ci95": interval,
+            "iqr": [percentile(values, 0.25), percentile(values, 0.75)],
+        }
+
+    metric_rows = {
+        key: stats([value for item in rows if (value := scalar(item, key)) is not None])
+        for key in metrics
+    }
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "method": method if method is not None else (rows[0].get("method") if rows else None),
+        "dataset": dataset if dataset is not None else (rows[0].get("dataset") if rows else None),
+        "workload_hash": next(iter(hashes), None),
+        "repeat_count": len(rows),
+        "repeat_indices": known_indices,
+        "metrics": metric_rows,
+        "ci_definition": "95% two-sided t interval across independent run summaries; median/IQR also reported",
+    }
+
+
 def _last_number(value: Any) -> str | None:
     matches = re.findall(r"[-+]?\d+(?:\.\d+)?", str(value).replace(",", ""))
     return matches[-1] if matches else None
@@ -493,6 +801,12 @@ def exact_match_quality(records: list[dict[str, Any]], dataset: str) -> float | 
     scored = 0
     correct = 0
     for record in records:
+        if "numeric_exact_match" in record:
+            value = record["numeric_exact_match"]
+            if value is not None:
+                scored += 1
+                correct += int(value)
+            continue
         if record.get("reference") is None:
             continue
         predicted = _last_number(record.get("output_text"))
@@ -506,7 +820,7 @@ def exact_match_quality(records: list[dict[str, Any]], dataset: str) -> float | 
 
 def pass_at_1_quality(records: list[dict[str, Any]], dataset: str) -> float | None:
     """Use explicit isolated-executor evidence when available; never guess."""
-    if dataset != "humaneval":
+    if dataset not in {"humaneval", "mbpp"}:
         return None
     values = []
     for record in records:
@@ -541,6 +855,9 @@ def summarize_requests(
     evaluation_scope: str = "quality",
     paired_records: Iterable[dict[str, Any]] | None = None,
     slo_thresholds: dict[str, dict[str, float]] | None = None,
+    track: str | None = None,
+    concurrency: int | None = None,
+    arrival_distribution: str | None = None,
     extra: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     request_records = list(records)
@@ -555,22 +872,31 @@ def summarize_requests(
             scheduled_ttft = float(record["ttft_ms"]) + float(record["arrival_lag_ms"])
         if scheduled_ttft is not None:
             scheduled_ttft_records.append({"scheduled_ttft_ms": scheduled_ttft})
-    generated = sum(int(record.get("generated_tokens", 0)) for record in request_records)
+    attempted_tokens = sum(int(record.get("generated_tokens", 0)) for record in request_records)
+    successful_records = [record for record in request_records if _successful(record)]
+    generated = sum(int(record.get("generated_tokens", 0)) for record in successful_records)
+    window = derive_measurement_window(request_records)
     if wallclock_s is None:
-        completions = _numeric(request_records, "completion_s")
-        arrivals = _numeric(request_records, "actual_arrival_s")
-        if completions and arrivals:
-            wallclock_s = max(completions) - min(arrivals)
-        else:
-            wallclock_s = sum(_numeric(request_records, "e2e_ms")) / 1000.0
+        wallclock_s = window.get("wallclock_s")
+    elif wallclock_s < 0 or not math.isfinite(float(wallclock_s)):
+        raise ValueError("wallclock_s must be a finite non-negative duration")
+    latency_track = str(track or "").lower() == "latency"
+    suppress_system_throughput = latency_track
 
     accepted_per_verify = _numeric(request_records, "mean_accepted_tokens_per_verify")
-    successful_records = [
-        record
-        for record in request_records
-        if record.get("success", record.get("status", "ok") not in {"error", "failed"})
-    ]
+    accepted_lengths = _numeric(request_records, "accept_length") or accepted_per_verify
+    total_verify_steps = sum(int(record.get("verify_steps") or 0) for record in request_records)
     successful_tokens = sum(int(record.get("generated_tokens", 0)) for record in successful_records)
+    throughput = (
+        generated / float(wallclock_s)
+        if wallclock_s is not None and wallclock_s > 0 and not suppress_system_throughput
+        else None
+    )
+    attempted_throughput = (
+        attempted_tokens / float(wallclock_s)
+        if wallclock_s is not None and wallclock_s > 0 and not suppress_system_throughput
+        else None
+    )
     summary = {
         "schema_version": SCHEMA_VERSION,
         "run_id": run_id,
@@ -580,15 +906,27 @@ def summarize_requests(
         "num_requests": len(request_records),
         "num_successful_requests": len(successful_records),
         "evaluation_scope": evaluation_scope,
+        "track": track,
+        "concurrency": concurrency,
+        "arrival_distribution": arrival_distribution,
         "quality_claim": (
             "communication_smoke_only; max_new_tokens=16 is not a full quality evaluation"
             if evaluation_scope == "communication_smoke"
             else "quality metrics are reported for the configured workload"
         ),
         "total_generated_tokens": generated,
+        "successful_generated_tokens": generated,
+        "attempted_generated_tokens": attempted_tokens,
         "latency_basis": "request_processing_start",
-        "wallclock_s": float(wallclock_s or 0.0),
-        "throughput_tok_s": generated / wallclock_s if wallclock_s and wallclock_s > 0 else None,
+        "wallclock_s": float(wallclock_s) if wallclock_s is not None else None,
+        "measurement_window_s": float(wallclock_s) if wallclock_s is not None else None,
+        "measurement_window_status": "suppressed_for_latency_track" if suppress_system_throughput else (
+            "explicit" if wallclock_s is not None and window.get("status") != "derived" else window.get("status")
+        ),
+        "measurement_window_definition": window.get("definition"),
+        "clock_domain": window.get("clock_domain"),
+        "throughput_tok_s": throughput,
+        "attempted_throughput_tok_s": attempted_throughput,
         "goodput_req_s": (
             len(successful_records) / wallclock_s if wallclock_s and wallclock_s > 0 else None
         ),
@@ -596,10 +934,14 @@ def summarize_requests(
             successful_tokens / wallclock_s if wallclock_s and wallclock_s > 0 else None
         ),
         "ttft_ms": _metric_stats(request_records, "ttft_ms"),
+        "ttft_fallback_to_e2e": any(record.get("ttft_fallback_to_e2e", False) for record in request_records),
+        "ttft_fallback_to_e2e_count": sum(bool(record.get("ttft_fallback_to_e2e")) for record in request_records),
         "scheduled_ttft_ms": _metric_stats(scheduled_ttft_records, "scheduled_ttft_ms"),
         "arrival_lag_ms": _metric_stats(request_records, "arrival_lag_ms"),
         "tpot_ms": _metric_stats(request_records, "tpot_ms"),
         "e2e_ms": _metric_stats(request_records, "e2e_ms"),
+        "queue_wait_ms": _metric_stats(request_records, "queue_wait_ms"),
+        "io_stall": summarize_io_stall(request_records),
         "accept_rate": (
             sum(int(record.get("accepted_tokens", 0)) for record in request_records)
             / sum(int(record.get("drafted_tokens", 0)) for record in request_records)
@@ -609,29 +951,41 @@ def summarize_requests(
         "mean_accepted_tokens_per_verify": (
             statistics.mean(accepted_per_verify) if accepted_per_verify else None
         ),
+        "accept_length": (
+            sum(int(record.get("accepted_tokens") or 0) for record in request_records) / total_verify_steps
+            if total_verify_steps else (statistics.mean(accepted_lengths) if accepted_lengths else None)
+        ),
         "quality_exact_match": exact_match_quality(request_records, dataset),
         "quality_pass_at_1": pass_at_1_quality(request_records, dataset),
-        "humaneval_pass_at_1": pass_at_1_quality(request_records, dataset),
+        "humaneval_pass_at_1": pass_at_1_quality(request_records, dataset) if dataset == "humaneval" else None,
         "mt_bench_judge_score": mt_bench_judge_quality(request_records, dataset),
         "quality_metric": (
             "numeric_answer_accuracy" if dataset in {"gsm8k", "mgsm"}
-            else "pass@1" if dataset == "humaneval"
+            else "pass@1" if dataset in {"humaneval", "mbpp"}
             else "judge_score" if dataset == "mt_bench"
             else "unset"
         ),
         "metric_definitions": {
             "ttft_ms": (
                 "CPU worker request processing start before session/input preparation to first "
-                "visible output token; excludes scheduled wait and previous-request queue"
+                "visible output token; includes target queue wait, excludes scheduled arrival wait "
+                "and waiting for the same edge worker to finish its previous request"
             ),
             "e2e_ms": "same CPU worker request processing start as TTFT to request completion",
             "scheduled_ttft_ms": "diagnostic only: scheduled workload release to first output token, including arrival lag",
             "arrival_lag_ms": "diagnostic only: delay from scheduled release to worker processing start",
             "tpot_ms": "post-first-output generation time divided by remaining output tokens",
-            "request_throughput_tok_s": "request generated output tokens divided by processing-start E2E seconds",
-            "throughput_tok_s": "all generated output tokens divided by measured run wallclock, retaining scheduled load gaps",
-            "goodput_req_s": "successful completed requests divided by measured run wallclock",
-            "goodput_tok_s": "tokens from successful completed requests divided by measured run wallclock",
+            "queue_wait_ms": "AR request enqueue to dequeue on the target host; already included in edge TTFT",
+            "io_stall": (
+                "time target computation is blocked waiting for a required KV restore, "
+                "from instrumented requests only; count is blocking restores and the average uses all "
+                "consumed restores, including fully covered prefetches as zero"
+            ),
+            "request_throughput_tok_s": "request generated output tokens divided by processing-start E2E seconds; a latency secondary metric",
+            "throughput_tok_s": "successful completed output tokens divided by the common workload window; unavailable on the latency track",
+            "attempted_throughput_tok_s": "all generated tokens, including failed/partial attempts, divided by the common workload window",
+            "goodput_req_s": "successful completed requests divided by measured run wallclock; SLO-qualified goodput is reported under slo",
+            "goodput_tok_s": "tokens from successful completed requests divided by measured run wallclock; SLO-qualified goodput is reported under slo",
             "request_bytes": (
                 "serialized application-layer HTTP JSON body or protobuf request ByteSize; "
                 "excludes HTTP/gRPC framing, TCP/IP, and SSH encapsulation"

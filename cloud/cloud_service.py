@@ -13,11 +13,13 @@ from typing import Dict, Optional
 
 import torch
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from src.engine import Decoding
+from src.common_metrics import io_stall_fields
 from src.util import parse_arguments
 from src.request_validation import canonicalize_request
 from src.idempotency import IdempotencyCache, IdempotencyConflict
@@ -38,6 +40,7 @@ _enable_latency_priority: bool = True
 
 # FastAPI 请求等待表
 _pending: Dict[str, asyncio.Future] = {}
+_pending_first_tokens: Dict[str, asyncio.Future] = {}
 _pending_sessions: Dict[str, str] = {}
 _pending_meta: Dict[str, str] = {}
 _pending_task_ids: Dict[str, str] = {}
@@ -392,6 +395,24 @@ def _start_worker(args, req_q: mp.Queue, resp_q: mp.Queue) -> mp.Process:
     return proc
 
 
+def _dispatch_worker_result(message: dict) -> None:
+    response_key = message.get("request_id")
+    payload = message.get("payload", {})
+    with _pending_lock:
+        if payload.get("event") == "ar_first_token":
+            future = _pending_first_tokens.pop(response_key, None)
+        else:
+            future = _pending.get(response_key)
+            session_id = _pending_meta.get(response_key)
+            _drop_pending_locked(response_key, session_id)
+    if future is not None and not future.done():
+        def deliver():
+            if not future.done():
+                future.set_result(payload)
+
+        future.get_loop().call_soon_threadsafe(deliver)
+
+
 def _start_result_dispatcher(loop: asyncio.AbstractEventLoop) -> None:
     """
     后台线程：
@@ -412,6 +433,7 @@ def _start_result_dispatcher(loop: asyncio.AbstractEventLoop) -> None:
                     with _pending_lock:
                         pending = list(_pending.values())
                         _pending.clear()
+                        _pending_first_tokens.clear()
                         _pending_meta.clear()
                         _pending_sessions.clear()
                         _pending_task_ids.clear()
@@ -424,17 +446,7 @@ def _start_result_dispatcher(loop: asyncio.AbstractEventLoop) -> None:
                                 RuntimeError("target worker exited before returning a response"),
                             )
                 continue
-            req_id = msg.get("request_id")
-            payload = msg.get("payload", {})
-            with _pending_lock:
-                fut = _pending.pop(req_id, None)
-                session_id = _pending_meta.pop(req_id, None)
-                if session_id is not None:
-                    _pending_task_ids.pop(session_id, None)
-                if session_id is not None and _pending_sessions.get(session_id) == req_id:
-                    _pending_sessions.pop(session_id, None)
-            if fut is not None and not fut.done():
-                loop.call_soon_threadsafe(fut.set_result, payload)
+            _dispatch_worker_result(msg)
 
     t = threading.Thread(target=_run, daemon=True)
     t.start()
@@ -506,11 +518,14 @@ async def session_init(req: Optional[SessionInitRequest] = None) -> dict:
     return {"session_id": uuid.uuid4().hex}
 
 
-def _drop_pending_locked(response_key: str, req_id: str) -> None:
+def _drop_pending_locked(response_key: str, req_id: str | None) -> None:
     """Remove one request registration; caller holds ``_pending_lock``."""
 
     _pending.pop(response_key, None)
+    _pending_first_tokens.pop(response_key, None)
     _pending_meta.pop(response_key, None)
+    if req_id is None:
+        return
     _pending_task_ids.pop(req_id, None)
     if _pending_sessions.get(req_id) == response_key:
         _pending_sessions.pop(req_id, None)
@@ -533,24 +548,54 @@ async def session_release(req: SessionReleaseRequest) -> dict:
     return {"session_id": req.session_id, **result}
 
 
-@app.post("/generate")
-@idempotent("/generate")
-async def generate(req: GenerateRequest) -> dict:
-    """Direct target-only AR generation endpoint."""
+def _ar_request(req: GenerateRequest) -> dict:
     if os.environ.get("FASTSD_TARGET_MODE", "speculative").lower() != "ar":
         raise HTTPException(status_code=404, detail="target-only AR mode is disabled")
     if not req.prompt:
         raise HTTPException(status_code=422, detail="prompt must not be empty")
-    result = await _enqueue_and_wait({
+    return {
         "task_type": "ar",
         "prompt": req.prompt,
         "max_tokens": int(req.max_tokens),
         "task_id": req.task_id,
-    }, req.session_id or req.task_id)
+    }
+
+
+@app.post("/generate")
+@idempotent("/generate")
+async def generate(req: GenerateRequest) -> dict:
+    """Direct target-only AR generation endpoint."""
+    result = await _enqueue_and_wait(_ar_request(req), req.session_id or req.task_id)
     return {"task_id": req.task_id, **result}
 
 
-async def _enqueue_and_wait(request_dict: dict, req_id: str) -> dict:
+@app.post("/generate/stream")
+async def generate_stream(req: GenerateRequest) -> StreamingResponse:
+    request = _ar_request(req)
+
+    async def events():
+        first_token = asyncio.get_running_loop().create_future()
+        completion = asyncio.create_task(_enqueue_and_wait(
+            request, req.session_id or req.task_id, first_token=first_token))
+        try:
+            await asyncio.wait((first_token, completion), return_when=asyncio.FIRST_COMPLETED)
+            if first_token.done():
+                yield json.dumps(first_token.result()) + "\n"
+            result = await completion
+        except HTTPException as exc:
+            result = {"status": "error", "success": False, "error": exc.detail}
+        finally:
+            first_token.cancel()
+            if not completion.done():
+                completion.cancel()
+                await asyncio.gather(completion, return_exceptions=True)
+        yield json.dumps({"event": "done", "result": result}) + "\n"
+
+    return StreamingResponse(events(), media_type="application/x-ndjson",
+                             headers={"Cache-Control": "no-transform", "X-Accel-Buffering": "no"})
+
+
+async def _enqueue_and_wait(request_dict: dict, req_id: str, *, first_token=None) -> dict:
     if request_queue is None:
         return {"error": "queues_not_initialized"}
     if worker_proc is not None and not worker_proc.is_alive():
@@ -580,12 +625,17 @@ async def _enqueue_and_wait(request_dict: dict, req_id: str) -> dict:
             if old_future is not None and not old_future.done():
                 old_future.set_result({"error": "session released"})
         _pending[response_key] = fut
+        if first_token is not None:
+            _pending_first_tokens[response_key] = first_token
+            request_dict["stream_first_token"] = True
         _pending_sessions[req_id] = response_key
         _pending_meta[response_key] = req_id
         _pending_task_ids[req_id] = str(request_dict.get("task_id", ""))
         try:
             request_dict["_diag_http_queue_mono_ns"] = time.monotonic_ns()
             DIAG.emit("http_enqueue", **diag_req(request_dict))
+            if request_dict.get("task_type") == "ar":
+                request_dict["_ar_enqueued_monotonic_ns"] = time.monotonic_ns()
             request_queue.put(request_dict)
         except BaseException as exc:
             _drop_pending_locked(response_key, req_id)
@@ -602,12 +652,14 @@ async def _enqueue_and_wait(request_dict: dict, req_id: str) -> dict:
     except asyncio.TimeoutError as exc:
         with _pending_lock:
             _drop_pending_locked(response_key, req_id)
-            _release_abandoned_session(req_id)
+            if request_dict.get("task_type") != "ar":
+                _release_abandoned_session(req_id)
         raise HTTPException(status_code=504, detail="target request timed out; session released") from exc
     except BaseException:
         with _pending_lock:
             _drop_pending_locked(response_key, req_id)
-            _release_abandoned_session(req_id)
+            if request_dict.get("task_type") != "ar":
+                _release_abandoned_session(req_id)
         raise
 
 
@@ -735,9 +787,10 @@ async def prefill(req: PrefillRequest) -> dict:
         out = {"session_id": req_id, "status": resp["status"]}
     else:
         out = {"session_id": req_id, "status": "prefill_ok"}
-    for metric in ("forward_gpu_ms", "exposed_h2d_stall_ms", "batch_start_delay_ms"):
+    for metric in ("forward_gpu_ms", "batch_start_delay_ms"):
         if metric in resp:
             out[metric] = float(resp[metric])
+    out.update(io_stall_fields(resp, allow_unmarked=True))
     timing = _prefill_timing_updates.pop(req_id, {})
     if arrival_recorded:
         with _pending_lock:
@@ -967,9 +1020,10 @@ async def verify(req: VerifyRequest) -> dict:
         out["verify_ms"] = float(resp["verify_ms"])
     if resp.get("verify_gpu_ms") is not None:
         out["verify_gpu_ms"] = float(resp["verify_gpu_ms"])
-    for metric in ("forward_gpu_ms", "exposed_h2d_stall_ms", "batch_start_delay_ms", "expected_progress"):
+    for metric in ("forward_gpu_ms", "batch_start_delay_ms", "expected_progress"):
         if metric in resp:
             out[metric] = float(resp[metric])
+    out.update(io_stall_fields(resp, allow_unmarked=True))
     if "suggested_gamma" in resp:
         out["suggested_gamma"] = int(resp["suggested_gamma"])
     out["cloud_send_time_ns"] = time.time_ns()

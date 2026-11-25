@@ -435,7 +435,7 @@ def parse_arguments():
     parser.add_argument("--kv_transfer_gbps", type=float, default=10.0,
                         help="initial exposed-transfer cost estimate; calibrate for the host")
     parser.add_argument("--kv_prefetch", action=argparse.BooleanOptionalAction, default=True)
-    parser.add_argument("--kv_prefetch_implementation", choices=("h1", "direct", "legacy"),
+    parser.add_argument("--kv_prefetch_implementation", choices=("h1", "legacy"),
                         default=os.environ.get("KV_PREFETCH_IMPLEMENTATION", "h1"),
                         help="h1: one completed next-verify candidate, no arena or pending-copy waits; "
                              "legacy: ticket/coordinator/arena fallback")
@@ -488,6 +488,8 @@ def parse_arguments():
                         help="paired-replay calibration JSON; unknown contexts pause compute-window DMA")
     parser.add_argument("--gamma_policy", choices=("legacy", "progress"), default="progress")
     args = parser.parse_args()
+    if args.kv_prefetch_implementation not in {"h1", "legacy"}:
+        parser.error("--kv_prefetch_implementation must be h1 or legacy")
     if args.arrival_distribution == "poisson" and args.arrival_rate <= 0:
         parser.error("--arrival_rate must be positive for Poisson arrivals")
     if args.batch_size <= 0:

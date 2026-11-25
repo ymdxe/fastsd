@@ -60,6 +60,18 @@ class InvalidTransition(RuntimeError):
     """Raised when a caller tries to move a record along a missing edge."""
 
 
+def resident_kv_bytes(cache, *, valid_bytes: int, bytes_per_token: int) -> int:
+    """Return the bytes occupied by valid KV tokens.
+
+    Varlen buffers may be larger than the current sequence, but unused
+    capacity is not part of residency accounting.  The cache and token-size
+    arguments remain part of this helper's API for callers that share it with
+    transfer accounting.
+    """
+    del cache, bytes_per_token
+    return max(0, int(valid_bytes))
+
+
 @dataclass
 class SessionRecord:
     """One live target session's cache ownership and placement."""
@@ -81,6 +93,11 @@ class SessionRecord:
     in_transfer: bool = False
     gpu_cache: object = None
     cpu_cache: object = None
+
+    @property
+    def gpu_nbytes(self) -> int:
+        return resident_kv_bytes(self.gpu_cache, valid_bytes=self.nbytes,
+                                 bytes_per_token=self.bytes_per_token)
 
     def protected(self, tick: int) -> bool:
         return self.planned_tick >= tick or self.in_transfer
@@ -318,7 +335,7 @@ class ResidencyManager:
         with self.lock:
             if not self.active:
                 return 0
-            return sum(r.nbytes for r in self.records.values()
+            return sum(r.gpu_nbytes for r in self.records.values()
                        if r.state in (GPU_RESIDENT, EVICTION_PENDING, RESTORE_PENDING))
 
     def high_watermark_bytes(self) -> int:
@@ -410,7 +427,7 @@ class ResidencyManager:
             candidates = [
                 r for r in self.records.values()
                 if r.state == GPU_RESIDENT and not r.in_transfer
-                and r.nbytes > 0 and r.pid not in excluded and not r.protected(tick)
+                and r.gpu_nbytes > 0 and r.pid not in excluded and not r.protected(tick)
             ]
             if self.victim_policy == "lru":
                 candidates.sort(key=lambda r: (r.last_used_tick, r.last_used_time))
@@ -429,7 +446,7 @@ class ResidencyManager:
             if total >= needed_bytes:
                 break
             chosen.append(pid)
-            total += self.records[pid].nbytes
+            total += self.records[pid].gpu_nbytes
         return chosen
 
     # -- reporting -------------------------------------------------------

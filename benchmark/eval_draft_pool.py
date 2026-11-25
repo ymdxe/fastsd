@@ -25,7 +25,7 @@ except ImportError:  # pragma: no cover - optional for non-GPTQ runs
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
-from src.common_metrics import summarize_requests, write_json
+from src.common_metrics import IO_STALL_NOT_APPLICABLE, summarize_requests, write_json
 from src.evaluation import load_canonical_jsonl
 from src.run_artifacts import append_command, append_status, write_text_once
 from src.runtime import configure_torch_threads, resolve_dtype, synchronize
@@ -214,6 +214,7 @@ def _worker(
                 "worker_idx": worker_idx,
                 "dataset": record["dataset"],
                 "method": "draft_only",
+                **IO_STALL_NOT_APPLICABLE,
                 "workload_hash": workload_hash,
                 "scheduled_arrival_s": scheduled,
                 "actual_arrival_s": actual_arrival,
@@ -226,7 +227,7 @@ def _worker(
                 "tpot_ms": float(model_metrics["tpot_ms"]),
                 "e2e_ms": request_e2e_ms,
                 "request_e2e_ms": request_e2e_ms,
-                "throughput_tok_s": (
+                "request_throughput_tok_s": (
                     int(model_metrics["generated_tokens"]) / (request_e2e_ms / 1000.0)
                     if request_e2e_ms > 0 else None
                 ),
@@ -320,6 +321,9 @@ def run(config_path: str) -> int:
         dataset=config["dataset"]["name"],
         workload_hash=manifest["workload_hash"],
         run_id=config["run_id"],
+        track=config["topology"].get("track"),
+        concurrency=config["topology"].get("concurrency"),
+        arrival_distribution=config["dataset"].get("arrival_distribution"),
         evaluation_scope=(
             "communication_smoke"
             if int(config["generation"].get("max_new_tokens", 0)) <= 16
@@ -331,6 +335,7 @@ def run(config_path: str) -> int:
             "draft_threads": threads,
             "warmup_requests_per_worker": int(config["topology"].get("warmup_requests", 0)),
             "warmup_included_in_metrics": False,
+            "repeat_index": config["topology"].get("repeat_index", 0),
         },
     )
     write_json(summary, output_dir / "common_summary.json")

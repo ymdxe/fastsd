@@ -1,0 +1,62 @@
+{
+  "run_id": "qwen3_8b_06b_humaneval_draft4",
+  "specedge_comparison": true,
+  "repo_path_linux": "/srv/FastSD/new_fastsd",
+  "execution": {
+    "node2_target_python": "/srv/fastsd-venv/bin/python",
+    "node3_edge_python": "/srv/fastsd-venv/bin/python",
+    "node2_specedge_python": "/srv/specedge-adapted-venv/bin/python",
+    "node3_specedge_python": "/srv/specedge-adapted-venv/bin/python"
+  },
+  "dataset": {
+    "name": "humaneval",
+    "data_path": "data",
+    "max_requests": -1,
+    "arrival_distribution": "poisson",
+    "arrival_rate_rps": 1.6,
+    "arrival_seed": 42
+  },
+  "models": {
+    "target": "/models/Qwen3-8B",
+    "draft": "/models/Qwen3-0.6B",
+    "tokenizer": "/models/Qwen3-8B",
+    "draft_tokenizer": "/models/Qwen3-0.6B"
+  },
+  "generation": {
+    "max_new_tokens": 512,
+    "temperature": 0.7,
+    "top_p": 0.8,
+    "top_k": 0,
+    "seed": 42,
+    "gamma": 4,
+    "target_dtype": "float16",
+    "verify_method": "rejection",
+    "stop_policy": "eos"
+  },
+  "topology": {
+    "instances": 128,
+    "concurrency": 128,
+    "batch_size": 4,
+    "token_budget": 512,
+    "draft_threads": 2,
+    "specedge_draft_device": "cpu",
+    "specedge_target_device": "cuda:0",
+    "standard_sd_target_device": "cuda:0",
+    "specedge_host": "node2:18000",
+    "specedge_bind_host": "0.0.0.0",
+    "target_host": "node2",
+    "target_bind_host": "0.0.0.0",
+    "fastsd_kv_budget_gb": 6
+  },
+  "specedge": {
+    "target_dtype": "fp16",
+    "draft_dtype": "fp32",
+    "draft_structure": "single_chain",
+    "draft_tokens": 4,
+    "max_len": 2048,
+    "batch_size": 4,
+    "gpu_slots": 8,
+    "reserve_bytes": 2147483648,
+    "allow_memory_clamp": false
+  }
+}

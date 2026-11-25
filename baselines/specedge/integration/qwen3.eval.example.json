@@ -1,0 +1,53 @@
+{
+  "run_id": "qwen3_8b_06b_specedge_smoke",
+  "repo_path_linux": "/srv/FastSD/new_fastsd",
+  "execution": {
+    "node2_specedge_python": "/srv/specedge-venv/bin/python",
+    "node3_specedge_python": "/srv/specedge-venv/bin/python"
+  },
+  "dataset": {
+    "name": "gsm8k",
+    "data_path": "data",
+    "max_requests": 8,
+    "arrival_distribution": "immediate",
+    "arrival_rate_rps": 1,
+    "arrival_seed": 42
+  },
+  "models": {
+    "target": "/models/Qwen3-8B",
+    "draft": "/models/Qwen3-0.6B",
+    "tokenizer": "/models/Qwen3-8B",
+    "draft_tokenizer": "/models/Qwen3-0.6B"
+  },
+  "generation": {
+    "max_new_tokens": 16,
+    "temperature": 0,
+    "top_p": 1,
+    "top_k": 0,
+    "seed": 42,
+    "gamma": 4,
+    "target_dtype": "bfloat16",
+    "verify_method": "greedy"
+  },
+  "topology": {
+    "instances": 1,
+    "concurrency": 1,
+    "specedge_draft_devices": ["cpu"],
+    "specedge_host": "127.0.0.1:18000",
+    "specedge_bind_host": "127.0.0.1",
+    "specedge_port": 18000,
+    "target_port": 18001,
+    "draft_threads": 8
+  },
+  "specedge": {
+    "target_devices": ["cuda:0"],
+    "target_dtype": "bf16",
+    "draft_dtype": "fp32",
+    "draft_structure": "single_chain",
+    "max_len": 2048,
+    "batch_size": 1,
+    "reserve_bytes": 2147483648,
+    "allow_memory_clamp": false,
+    "offload": false
+  }
+}

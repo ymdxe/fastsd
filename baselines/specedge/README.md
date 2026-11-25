@@ -23,12 +23,13 @@ https://github.com/kaist-ina/specedge.git
 `CPUCompatibleSpecEdgeEngine` 和 CPU-safe timing boundary；它复用官方模型、KV cache、
 Tree、SpecExec 和 proactive draft 调用协议，不构造一次性 `/generate` worker。网络侧的
 `integration/wire_codec.py` 显式负责 bf16 mask 的 uint16 raw-byte cast，目标端仍使用官方
-gRPC 服务。该路径的结果名称固定为 `specedge_cpu_adapted`，不应写成 untouched official
-SpecEdge。
+gRPC 服务。适配结果使用 `specedge_adapted` 或 `specedge_single_chain_adapted`，不可写成
+`specedge_official`。配置、运行命令、预算、TP2 和 offload 状态见
+[`integration/README.md`](integration/README.md)。
 
 最终实验的独立配置位于 `configs/final/`：Qwen3-8B/Qwen3-0.6B on A5000 24GB，以及
-Qwen3-32B/Qwen3-1.7B on A100 80GB。官方实现没有 TP，也不启用 offload；2×A6000 的
-32B 尝试只能记录 OOM/unsupported。服务器准备清单见
+Qwen3-32B/Qwen3-1.7B on A100 80GB。官方实现不含 TP 或 offload；适配层提供独立的
+Qwen3 双卡路径，但仍需在两张实卡上验证。服务器准备清单见
 [`docs/specedge_server_todo.md`](../../docs/specedge_server_todo.md)。
 
 ## 当前 Windows 本地状态
@@ -104,22 +105,19 @@ cd baselines/specedge/official
 uv sync
 ```
 
-把所选配置复制到官方目录并按实际主机名、SSH key、GPU 编号修改。例如：
-
-```bash
-cp ../configs/specedge_qwen3_14b_1.7b.yaml config/fastsd_specedge.yaml
-```
+按实际主机名、SSH key、GPU 编号修改 `official/` 之外的 YAML，并把
+`server.cache_prefill` 设为 `false`；不要修改官方目录。
 
 服务端：
 
 ```bash
-./script/batch_server.sh -f config/fastsd_specedge.yaml
+python ../integration/server.py --config ../configs/specedge_qwen3_14b_1.7b.yaml --port 8000
 ```
 
 边缘控制节点：
 
 ```bash
-./script/client_host.sh -f config/fastsd_specedge.yaml
+python ../integration/client_host.py --config ../configs/specedge_qwen3_14b_1.7b.yaml
 ```
 
 server-only 对照：

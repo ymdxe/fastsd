@@ -12,7 +12,7 @@ sys.path.append(os.path.join(sys.path[0], "../"))
 
 import torch
 
-from src.common_metrics import summarize_requests, write_json
+from src.common_metrics import IO_STALL_NOT_APPLICABLE, summarize_requests, write_json
 from src.engine import Decoding
 from src.evaluation import load_canonical_jsonl
 from src.util import parse_arguments, seed_everything
@@ -69,6 +69,7 @@ class UnifiedEvaluation(Decoding):
                     "sample_id": record["sample_id"],
                     "dataset": record["dataset"],
                     "method": method,
+                    **IO_STALL_NOT_APPLICABLE,
                     "workload_hash": self.args.workload_hash,
                     "scheduled_arrival_s": scheduled,
                     "actual_arrival_s": actual_arrival,
@@ -81,7 +82,7 @@ class UnifiedEvaluation(Decoding):
                     "tpot_ms": float(metrics["tpot_ms"]),
                     "e2e_ms": float(metrics["e2e_ms"]),
                     "request_e2e_ms": float(metrics["e2e_ms"]),
-                    "throughput_tok_s": (
+                    "request_throughput_tok_s": (
                         int(metrics["generated_tokens"]) / (float(metrics["e2e_ms"]) / 1000.0)
                         if metrics["e2e_ms"] > 0 else None
                     ),

@@ -928,7 +928,9 @@ class CacheTransferManager:
 
     def bind_to_consumer(self, ticket, *, compute_stream):
         started = ticket.demand_started_at or time.perf_counter()
-        if ticket.purpose == "prefetch" and ticket.claimed_by is None:
+        prefetch = ticket.purpose == "prefetch"
+        needs_host_submission = not prefetch or ticket.copy_done is None
+        if prefetch and ticket.claimed_by is None:
             ticket.claimed_by = "direct-consumer"
             ticket.demand_started_at = started
         self._advance(ticket, all_chunks=True)
@@ -941,10 +943,11 @@ class CacheTransferManager:
         with self.lock:
             for storage in lease._storage_leases:
                 storage.owners.add(("consumer", id(lease)))
-        if ticket.bytes_reserved:
-            lease.host_setup_ms = (time.perf_counter() - started) * 1000.0
+        copy_pending = ticket.copy_done is not None and not (prefetch and ticket.ready())
         if self.device.type == "cuda" and compute_stream is not None and ticket.direction == "h2d":
-            if ticket.copy_done is not None:
+            if ticket.bytes_reserved and needs_host_submission:
+                lease.host_setup_ms = (time.perf_counter() - started) * 1000.0
+            if copy_pending:
                 lease.wait_start = torch.cuda.Event(enable_timing=True)
                 lease.wait_end = torch.cuda.Event(enable_timing=True)
                 lease.wait_start.record(compute_stream)
@@ -953,8 +956,11 @@ class CacheTransferManager:
             for layer in lease.cache.to_legacy_cache():
                 for tensor in layer:
                     tensor.record_stream(compute_stream)
-        elif ticket.copy_done is not None:
-            ticket.copy_done.synchronize()
+        else:
+            if copy_pending:
+                ticket.copy_done.synchronize()
+            if ticket.bytes_reserved and (needs_host_submission or copy_pending):
+                lease.host_setup_ms = (time.perf_counter() - started) * 1000.0
         return lease
 
     def release_consumer(self, lease, *, compute_stream):

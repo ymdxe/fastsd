@@ -145,6 +145,10 @@ Draft 使用 `draft_top_k` 构建完整的稀疏支持集，并在该集合内�
 
 缓存驻留由 `cache_offload_policy.py` 和云端执行循环共同控制：Prefill 后可以将缓存卸载到 CPU，Verify 在计算请求真正需要时恢复 CPU-resident KV。标准 SD 使用 vanilla/FCFS、超预算 LRU 淘汰和 demand restore，不启用预取、pipeline 或 proactive draft；FastSD 使用调度器预测下一批 Verify 会话，并由后台线程搬运缓存，使预加载与当前计算重叠。`FASTSD_DISABLE_TARGET_CACHE_OFFLOAD` 可以关闭卸载。
 
+**I/O 等待统计**：每个请求记录 `io_stall_available`、`io_stall_ms_total`、`io_stall_count`（实际阻塞次数）和 `exposed_h2d_stall_ms`（未被重叠掩盖的 H2D 等待）。SD 计完整按需恢复等待，FastSD 只计暴露等待。完全覆盖但已被消费的预取记录 0 ms、0 次阻塞，在 `io_stall_restore_count` 中记一次，用于 `avg_ms` 的分母；GPU 驻留命中、未消费预取、独立卸载、RPC 和调度排队不计。汇总同时报告 `available_count` 和 `unavailable_count`，只有实测记录进入统计。AR、无 offload 的 SpecEdge 明确标为不适用；缺少埋点的旧请求不会被补成实测零。整组不可用时等待总量、次数和均值显示 `n/a`。
+
+**AR 延迟**：Edge 用 `/generate/stream` 接收首 token 和最终结果，以本机单调时钟记录请求开始到收到首 token 的 TTFT，以及到收到完整输出的 E2E。TPOT 为 `(E2E - TTFT) / (generated_tokens - 1)`；单 token 时为 0。早于流式接口的 target 不参与该口径，部署时需同时更新 Edge 和 target。
+
 ## 7. 本地解码与基线流程
 
 `benchmark/` 中的入口直接复用 `Decoding`，不一定经过 HTTP 服务。
@@ -172,7 +176,9 @@ Draft 使用 `draft_top_k` 构建完整的稀疏支持集，并在该集合内�
 
 云边运行的请求级指标位于 `exp/<exp_name>/edge_metrics_proc*.jsonl`，汇总位于 `edge_metrics_summary.json`。统一评测文件位于 `exp/comparison/<run_id>/`，包含请求清单、运行 manifest、命令记录和各方法结果。
 
-主要统计项包括 TTFT、TPOT、请求端到端时延、系统输出吞吐、接受率，以及草拟、等待和云端验证耗时。通信量统计的是应用层序列化数据，不包含 TCP/IP 或 SSH 封装；可选能耗服务记录云端 GPU 功耗与能量。
+主要统计项包括 TTFT、TPOT、请求端到端时延、系统输出吞吐、接受率，以及草拟、等待和云端验证耗时。通信量统计的是应用层序列化数据，不包含 TCP/IP 或 SSH 封装；能耗统计只记录云端 Target GPU 的功耗与能量，不计 CPU 和 Edge 功耗。
+
+Target GPU 能量默认取测量窗口起止时的 NVML 累计能量差；只有某张卡返回 `NVML_ERROR_NOT_SUPPORTED` 时，该卡才用 `power.draw` 积分。多卡能量相加，峰值和分位数仍来自功率采样。结果中的 `energy_source` 和 `power_integration_gpu_indices` 标明测量方式和回退卡。NVML Python 绑定需提供 `nvmlDeviceGetTotalEnergyConsumption`；窗口边界读取失败或计数器重置时，能量报 `null`，不改用积分。
 
 统一评测的 MT-Bench 请求只使用第一轮 prompt；`target_only` 用于参照，不计入四方法性能对比。完整评测需要先把模板中的模型路径、网络地址和 CPU 绑定改为实际环境。
 

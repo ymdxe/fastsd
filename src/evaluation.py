@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -16,6 +16,7 @@ DATASET_FILES = {
     "gsm8k": "gsm8k.jsonl",
     "mgsm": "mgsm.jsonl",
     "mt_bench": "mt_bench.jsonl",
+    "mbpp": "mbpp.jsonl",
 }
 
 
@@ -40,7 +41,7 @@ def _dataset_file(dataset: str, data_path: str | Path) -> Path:
 def _record_from_raw(dataset: str, raw: dict[str, Any], index: int) -> EvaluationRecord:
     if dataset == "humaneval":
         sample_id = str(raw.get("task_id", f"humaneval-{index}"))
-        prompt = str(raw["prompt"]).strip()
+        prompt = str(raw["prompt"]).rstrip("\r\n")
         reference = {
             "entry_point": raw.get("entry_point"),
             "canonical_solution": raw.get("canonical_solution"),
@@ -61,6 +62,10 @@ def _record_from_raw(dataset: str, raw: dict[str, Any], index: int) -> Evaluatio
             raise ValueError(f"MT-Bench sample {sample_id} has no turns")
         prompt = str(turns[0]).strip()
         reference = {"category": raw.get("category"), "turns": turns}
+    elif dataset == "mbpp":
+        sample_id = str(raw.get("task_id", f"mbpp-{index}"))
+        prompt = str(raw.get("text") or raw["prompt"]).strip()
+        reference = {"test_list": raw["test_list"], "test_setup_code": raw.get("test_setup_code")}
     else:  # pragma: no cover - guarded by _dataset_file
         raise ValueError(f"Unsupported dataset: {dataset}")
     turn_count = len(raw.get("turns") or []) if dataset == "mt_bench" else 1
@@ -123,6 +128,30 @@ def write_canonical_jsonl(records: Iterable[EvaluationRecord], path: str | Path)
     return output
 
 
+def fixed_history_workload(records, histories, *, arrival_rate, arrival_seed):
+    """Materialize each MT-Bench turn using shared assistant history."""
+    expanded = []
+    for record in records:
+        turns = record.reference["turns"]
+        answers = histories.get(record.sample_id)
+        if not isinstance(answers, list) or len(answers) != len(turns) - 1 or any(not isinstance(answer, str) for answer in answers):
+            raise ValueError(f"MT-Bench requires fixed assistant history for {record.sample_id}")
+        messages = []
+        for index, turn in enumerate(turns):
+            messages.append(dict(role="user", content=turn))
+            reference = {**record.reference, "fixed_messages": list(messages)}
+            expanded.append(replace(record, sample_id=f"{record.sample_id}-turn{index + 1}",
+                                    prompt=turn, reference=reference, turn_index=index))
+            if index < len(answers):
+                messages.append(dict(role="assistant", content=answers[index]))
+    offsets = poisson_arrival_offsets(len(expanded), arrival_rate, arrival_seed)
+    return [replace(record, scheduled_arrival_s=offset) for record, offset in zip(expanded, offsets)]
+
+
+def token_ids_hash(token_ids):
+    return hashlib.sha256(json.dumps(list(token_ids), separators=(",", ":")).encode()).hexdigest()
+
+
 def load_canonical_jsonl(path: str | Path) -> list[dict[str, Any]]:
     with Path(path).open("r", encoding="utf-8") as handle:
         return [json.loads(line) for line in handle if line.strip()]
@@ -136,6 +165,8 @@ def workload_fingerprint(records: Iterable[EvaluationRecord], generation: dict[s
                 "dataset": record.dataset,
                 "prompt": record.prompt,
                 "scheduled_arrival_s": round(record.scheduled_arrival_s, 9),
+                **({"fixed_messages": record.reference["fixed_messages"]}
+                   if isinstance(record.reference, dict) and "fixed_messages" in record.reference else {}),
             }
             for record in records
         ],

@@ -27,6 +27,7 @@ REPO_ROOT = _find_repo_root()
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 from src.run_artifacts import append_command, append_status
+from settings import ADAPTED, OFFICIAL, apply_runtime_options, check_official_checkout, validate_config
 
 
 INTEGRATION_ROOT = Path(__file__).resolve().parent
@@ -37,7 +38,7 @@ def _client_environment(config: dict, client_idx: int, device: str, start_epoch:
     base = config["base"]
     client = config["client"]
     proactive = client["proactive"]
-    integration = config["integration"]
+    integration = config.get("integration", {})
     client_dtype = client.get(
         "dtype",
         "fp32" if str(device).split(":", 1)[0] == "cpu" else base["dtype"],
@@ -50,6 +51,8 @@ def _client_environment(config: dict, client_idx: int, device: str, start_epoch:
         "SPECEDGE_SEED": base["seed"],
         "SPECEDGE_MAX_LEN": base["max_len"],
         "SPECEDGE_DRAFT_MODEL": client["draft_model"],
+        "SPECEDGE_DRAFT_TOKENIZER": client.get("tokenizer", client["draft_model"]),
+        "SPECEDGE_DRAFT_STRUCTURE": client.get("draft_structure", "tree"),
         "SPECEDGE_DEVICE": device,
         "SPECEDGE_DTYPE": client_dtype,
         "SPECEDGE_ENGINE": client.get("engine", "official_graph_engine"),
@@ -65,35 +68,51 @@ def _client_environment(config: dict, client_idx: int, device: str, start_epoch:
         "SPECEDGE_PROACTIVE_MAX_BRANCH_WIDTH": proactive["max_branch_width"],
         "SPECEDGE_PROACTIVE_MAX_BUDGET": proactive["max_budget"],
         "SPECEDGE_MAX_NEW_TOKENS": client["max_new_tokens"],
-        "SPECEDGE_MAX_REQUEST_NUM": -1,
-        "SPECEDGE_REQ_OFFSET": 0,
-        "SPECEDGE_SAMPLE_REQ_CNT": 1,
+        "SPECEDGE_MAX_REQUEST_NUM": -1 if integration else client.get("max_request_num", -1),
+        "SPECEDGE_REQ_OFFSET": 0 if integration else client["req_offset"],
+        "SPECEDGE_SAMPLE_REQ_CNT": 1 if integration else client["sample_req_cnt"],
         "SPECEDGE_HOST": client["host"],
         "SPECEDGE_CLIENT_IDX": client_idx,
         "SPECEDGE_REASONING": client.get("reasoning", False),
+    }
+    if integration:
+        values.update({
         "FASTSD_EVAL_DATASET_FILE": integration["dataset_file"],
         "FASTSD_EVAL_COMPLETION_DIR": integration["completion_dir"],
         "FASTSD_EVAL_NUM_CLIENTS": config["server"]["num_clients"],
         "FASTSD_EVAL_START_EPOCH": start_epoch,
         "FASTSD_EVAL_WORKLOAD_HASH": integration["workload_hash"],
-        "FASTSD_EVAL_METHOD": integration.get("method", "specedge_cpu_adapted"),
+        "FASTSD_EVAL_METHOD": integration.get("method", ADAPTED),
+        "FASTSD_EVAL_CANONICAL_PROMPT": int(bool(integration.get("canonical_prompt"))),
         "FASTSD_EVAL_ARRIVAL_DISTRIBUTION": integration.get(
             "arrival_distribution", "immediate"
         ),
         "FASTSD_EVAL_WARMUP_REQUESTS": integration.get("warmup_requests", 0),
-    }
+        "SPECEDGE_MT_BENCH_TURN_POLICY": integration.get("mt_bench_turn_policy", "multi_turn"),
+        })
     return {key: str(value) for key, value in values.items()}
 
 
 def main(config_file: str) -> int:
     import yaml
 
+    check_official_checkout(SPECEDGE_ROOT)
     with Path(config_file).open("r", encoding="utf-8") as handle:
-        config = yaml.safe_load(handle)
+        config = apply_runtime_options(yaml.safe_load(handle))
 
-    start_epoch = time.time() + float(config["integration"].get("startup_delay_s", 15.0))
-    python = Path(config["integration"].get("python", sys.executable))
-    client_script = INTEGRATION_ROOT / "client.py"
+    method, _devices = validate_config(config)
+    instances = sum(len(clients) for clients in config["node"].values())
+    if instances != int(config["server"]["num_clients"]):
+        raise ValueError(f"configured {instances} instances but expected {config['server']['num_clients']}")
+
+    integration = config.get("integration", {})
+    start_epoch = time.time() + float(integration.get("startup_delay_s", 15.0))
+    python = Path(integration.get("python", sys.executable))
+    if method == OFFICIAL and sys.version_info[:2] != (3, 14):
+        raise RuntimeError("run native SpecEdge client_host with its Python 3.14 environment")
+    if method == OFFICIAL and any(not str(info["device"]).startswith("cuda:") for group in config["node"].values() for info in group):
+        raise ValueError("native SpecEdge draft clients require CUDA Graph capable devices")
+    client_script = INTEGRATION_ROOT / ("native_client.py" if method == OFFICIAL and not integration else "client.py")
     host_script = Path(__file__).resolve()
     processes: list[subprocess.Popen] = []
     client_idx = 0
@@ -123,13 +142,8 @@ def main(config_file: str) -> int:
             processes.append(process)
             client_idx += 1
 
-    if client_idx != int(config["server"]["num_clients"]):
-        raise ValueError(
-            f"configured {client_idx} clients but server.num_clients="
-            f"{config['server']['num_clients']}"
-        )
-    exit_code = max((process.wait() for process in processes), default=0)
-    integration = config["integration"]
+    results = [process.wait() for process in processes]
+    exit_code = max((status if status >= 0 else 128 - status for status in results), default=0)
     # The recorded command must identify this orchestration entry point.  The
     # child processes intentionally still execute client.py, but rerunning the
     # recorded host command is what reproduces the fan-out behavior.
@@ -138,7 +152,7 @@ def main(config_file: str) -> int:
     if status_path:
         append_status(
             status_path,
-            method=integration.get("method", "specedge_cpu_adapted"),
+            method=method,
             phase="run",
             exit_code=exit_code,
             command=command,
@@ -150,7 +164,7 @@ def main(config_file: str) -> int:
             command,
             config=config_file,
             status=exit_code,
-            note=integration.get("method", "specedge_cpu_adapted"),
+            note=method,
         )
     return exit_code
 

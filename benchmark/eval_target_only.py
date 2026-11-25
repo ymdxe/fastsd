@@ -15,7 +15,7 @@ import time
 from pathlib import Path
 
 from benchmark.eval_draft_pool import _encode_prompt, _generate, _load_model
-from src.common_metrics import summarize_requests, write_json
+from src.common_metrics import IO_STALL_NOT_APPLICABLE, summarize_requests, write_json
 from src.evaluation import load_canonical_jsonl
 from src.run_artifacts import append_command, append_status, write_text_once
 from src.runtime import configure_torch_threads
@@ -89,6 +89,7 @@ def run(config_path: str) -> int:
                 "global_index": int(record["global_index"]),
                 "dataset": record["dataset"],
                 "method": "target_only",
+                **IO_STALL_NOT_APPLICABLE,
                 "workload_hash": manifest["workload_hash"],
                 "generated_tokens": int(generated_ids.numel()),
                 "ttft_ms": float(metrics["ttft_ms"]),
@@ -98,7 +99,7 @@ def run(config_path: str) -> int:
                 "processing_start_s": request_start - run_start,
                 "completion_s": metrics["completion_time_s"] - run_start,
                 "latency_basis": "request_processing_start",
-                "throughput_tok_s": (
+                "request_throughput_tok_s": (
                     int(generated_ids.numel()) / (request_e2e_ms / 1000.0)
                     if request_e2e_ms > 0 else None
                 ),
@@ -119,6 +120,9 @@ def run(config_path: str) -> int:
         workload_hash=manifest["workload_hash"],
         run_id=config["run_id"],
         wallclock_s=time.perf_counter() - run_start,
+        track=config["topology"].get("track"),
+        concurrency=config["topology"].get("concurrency"),
+        arrival_distribution=config["dataset"].get("arrival_distribution"),
         evaluation_scope=(
             "communication_smoke"
             if int(config["generation"].get("max_new_tokens", 0)) <= 16
@@ -130,6 +134,7 @@ def run(config_path: str) -> int:
             "dtype": config["generation"].get("target_dtype", "bfloat16"),
             "warmup_requests": warmup_requests,
             "warmup_included_in_metrics": False,
+            "repeat_index": config["topology"].get("repeat_index", 0),
         },
     )
     write_json(summary, output_dir / "summary.json")

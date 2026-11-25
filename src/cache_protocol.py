@@ -126,9 +126,14 @@ class CacheLease:
     host_setup_ms: float = 0.0
 
     def exposed_stall_ms(self):
+        stall = self.io_stall_ms()
+        return self.host_setup_ms if stall is None else stall
+
+    def io_stall_ms(self, *, wait=False):
         if self.wait_end is None:
             return self.host_setup_ms
         if not self.wait_end.query():
-            # Never block the executor just to report a diagnostic.
-            return self.host_setup_ms
-        return self.host_setup_ms + self.wait_start.elapsed_time(self.wait_end)
+            if not wait:
+                return None
+            self.wait_end.synchronize()
+        return self.host_setup_ms + max(0.0, self.wait_start.elapsed_time(self.wait_end))
