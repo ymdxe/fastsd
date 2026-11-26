@@ -1,5 +1,7 @@
 # FastSD
 
+[SpecEdge-Sched server scheduling baseline — configuration, commands and validation](docs/SPECEDGE_SCHEDULER_BASELINE.md)
+
 FastSD 是一个面向云边协同的投机解码研究项目。边缘端运行较小的 Draft 模型，一次生成多个候选 token；云端运行 Target 模型，对候选序列进行验证。边缘端保留被接受的前缀，接上云端返回的 token，再开始下一轮，直到达到停止条件。
 
 仓库同时包含云边服务、直接调用解码算法的本地评测，以及统一数据和指标的多方法对比流程。下面按当前代码的执行顺序介绍各部分如何协作。

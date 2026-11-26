@@ -198,7 +198,7 @@ def parse_arguments():
         default=64,
         help='complete sparse support used by the rejection-mode draft distribution',
     )
-    parser.add_argument('--gamma', type=int, default=6, help='guess time.')
+    parser.add_argument('--gamma', type=int, help='draft depth (default 6, or 4 for specedge)')
     parser.add_argument('--draft_device', type=str, default='cuda:1')
     parser.add_argument('--target_device', type=str, default='cuda:0')
     parser.add_argument(
@@ -336,8 +336,8 @@ def parse_arguments():
         "--server_sched_mode",
         type=str,
         default="fastsd",
-        choices=["fastsd", "pipeline", "vanilla"],
-        help="cloud scheduling mode: fastsd uses custom optimizations; pipeline uses baseline pipeline scheduling only",
+        choices=["fastsd", "pipeline", "vanilla", "specedge"],
+        help="cloud scheduler: fastsd planner, pipeline/vanilla singleton FCFS, or specedge dynamic FIFO",
     )
     parser.add_argument(
         "--target_attention_backend",
@@ -488,6 +488,8 @@ def parse_arguments():
                         help="paired-replay calibration JSON; unknown contexts pause compute-window DMA")
     parser.add_argument("--gamma_policy", choices=("legacy", "progress"), default="progress")
     args = parser.parse_args()
+    if args.gamma is None:
+        args.gamma = 4 if args.server_sched_mode == "specedge" else 6
     if args.kv_prefetch_implementation not in {"h1", "legacy"}:
         parser.error("--kv_prefetch_implementation must be h1 or legacy")
     if args.arrival_distribution == "poisson" and args.arrival_rate <= 0:
@@ -506,7 +508,7 @@ def parse_arguments():
         parser.error("--min_prefill_chunk_tokens must be positive")
     if args.prefill_chunk_quantum <= 0:
         parser.error("--prefill_chunk_quantum must be positive")
-    if args.min_prefill_chunk_tokens > args.token_budget:
+    if args.server_sched_mode != "specedge" and args.min_prefill_chunk_tokens > args.token_budget:
         parser.error("--min_prefill_chunk_tokens must not exceed --token_budget")
     if args.session_idle_timeout < 0 or args.ahead_max_tokens < 0:
         parser.error("session timeout and ahead limit must be non-negative")
@@ -546,6 +548,13 @@ def parse_arguments():
         parser.error("--pipeline_gamma_step must be positive")
     if args.timing_max_clock_uncertainty_ms < 0:
         parser.error("--timing_max_clock_uncertainty_ms must be non-negative")
+    if args.server_sched_mode == "specedge":
+        if args.gamma not in (4, 8):
+            parser.error("SpecEdge comparison uses fixed --gamma 4 or 8")
+        if args.kv_residency_budget_mb and args.kv_residency_activation == "bypass":
+            parser.error("SpecEdge positive KV budget requires lazy or eager activation")
+        args.pipeline_gamma_adapt = False
+        args.kv_residency_victim_policy = "lru"
     if args.enable_latency_priority is None:
         args.enable_latency_priority = args.server_sched_mode == "fastsd"
     if args.enable_latency_priority and args.server_sched_mode != "fastsd":

@@ -28,6 +28,7 @@ from .cache_residency import (
     ResidencyManager,
     resident_kv_bytes,
 )
+from .specedge_scheduler import WorkerInbox, run_dynamic_fifo
 from .session_lifecycle import SessionLifecycle
 from .cache_transfer import CacheTransferManager
 from .cache_protocol import PrefetchTarget
@@ -1085,6 +1086,10 @@ class Decoding(ABC):
                                     request_queue,  # Draft → Target 公共队列
                                     response_queues):  # proc_id → Queue
 
+        sched_mode = getattr(self.args, "server_sched_mode", "fastsd")
+        if sched_mode not in {"fastsd", "specedge", "pipeline", "vanilla"}:
+            raise ValueError(f"unknown server scheduler: {sched_mode}")
+        specedge_inbox = WorkerInbox() if sched_mode == "specedge" else None
         self.color_print(f"Loading target model: {self.args.target_model}", 3)
         target_model = self._load_target_model_for_service(
             self.args.target_model, self._service_target_device()
@@ -1251,11 +1256,10 @@ class Decoding(ABC):
         accept_stats_version = [0]
         committed_prefix_tokens = {}  # {proc_id: List[int]} for debug context display
         sampling_generators = {}  # session/proc id -> target-side rejection RNG
-        gamma_control = self._gamma_controller()
-        progress_profiles = gamma_control.profiles
+        gamma_control = None if specedge_inbox is not None else self._gamma_controller()
         batch_cost = BatchCostModel()
         batch_cost_lock = threading.RLock()
-        length_classifier = TaskLengthClassifier()
+        length_classifier = TaskLengthClassifier() if sched_mode == "fastsd" else None
         residency = CacheResidency()
         # Explicit-budget placement policy.  budget_bytes == 0 keeps every
         # cache on the GPU and never runs the transfer machinery at all.
@@ -1264,7 +1268,7 @@ class Decoding(ABC):
             high_ratio=float(getattr(self.args, "kv_residency_high_ratio", 0.90)),
             low_ratio=float(getattr(self.args, "kv_residency_low_ratio", 0.75)),
             headroom_bytes=int(float(getattr(self.args, "kv_headroom_mb", 512.0)) * 1024 ** 2),
-            victim_policy=getattr(
+            victim_policy="lru" if specedge_inbox is not None else getattr(
                 self.args, "kv_residency_victim_policy", "cost_minus_idle_descending"
             ),
             activation_mode=(
@@ -1275,11 +1279,13 @@ class Decoding(ABC):
         scheduler_metrics["lazy_activation_mode"] = residency_manager.mode
         plan_sequence = {"tick": 0}
         prefetch_requested = bool(getattr(self.args, "kv_prefetch", True))
+        fastsd_prefetch = sched_mode == "fastsd" and prefetch_requested
+        scheduler_metrics["kv_prefetch_requested"] = prefetch_requested
         prefetch_implementation = (
             getattr(self.args, "kv_prefetch_implementation", "h1")
-            if prefetch_requested else "disabled"
+            if fastsd_prefetch else "disabled"
         )
-        use_h1_prefetch = prefetch_requested and prefetch_implementation == "h1"
+        use_h1_prefetch = fastsd_prefetch and prefetch_implementation == "h1"
         h1_prefetch = None
         prefetch_reclaim = {"required_free": 0}
         # A triggering SHADOW sample is reused by the executor boundary.  This
@@ -1307,7 +1313,8 @@ class Decoding(ABC):
                 removed.add(work_id)
                 work_items.pop(work_id, None)
                 response_queues[item.response_key or pid].put({"error": "session released"})
-            task_queues.remove_work_ids(removed)
+            if removed:
+                task_queues.remove_work_ids(removed)
 
         def cleanup_session(pid):
             """Discard a terminal session without copying its KV to the CPU."""
@@ -1325,13 +1332,14 @@ class Decoding(ABC):
                 accept_stats.pop(pid, None)
             for store in (committed_prefix_tokens, sampling_generators, pending_prefill_timing):
                 store.pop(pid, None)
-            gamma_control.forget(pid)
+            if gamma_control is not None:
+                gamma_control.forget(pid)
             pending_prefill_cancel.discard(pid)
 
         lifecycle = SessionLifecycle(
             cleanup=cleanup_session, cancel=cancel_session,
             protected=residency.protected_snapshot,
-            busy=lambda: {item.proc_id for item in work_items.values() if not item.finished},
+            busy=lambda: specedge_inbox.busy() if specedge_inbox is not None else {item.proc_id for item in work_items.values() if not item.finished},
             reply=lambda key, payload: response_queues[key].put(payload),
             idle_timeout=float(getattr(self.args, "session_idle_timeout", 300.0)),
         )
@@ -1509,7 +1517,7 @@ class Decoding(ABC):
         # The prefetch arena, pinned pool and copy streams are created only
         # when the residency manager enters ACTIVE; BYPASS allocates nothing.
         calibration_path = getattr(self.args, "kv_prefetch_calibration", None)
-        if calibration_path and not use_h1_prefetch:
+        if calibration_path and specedge_inbox is None and not use_h1_prefetch:
             gpu_uuid = (str(torch.cuda.get_device_properties(target_model.device).uuid)
                         if target_model.device.type == "cuda" else "cpu")
             transfers.load_calibration(calibration_path, context={
@@ -1706,8 +1714,7 @@ class Decoding(ABC):
                     pid, valid_len=length, bytes_per_token=per_token,
                     cache=cache, version=residency.version(pid),
                     epoch=getattr(residency, "epochs", {}).get(pid, 0))
-            if (not use_strict_fcfs and prefetch_enabled
-                    and getattr(self.args, "kv_prefetch", True)):
+            if prefetch_enabled:
                 if not use_h1_prefetch:
                     transfers.warmup_prefetch_pool()
                     prefetch_worker.start()
@@ -1858,7 +1865,7 @@ class Decoding(ABC):
                 # Register their recency after creation as well, so new KV
                 # does not appear older than every previously used session.
                 residency_manager.note_used(pid, plan_sequence["tick"])
-                if req.get("task_type") in {"prefill", "verify"}:
+                if specedge_inbox is None and req.get("task_type") in {"prefill", "verify"}:
                     with accept_stats_lock:
                         accepted, proposed = accept_stats.get(pid, (0, 0))
                     # Match the scheduler's smoothed acceptance estimate.
@@ -2015,6 +2022,7 @@ class Decoding(ABC):
             forward_measurements.clear()
             current_batch[:] = batch
             try:
+                launched_at = time.monotonic()
                 started = time.perf_counter()
                 # Evict before touching this batch: victims are chosen outside
                 # the active/reserved set and never include a batch pid.
@@ -2050,24 +2058,30 @@ class Decoding(ABC):
                             payload.update(forward_gpu_ms=gpu_ms,
                                 batch_start_delay_ms=req.get("_batch_start_delay_ms", 0.0))
                             payload.update(io_stall.fields())
-                    rows = [cost_features(req) for req in batch]
-                    with batch_cost_lock:
-                        batch_cost.observe(batch[0]["task_type"], rows,
-                            gpu_ms / 1000 if compute_stream is not None else time.perf_counter() - started)
+                            if specedge_inbox is not None:
+                                scheduler_metrics["demand_restore_stall_ms"] += io_stall.total_ms
+                    if specedge_inbox is None:
+                        rows = [cost_features(req) for req in batch]
+                        with batch_cost_lock:
+                            batch_cost.observe(batch[0]["task_type"], rows,
+                                gpu_ms / 1000 if compute_stream is not None else time.perf_counter() - started)
                 if not return_responses:
                     for req in batch:
                         payload = result.get(req["proc_id"])
                         if payload is not None:
                             if req["task_type"] == "verify":
-                                elapsed = max(0.0, time.monotonic() - req.get("server_enqueue_monotonic", started))
+                                enqueued = (req["worker_enqueue_monotonic"] if specedge_inbox is not None
+                                            else req.get("server_enqueue_monotonic", launched_at))
+                                elapsed = max(0.0, time.monotonic() - enqueued)
                                 service = float(payload.get("forward_gpu_ms", 0) if compute_stream is not None
                                                 else payload.get("verify_ms", 0)) / 1000.0
-                                payload.update(gamma_control.finish(req["proc_id"],
-                                    accepted=int(payload["accepted"]) - int(req["prefix_len"]),
-                                    proposed=int(req["gamma"]), request=req,
-                                    verify_s=service, queue_s=max(0, elapsed - service)))
+                                if gamma_control is not None:
+                                    payload.update(gamma_control.finish(req["proc_id"],
+                                        accepted=int(payload["accepted"]) - int(req["prefix_len"]),
+                                        proposed=int(req["gamma"]), request=req,
+                                        verify_s=service, queue_s=max(0, elapsed - service)))
+                                    scheduler_metrics["gamma_rounds"] = gamma_control.rounds
                                 payload["request_e2e_ms"] = elapsed * 1000.0
-                                scheduler_metrics["gamma_rounds"] = gamma_control.rounds
                             response_queues[req.get("response_key", req["proc_id"])].put(payload)
                 return result if return_responses else None
             finally:
@@ -2433,7 +2447,7 @@ class Decoding(ABC):
         # daemon worker performs the copies.  Execution re-derives
         # stale/load sets and refuses to touch active or reserved pids.
         prefetch_enabled = (
-            prefetch_requested
+            fastsd_prefetch
             and os.environ.get("FASTSD_DISABLE_TARGET_CACHE_OFFLOAD", "").lower()
             not in {"1", "true", "yes", "on"}
         )
@@ -2457,6 +2471,7 @@ class Decoding(ABC):
                 prefetch_reclaim["required_free"] = max(
                     prefetch_reclaim["required_free"], required_free)
 
+        prefetch_worker = None
         if use_h1_prefetch:
             h1_prefetch = H1Prefetcher(
                 residency=residency, manager=residency_manager, get_cache=_cache_get,
@@ -2465,7 +2480,7 @@ class Decoding(ABC):
                 tick=lambda: plan_sequence["tick"], reclaim=request_prefetch_reclaim,
                 thread_setup=_bind_target_device)
             prefetch_worker = prefetch_coordinator = h1_prefetch
-        else:
+        elif sched_mode == "fastsd":
             prefetch_worker = KVPrefetchWorker(
                 residency=residency,
                 get_cache=_cache_get,
@@ -2578,7 +2593,7 @@ class Decoding(ABC):
             if item.task_type == "prefill":
                 wait = max(0.0, time.monotonic() - item.request.get("server_enqueue_monotonic", time.monotonic()))
                 return (1.0 + wait) / max(1e-6, marginal * item.remaining_tokens / max(1, sl.draft_token_count))
-            profile = progress_profiles.get(item.proc_id, default_profile)
+            profile = gamma_control.profiles.get(item.proc_id, default_profile)
             final = sl.offset + sl.draft_token_count >= item.total_tokens
             return profile.slice_progress(item.accepted_so_far, sl.draft_token_count, final) / marginal
 
@@ -3170,8 +3185,6 @@ class Decoding(ABC):
                             transfers.retire(ticket)
 
         # ---------------------- 主循环 -------------------------------
-        sched_mode = getattr(self.args, "server_sched_mode", "fastsd")
-        use_strict_fcfs = sched_mode in {"pipeline", "vanilla"}
 
         def tensorize_draft_output(req: dict) -> dict:
             draft_output = req.get("draft_output")
@@ -3363,7 +3376,81 @@ class Decoding(ABC):
                     "scheduler_mode": getattr(self.args, "server_sched_mode", None),
                 },
             )
-            if use_strict_fcfs:
+            if specedge_inbox is not None:
+                effective = dict(method="specedge_sched", scheduler="dynamic_fifo", batch_wait_ms=0,
+                    implementation="fastsd_shared_backend", baseline_scope="server_scheduler_only",
+                    admission_limit="batch_size_only", effective_token_budget=None,
+                    prefill_protocol="fastsd_separate_rpc", phase_order="serial_prefill_then_batched_verify",
+                    draft_structure="single_chain", gamma_adaptation=False, gamma=self.args.gamma,
+                    batch_size=self.args.batch_size, kv_prefetch_requested=prefetch_requested,
+                    predictive_kv_prefetch=False, device=str(target_model.device), dtype=str(target_model.dtype),
+                    memory_adaptation="lru_demand" if residency_manager.enabled else "resident")
+                self.color_print(json.dumps(effective), 3)
+                scheduler_metrics.update(effective)
+                scheduler_metrics.update(prefetch_lookahead_rounds=0, prefetch_horizon_limit=0,
+                    admission_batches=0, admitted_requests=0, prefill_forwards=0, verify_forwards=0,
+                    verify_rows=0, query_tokens=0, demand_restore_stall_ms=0.0)
+
+                def reply_error(req, error):
+                    response_queues[req.get("response_key", req["proc_id"])].put({"error": error})
+
+                def admit(req):
+                    lifecycle.touch(req["proc_id"])
+                    req = canonicalize_ingress(req)
+                    if req and req["task_type"] == "verify" and req["proc_id"] not in kv_cache_manager._past_key_values:
+                        reply_error(req, "session has no target cache; prefill required")
+                        return None
+                    return req
+
+                def control(msg):
+                    if msg["control_type"] in {"session_release", "prefill_cancel"}:
+                        lifecycle.release(msg["proc_id"], msg.get("response_key"))
+                        flush_session_releases()
+                    elif msg["control_type"] != "prefill_timing":
+                        reply_error(msg, "unknown control message")
+
+                def execute(phase):
+                    if energy_service is not None:
+                        energy_service.enter_active()
+                    try:
+                        plan_sequence["tick"] += 1
+                        prepare_plan_boundary()
+                        handle_request_batch(phase)
+                        for req in phase:
+                            lifecycle.touch(req["proc_id"])
+                    finally:
+                        if energy_service is not None:
+                            energy_service.exit_active()
+
+                def sealed(batch_id, requests, reason, at):
+                    scheduler_metrics["admission_batches"] += 1
+                    scheduler_metrics["admitted_requests"] += len(requests)
+                    if DIAG.enabled:
+                        DIAG.emit("specedge_seal", batch_id=batch_id, reason=reason, at=at,
+                            requests=[{**diag_req(r), "response_key": r.get("response_key"),
+                                "worker_enqueue_seq": r["worker_enqueue_seq"],
+                                "worker_enqueue_monotonic": r["worker_enqueue_monotonic"],
+                                "queue_wait_ms": (at-r["worker_enqueue_monotonic"]) * 1000} for r in requests])
+
+                def phase_done(batch_id, phase, started, ended):
+                    kind = phase[0]["task_type"]
+                    tokens = sum(r["draft_output"].shape[1] - (0 if r.get("tail_only") else r["_cached_context"])
+                                 for r in phase)
+                    scheduler_metrics[kind + "_forwards"] += 1
+                    scheduler_metrics["query_tokens"] += tokens
+                    if kind == "verify":
+                        scheduler_metrics["verify_rows"] += len(phase)
+                    if DIAG.enabled:
+                        DIAG.emit("specedge_phase", batch_id=batch_id, phase=kind, query_tokens=tokens,
+                            enqueue_seq=[r["worker_enqueue_seq"] for r in phase], started=started, ended=ended)
+
+                ingress_relay = IngressRelay(request_queue, wake_event, destination=specedge_inbox)
+                ingress_relay.start()
+                run_dynamic_fifo(specedge_inbox, self.args.batch_size, admit=admit, execute=execute,
+                    reserve=residency.reserve, release=residency.release, reject=reply_error,
+                    control=control, maintenance=flush_session_releases, sealed=sealed, phase_done=phase_done)
+                return
+            if sched_mode in {"pipeline", "vanilla"}:
                 while True:
                     try:
                         req = request_queue.get(timeout=0.01)
@@ -3452,8 +3539,9 @@ class Decoding(ABC):
             if executor is not None:
                 executor.stop()
                 executor.join()
-            prefetch_worker.stop()
-            prefetch_worker.join()
+            if prefetch_worker is not None:
+                prefetch_worker.stop()
+                prefetch_worker.join()
             if ingress_relay is not None:
                 ingress_relay.close()
             for pid in list(lifecycle.last_seen):
@@ -3481,6 +3569,9 @@ class Decoding(ABC):
                 transfers.metrics["kv_transfer_prefetch_avg_s"] = (
                     float(scheduler_metrics.get("prefetch_copy_ms", 0.0) or 0.0) / copies / 1000
                     if copies else 0.0)
+            if specedge_inbox is not None:
+                scheduler_metrics["prefetch_bytes"] = transfers.metrics["speculative_submitted_bytes"]
+                scheduler_metrics["demand_restore_bytes"] = transfers.metrics["h2d_bytes"]
             scheduler_metrics["cache_transfers"] = dict(transfers.metrics)
             scheduler_metrics["prefetch_bytes_by_horizon"] = dict(transfers.metrics["prefetch_bytes_by_horizon"])
             scheduler_metrics["kv_residency"] = residency_manager.stats()
@@ -3493,7 +3584,7 @@ class Decoding(ABC):
             scheduler_metrics["prefetch_ready"] = scheduler_metrics.get("prefetch_ready_hit", 0)
             scheduler_metrics["prefetch_candidates"] = scheduler_metrics.get("prefetch_candidates", 0)
             scheduler_metrics["kv_overlap_controller"] = transfers.controller_status()
-            scheduler_metrics["kv_prefetch_effective_mode"] = transfers.mode
+            scheduler_metrics["kv_prefetch_effective_mode"] = ("disabled" if specedge_inbox is not None else transfers.mode)
             actual_plans = scheduler_metrics["actual_plans"]
             ready = scheduler_metrics["prefetch_ready_hit"]
             scheduler_metrics["ready_per_actual_plan"] = ready / actual_plans if actual_plans else None

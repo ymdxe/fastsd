@@ -57,9 +57,9 @@ class NotifyingQueue(queue.Queue):
 class IngressRelay:
     """Bridge process ingress into the control loop's shared event channel."""
 
-    def __init__(self, source, wake_event):
+    def __init__(self, source, wake_event, *, destination=None):
         self.source = source
-        self.queue = NotifyingQueue(wake_event)
+        self.queue = NotifyingQueue(wake_event) if destination is None else destination
         self._stop = threading.Event()
         self._thread = threading.Thread(target=self._run, daemon=True, name="fastsd-ingress")
 

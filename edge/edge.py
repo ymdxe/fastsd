@@ -2074,9 +2074,10 @@ class EdgeRunner(Decoding):
             request_start_epoch = time.time()
             DIAG.emit("request_start", task_id=sample.get("sample_id"), index=idx, scheduled_arrival_s=scheduled_arrival_s, actual_arrival_s=actual_arrival_s, arrival_lag_ms=arrival_lag_ms, pending_arrived=diag_backlog(arrival_offsets or [], actual_arrival_s, global_idx), local_t0=arrival_origin)
             transport_before = client.snapshot_transport_stats()
-            session_id = client.init_session()
+            session_id = None
             session_released = None
             try:
+                session_id = client.init_session()
                 sampling_seed = int(self.args.seed) + int(global_idx)
                 verify_method = str(getattr(self.args, "verify_method", "rejection")).lower()
                 draft_top_k = int(getattr(self.args, "draft_top_k", 64))
@@ -2674,7 +2675,7 @@ class EdgeRunner(Decoding):
 
                 generated_tokens = int(prefix.shape[1] - input_ids.shape[1])
                 input_ids_hash = sample.get("input_ids_sha256")
-                if getattr(self.args, "specedge_comparison", False):
+                if getattr(self.args, "specedge_comparison", False) or os.environ.get("FASTSD_COMPARISON_METHOD"):
                     from src.evaluation import token_ids_hash
 
                     input_ids_hash = token_ids_hash(input_ids[0].tolist())
@@ -2820,10 +2821,23 @@ class EdgeRunner(Decoding):
                         "TCP/IP, and SSH encapsulation"
                     ),
                 }
+                if self.args.server_sched_mode == "specedge":
+                    per_task.update(method="specedge_sched", baseline_scope="server_scheduler_only",
+                                    implementation="fastsd_shared_backend")
+                elif os.environ.get("FASTSD_COMPARISON_METHOD"):
+                    per_task["method"] = os.environ["FASTSD_COMPARISON_METHOD"]
                 with open(self._metrics_path(proc_id), "a") as f:
                     f.write(json.dumps(per_task, ensure_ascii=True) + "\n")
+            except Exception as exc:
+                if os.environ.get("FASTSD_COMPARISON_METHOD"):
+                    failure = dict(global_sample_index=global_idx, sample_id=sample["sample_id"],
+                        error_type=type(exc).__name__, error=str(exc), arrival_lag_ms=arrival_lag_ms)
+                    path = os.path.join(self.args.exp_name, f"failed_requests_proc{proc_id}.jsonl")
+                    with open(path, "a", encoding="utf-8") as stream:
+                        stream.write(json.dumps(failure) + "\n")
+                raise
             finally:
-                if session_released is None:
+                if session_id is not None and session_released is None:
                     self._release_target_session(client, session_id)
 
 

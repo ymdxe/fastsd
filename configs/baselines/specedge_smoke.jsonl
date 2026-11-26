@@ -1,0 +1,16 @@
+{"sample_id": "smoke-00", "prompt": "def plus_one(x):", "scheduled_arrival_s": 0.0}
+{"sample_id": "smoke-01", "prompt": "def sum_even_squares(values):\n    \"\"\"Return the sum of squared even integers in values. An empty input returns zero.\"\"\"", "scheduled_arrival_s": 0.01}
+{"sample_id": "smoke-02", "prompt": "def reverse_list(values):", "scheduled_arrival_s": 0.02}
+{"sample_id": "smoke-03", "prompt": "def first_duplicate(values):\n    \"\"\"Return the first repeated value, keeping encounter order. Return None if all values are distinct.\"\"\"", "scheduled_arrival_s": 0.03}
+{"sample_id": "smoke-04", "prompt": "def plus_one(x):", "scheduled_arrival_s": 0.04}
+{"sample_id": "smoke-05", "prompt": "def sum_even_squares(values):\n    \"\"\"Return the sum of squared even integers in values. An empty input returns zero.\"\"\"", "scheduled_arrival_s": 0.05}
+{"sample_id": "smoke-06", "prompt": "def reverse_list(values):", "scheduled_arrival_s": 0.06}
+{"sample_id": "smoke-07", "prompt": "def first_duplicate(values):\n    \"\"\"Return the first repeated value, keeping encounter order. Return None if all values are distinct.\"\"\"", "scheduled_arrival_s": 0.07}
+{"sample_id": "smoke-08", "prompt": "def plus_one(x):", "scheduled_arrival_s": 0.08}
+{"sample_id": "smoke-09", "prompt": "def sum_even_squares(values):\n    \"\"\"Return the sum of squared even integers in values. An empty input returns zero.\"\"\"", "scheduled_arrival_s": 0.09}
+{"sample_id": "smoke-10", "prompt": "def reverse_list(values):", "scheduled_arrival_s": 0.1}
+{"sample_id": "smoke-11", "prompt": "def first_duplicate(values):\n    \"\"\"Return the first repeated value, keeping encounter order. Return None if all values are distinct.\"\"\"", "scheduled_arrival_s": 0.11}
+{"sample_id": "smoke-12", "prompt": "def plus_one(x):", "scheduled_arrival_s": 0.12}
+{"sample_id": "smoke-13", "prompt": "def sum_even_squares(values):\n    \"\"\"Return the sum of squared even integers in values. An empty input returns zero.\"\"\"", "scheduled_arrival_s": 0.13}
+{"sample_id": "smoke-14", "prompt": "def reverse_list(values):", "scheduled_arrival_s": 0.14}
+{"sample_id": "smoke-15", "prompt": "def first_duplicate(values):\n    \"\"\"Return the first repeated value, keeping encounter order. Return None if all values are distinct.\"\"\"", "scheduled_arrival_s": 0.15}
