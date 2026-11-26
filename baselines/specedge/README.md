@@ -45,14 +45,11 @@ Windows 本地可以完成源码获取、版本固定、配置检查和 Python �
 python baselines/specedge/repro.py doctor
 python baselines/specedge/repro.py paper-matrix
 python baselines/specedge/repro.py recommend-depth --verify-ms 94.2 --draft-ms 11 --rtt-ms 15
-python -m unittest tests.test_specedge_repro -v
 python scripts/run_tests.py
 ```
 
-`doctor` 在 Windows 上会给出运行时警告，但只要官方源码、固定提交和六份配置正确，
-本地集成检查应通过。统一入口在 FastSD 的 Python 3.10 环境中会跳过官方源码编译，
-因为官方源码使用 Python 3.14 语法；GitHub CI 使用
-`python scripts/run_tests.py --strict-official` 在 Python 3.14 下执行严格检查。
+`doctor` 核对官方源码、固定提交和六份配置。在已安装 FastSD CPU 测试依赖的环境中，`python scripts/run_tests.py` 会执行这些检查并运行 `tests` 目录下的测试。
+GitHub CI 用 Python 3.14 编译官方源码，通过 `--test-python` 指定安装了 CPU 依赖的 Python 3.12 解释器。双环境本地运行可使用 `py -3.14 scripts/run_tests.py --strict-official --test-python <FastSD环境的python.exe路径>`。
 `doctor --strict-runtime` 用于完整 Linux GPU 运行环境，会把缺少的运行时条件视为失败。
 
 ## 获取子模块
